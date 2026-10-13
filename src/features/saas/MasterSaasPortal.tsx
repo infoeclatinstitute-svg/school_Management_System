@@ -86,7 +86,7 @@ export function MasterSaasPortal() {
     if (licensingStore.verifyMasterAuth(passcode)) {
       setIsAuthenticated(true)
     } else {
-      setAuthError('Invalid Master Access Passcode. (Default: GC-MASTER-2026)')
+      setAuthError('Invalid Master Access Passcode. Access denied.')
     }
   }
 
@@ -247,7 +247,7 @@ export function MasterSaasPortal() {
                 id={`${formId}-passcode`}
                 type="password"
                 required
-                placeholder="e.g. GC-MASTER-2026"
+                placeholder="Enter Master Passcode"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
                 style={{
