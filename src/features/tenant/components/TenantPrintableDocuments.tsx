@@ -241,22 +241,22 @@ export function StudentAdmissionLetterModal({
             <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               CONFIDENTIAL • STUDENT ONLINE CAMPUS LOGIN CREDENTIALS
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '0.75rem' }}>
-              <div>
-                <div style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 700 }}>Student Portal URL:</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 700, minWidth: '140px', flexShrink: 0, paddingTop: '2px' }}>Student Portal URL:</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', wordBreak: 'break-all', flex: 1 }}>
                   {school.custom_domain ? `https://${school.custom_domain}/student` : `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${school.slug}/student`}
                 </div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 700 }}>Portal Username / ID:</div>
-                <div style={{ fontSize: '1rem', fontWeight: 900, color: primaryColor }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 700, minWidth: '140px', flexShrink: 0 }}>Portal Username / ID:</div>
+                <div style={{ fontSize: '1rem', fontWeight: 900, color: primaryColor, letterSpacing: '0.04em' }}>
                   {student.username || student.admission_number}
                 </div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 700 }}>Temporary Access PIN:</div>
-                <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', letterSpacing: '0.08em' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 700, minWidth: '140px', flexShrink: 0 }}>Temporary Access PIN:</div>
+                <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', letterSpacing: '0.1em' }}>
                   {student.temp_password || 'PIN-8492'}
                 </div>
               </div>
@@ -539,21 +539,21 @@ export function StaffLoginSlipModal({
             <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#1d4ed8', textTransform: 'uppercase' }}>
               OFFICIAL SYSTEM LOGIN DETAILS
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '0.75rem' }}>
-              <div>
-                <div style={{ fontSize: '0.74rem', color: '#1d4ed8', fontWeight: 700 }}>Desk Portal URL:</div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '0.74rem', color: '#1d4ed8', fontWeight: 700, minWidth: '160px', flexShrink: 0, paddingTop: '2px' }}>Desk Portal URL:</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', wordBreak: 'break-all', flex: 1 }}>
                   {school.custom_domain ? `https://${school.custom_domain}/${staff.role}` : `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${school.slug}/${staff.role}`}
                 </div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.74rem', color: '#1d4ed8', fontWeight: 700 }}>Portal Username:</div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '0.74rem', color: '#1d4ed8', fontWeight: 700, minWidth: '160px', flexShrink: 0 }}>Portal Username:</div>
                 <div style={{ fontSize: '1rem', fontWeight: 900, color: primaryColor }}>
                   {staff.username}
                 </div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.74rem', color: '#1d4ed8', fontWeight: 700 }}>Initial Temporary Password:</div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ fontSize: '0.74rem', color: '#1d4ed8', fontWeight: 700, minWidth: '160px', flexShrink: 0 }}>Initial Temporary Password:</div>
                 <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a', letterSpacing: '0.04em' }}>
                   {staff.temp_password || 'StaffPass2026!'}
                 </div>
