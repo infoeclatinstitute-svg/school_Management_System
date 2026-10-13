@@ -60,11 +60,11 @@ export function LandingPage() {
               onClick={() => navigate('/register-school')}
               style={{ background: '#fff', color: '#1e3a8a', border: 'none', borderRadius: '12px', padding: '0.9rem 2rem', fontWeight: 900, fontSize: '1rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }}
             >
-              🏫 Register Your School — Free
+              🏫 Register Your School
             </button>
           </div>
           <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '1rem' }}>
-            No credit card required · Instant setup · Your own URL
+            Instant Setup · Custom Domain · Multi-Campus Portals
           </p>
         </div>
       </section>
@@ -122,7 +122,7 @@ export function LandingPage() {
           onClick={() => navigate('/register-school')}
           style={{ background: '#1e3a8a', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem 2.5rem', fontWeight: 900, fontSize: '1.05rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(30,58,138,0.3)' }}
         >
-          🏫 Register Now — It's Free
+          🏫 Register Your Institution →
         </button>
       </section>
 

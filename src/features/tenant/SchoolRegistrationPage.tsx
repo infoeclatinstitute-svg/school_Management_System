@@ -525,7 +525,7 @@ export function SchoolRegistrationPage() {
                   letterSpacing: '0.05em',
                 }}
               >
-                💎 {(registeredSchool.subscription_tier || 'growth').toUpperCase()} PLAN • 14-DAY FREE TRIAL
+                💎 {(registeredSchool.subscription_tier || 'growth').toUpperCase()} PLAN • ACTIVATION KEY REQUIRED
               </span>
             </div>
 
@@ -1942,7 +1942,7 @@ export function SchoolRegistrationPage() {
                         5. Select Institutional Cloud Plan &amp; Deploy
                       </h3>
                       <p style={{ fontSize: '0.84rem', color: '#64748b', margin: 0 }}>
-                        Includes a <strong>14-day full-feature free trial</strong>. Instant provisioning with zero setup fees.
+                        Platform Rate: <strong>KES 2,500 / campus / month</strong>. Activated via official Product Key.
                       </p>
                     </div>
 

@@ -1066,11 +1066,11 @@ export function MasterSaasPortal() {
                                   textTransform: 'uppercase',
                                 }}
                               >
-                                {sch.subscription_status || 'Trial'}
+                                {sch.active_license_key ? (sch.subscription_status || 'Licensed') : 'Unlicensed'}
                               </span>
                             </td>
                             <td style={{ padding: '0.85rem 0.75rem', fontSize: '0.78rem', color: '#cbd5e1' }}>
-                              {sch.license_valid_until ? sch.license_valid_until.split('T')[0] : '14-Day Trial'}
+                              {sch.license_valid_until ? sch.license_valid_until.split('T')[0] : (sch.active_license_key ? 'Active' : 'Awaiting Key')}
                             </td>
                             <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right' }}>
                               <div style={{ display: 'inline-flex', gap: '6px' }}>

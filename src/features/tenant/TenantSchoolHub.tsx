@@ -362,11 +362,10 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
     </div>
   )
 
-  const isLicenseActive =
-    school.subscription_status === 'active' ||
-    school.subscription_status === 'trial' ||
-    school.subscription_status === 'licensed' ||
-    Boolean(school.active_license_key)
+  const isLicenseActive = Boolean(
+    school.active_license_key &&
+    (school.subscription_status === 'active' || school.subscription_status === 'licensed')
+  )
 
   // Product Key License Required Fallback Card
   const renderLicenseRequiredCard = (deskName: string) => (
@@ -599,9 +598,9 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 setShowLicenseModal(true)
               }}
               style={{
-                background: school.subscription_status === 'active' ? '#f0fdf4' : '#fffbeb',
-                color: school.subscription_status === 'active' ? '#15803d' : '#b45309',
-                border: school.subscription_status === 'active' ? '1px solid #86efac' : '1px solid #fde68a',
+                background: isLicenseActive ? '#f0fdf4' : '#fffbeb',
+                color: isLicenseActive ? '#15803d' : '#b45309',
+                border: isLicenseActive ? '1px solid #86efac' : '1px solid #fde68a',
                 borderRadius: '8px',
                 padding: '0.35rem 0.65rem',
                 fontSize: '0.74rem',
@@ -613,8 +612,8 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               }}
               title="Activate / View Institutional Product License"
             >
-              <AwardIcon size={13} color={school.subscription_status === 'active' ? '#15803d' : '#b45309'} />
-              <span>{school.subscription_status === 'active' ? '🔑 License Active' : '🔑 Enter Product Key'}</span>
+              <AwardIcon size={13} color={isLicenseActive ? '#15803d' : '#b45309'} />
+              <span>{isLicenseActive ? '🔑 License Active' : '🔑 Enter Product Key'}</span>
             </button>
 
             {/* Admin-Only Domain Setup Button */}
@@ -832,31 +831,31 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         {/* VIEW 1: MAIN HUB */}
         {activeTab === 'hub' && (
           <div>
-            {/* Complimentary Trial / License Activation Notice */}
-            {!school.active_license_key && (
+            {/* License Activation Required Banner */}
+            {!isLicenseActive && (
               <div
                 style={{
-                  background: '#f0fdf4',
-                  border: '1.5px solid #86efac',
+                  background: '#fffbeb',
+                  border: '1.5px solid #fde68a',
                   borderRadius: '16px',
-                  padding: '1.15rem 1.5rem',
+                  padding: '1.25rem 1.5rem',
                   marginBottom: '1.5rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
                   gap: '1rem',
-                  boxShadow: '0 4px 14px rgba(22, 163, 74, 0.08)',
+                  boxShadow: '0 4px 14px rgba(245, 158, 11, 0.08)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                  <div style={{ fontSize: '1.8rem' }}>🎉</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
+                  <div style={{ fontSize: '1.9rem' }}>🔑</div>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#166534' }}>
-                      Institutional Portal Active (Complimentary Access)
+                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#92400e' }}>
+                      Institutional Product Key License Required
                     </div>
-                    <div style={{ fontSize: '0.82rem', color: '#15803d', marginTop: '2px' }}>
-                      All desks (Principal, Teachers, Bursar &amp; Students) are unlocked. Enter your permanent Product Key anytime to bind your verified institution license.
+                    <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
+                      This digital campus is awaiting activation. Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Enter your official 19-character Product Key to unlock portal desks.
                     </div>
                   </div>
                 </div>
@@ -868,10 +867,10 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                       setShowLicenseModal(true)
                     }}
                     style={{
-                      background: primaryColor,
+                      background: '#b45309',
                       color: '#ffffff',
                       fontWeight: 800,
-                      padding: '0.6rem 1.25rem',
+                      padding: '0.65rem 1.25rem',
                       borderRadius: '10px',
                       border: 'none',
                       cursor: 'pointer',
@@ -881,7 +880,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                       gap: '6px',
                     }}
                   >
-                    <span>🔑 Enter Product Key</span>
+                    <span>🔑 Enter Product Key ➔</span>
                   </button>
                   <button
                     type="button"
@@ -893,14 +892,14 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                       background: '#ffffff',
                       color: '#0f172a',
                       fontWeight: 800,
-                      padding: '0.6rem 1rem',
+                      padding: '0.65rem 1rem',
                       borderRadius: '10px',
                       border: '1px solid #cbd5e1',
                       cursor: 'pointer',
                       fontSize: '0.84rem',
                     }}
                   >
-                    View Billing Details &rarr;
+                    Billing &amp; License &rarr;
                   </button>
                 </div>
               </div>
@@ -1852,13 +1851,13 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 <span style={{ color: '#64748b' }}>License Status:</span>
                 <span style={{
                   fontWeight: 800,
-                  color: school.subscription_status === 'active' ? '#15803d' : '#b45309',
-                  background: school.subscription_status === 'active' ? '#dcfce7' : '#fef3c7',
+                  color: isLicenseActive ? '#15803d' : '#b45309',
+                  background: isLicenseActive ? '#dcfce7' : '#fef3c7',
                   padding: '2px 8px',
                   borderRadius: '6px',
                   fontSize: '0.75rem',
                 }}>
-                  {school.subscription_status ? school.subscription_status.toUpperCase() : 'ACTIVE TRIAL'}
+                  {isLicenseActive ? (school.subscription_status || 'LICENSED').toUpperCase() : 'PENDING ACTIVATION'}
                 </span>
               </div>
               {school.license_valid_until && (
