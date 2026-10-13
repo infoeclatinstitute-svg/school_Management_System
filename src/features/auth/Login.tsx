@@ -163,8 +163,10 @@ export function Login() {
       setFailedAttempts(0)
       setLockoutSeconds(0)
       const role = res.profile?.role || selectedRole
+      // If a ?next= destination was requested (e.g. from RequireSaasAdmin guard), honour it
+      const nextParam = searchParams.get('next')
       if (role === 'admin' || cleanAdmission.toLowerCase().includes('admin')) {
-        navigate('/admin')
+        navigate(nextParam || '/admin')
       } else if (role === 'bursar') {
         navigate('/bursar')
       } else if (role === 'teacher') {

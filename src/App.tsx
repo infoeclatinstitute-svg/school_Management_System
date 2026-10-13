@@ -100,7 +100,7 @@ function RequireSaasAdmin({ children }: { children: ReactElement }) {
   if (loading) return <LoadingScreen message="Verifying platform access..." />
 
   // Must be logged in as admin
-  if (!profile) return <Navigate to="/login" replace />
+  if (!profile) return <Navigate to="/login?next=/register-school" replace />
   if (profile.role !== 'admin') return <Navigate to="/" replace />
 
   return children
