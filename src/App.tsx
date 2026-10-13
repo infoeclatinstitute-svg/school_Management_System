@@ -82,6 +82,30 @@ function RequireAuth({ children, allowedRoles }: { children: ReactElement; allow
   return children
 }
 
+/** SaaS Platform Admin Guard — only platform owner on root domain can access */
+function RequireSaasAdmin({ children }: { children: ReactElement }) {
+  const { profile, loading } = useAuth()
+
+  // Must be on root domain (not a school subdomain)
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname
+    const schools = tenantSchoolStore.getSchools()
+    const detected = detectTenantFromHost(hostname, schools)
+    if (detected) {
+      // On a school subdomain — redirect to that school's hub
+      return <Navigate to="/" replace />
+    }
+  }
+
+  if (loading) return <LoadingScreen message="Verifying platform access..." />
+
+  // Must be logged in as admin
+  if (!profile) return <Navigate to="/login" replace />
+  if (profile.role !== 'admin') return <Navigate to="/" replace />
+
+  return children
+}
+
 /** Portals-Only Entry Router with Subdomain & Custom Domain Auto-Detection */
 function RootEntryRouter() {
   const { profile, loading } = useAuth()
@@ -156,9 +180,23 @@ export function App() {
         <Route path="/teach-with-us" element={<TutorPublishCoursePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/change-password" element={<ChangePassword />} />
-        {/* Multi-Tenant Partner School Ecosystem */}
-        <Route path="/register-school" element={<SchoolRegistrationPage />} />
-        <Route path="/schools/register" element={<SchoolRegistrationPage />} />
+        {/* Multi-Tenant Partner School Ecosystem — SaaS Admin Only */}
+        <Route
+          path="/register-school"
+          element={
+            <RequireSaasAdmin>
+              <SchoolRegistrationPage />
+            </RequireSaasAdmin>
+          }
+        />
+        <Route
+          path="/schools/register"
+          element={
+            <RequireSaasAdmin>
+              <SchoolRegistrationPage />
+            </RequireSaasAdmin>
+          }
+        />
         <Route path="/s/:schoolSlug" element={<TenantSchoolHub />} />
         <Route path="/s/:schoolSlug/:subview" element={<TenantSchoolHub />} />
         <Route path="/schools/:schoolSlug" element={<TenantSchoolHub />} />
