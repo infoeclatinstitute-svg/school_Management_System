@@ -262,6 +262,23 @@ export function Login() {
             <LockIcon size={12} color="#94a3b8" />
             <span>256-Bit SSL Encrypted · cloud.eclat.institute</span>
           </div>
+
+          <div style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ← Back to Homepage
+            </button>
+          </div>
         </div>
       </div>
 

@@ -23,15 +23,23 @@ export function LandingPage() {
 
       {/* NAV */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #e2e8f0', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px' }}>
-        <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#0f172a', letterSpacing: '0.02em' }}>
+        <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#0f172a', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
           🏛️ SchoolCloud
         </div>
-        <button
-          onClick={() => navigate('/register-school')}
-          style={{ background: '#1e3a8a', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.45rem 1.1rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
-        >
-          Register Your School →
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <button
+            onClick={() => navigate('/login')}
+            style={{ background: 'transparent', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.45rem 0.85rem', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}
+          >
+            Admin Sign In
+          </button>
+          <button
+            onClick={() => navigate('/register-school')}
+            style={{ background: '#1e3a8a', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.45rem 1.1rem', fontWeight: 800, fontSize: '0.85rem', cursor: 'pointer' }}
+          >
+            Register Your School →
+          </button>
+        </div>
       </nav>
 
       {/* HERO */}

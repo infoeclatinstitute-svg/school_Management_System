@@ -584,9 +584,11 @@ test('5-Step School & College Onboarding Wizard & Cloud Provisioning verificatio
   assert.ok(regPage.includes('University / Higher Education'), 'Wizard must include University / Higher Education category')
   assert.ok(regPage.includes('Professional & Tech Academy'), 'Wizard must include Professional & Tech Academy category')
 
-  // Verify 5-step wizard & directory toggle
+  // Verify 5-step wizard and secure directory isolation
   assert.ok(regPage.includes("setStep(5)"), 'Wizard must support all 5 onboarding steps')
-  assert.ok(regPage.includes("setViewMode('directory')"), 'Page must support switching to the Onboarded Institutions Directory')
+  assert.equal(regPage.includes('tenantSchoolStore.deleteSchool'), false, 'Public registration page must not contain public institution delete button')
+  const saasPortal = fs.readFileSync(path.join(ROOT_DIR, 'src', 'features', 'saas', 'MasterSaasPortal.tsx'), 'utf8')
+  assert.ok(saasPortal.includes('tenantSchoolStore.getSchools()'), 'MasterSaasPortal must manage the onboarded institutions directory securely')
 
   // Verify zero hardcoded dummy student/teacher counts on newly onboarded institutions
   assert.ok(tenantStore.includes('students: 0'), 'Newly onboarded institutions must start with 0 students')

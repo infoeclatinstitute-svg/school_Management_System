@@ -66,6 +66,14 @@ function StudentNativeGuard({ children }: { children: ReactElement }) {
 
 /** Auth Guard Component */
 function RequireAuth({ children, allowedRoles }: { children: ReactElement; allowedRoles?: string[] }) {
+  // If on a tenant school subdomain, allow through so TenantSubdomainRouteOrCentral can serve the school hub
+  if (typeof window !== 'undefined') {
+    const isTenantSubdomain = Boolean(detectTenantFromHost(window.location.hostname, tenantSchoolStore.getSchools()))
+    if (isTenantSubdomain) {
+      return children
+    }
+  }
+
   const { profile, loading } = useAuth()
 
   if (loading) return <LoadingScreen message="Verifying security session..." />
@@ -273,6 +281,33 @@ export function App() {
               <TenantSubdomainRouteOrCentral
                 subview="billing"
                 centralElement={<Navigate to="/saas-admin" replace />}
+              />
+            }
+          />
+          <Route
+            path="/programs"
+            element={
+              <TenantSubdomainRouteOrCentral
+                subview="programs"
+                centralElement={<Navigate to="/" replace />}
+              />
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <TenantSubdomainRouteOrCentral
+                subview="programs"
+                centralElement={<Navigate to="/" replace />}
+              />
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <TenantSubdomainRouteOrCentral
+                subview="calendar"
+                centralElement={<Navigate to="/" replace />}
               />
             }
           />

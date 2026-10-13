@@ -9,8 +9,15 @@ import { ConcurrentSessionAlertModal } from '@/components/shared/ConcurrentSessi
 import { MobileAppBottomNav } from './MobileAppBottomNav'
 import { INSTITUTION_CONFIG } from '@/config/institution'
 import { isNativeApp, isElectronApp } from '@/utils/platform'
+import { detectTenantFromHost } from '@/lib/tenantDomain'
+import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 
 export function LayoutShell() {
+  const isSubdomain = typeof window !== 'undefined' && Boolean(detectTenantFromHost(window.location.hostname, tenantSchoolStore.getSchools()))
+  if (isSubdomain) {
+    return <Outlet />
+  }
+
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const isNative = isNativeApp()
   const isDesktop = isElectronApp()
