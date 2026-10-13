@@ -18,6 +18,7 @@ const ChangePassword = lazy(() => import('@/features/auth/ChangePassword').then(
 const TenantSchoolHub = lazy(() => import('@/features/tenant/TenantSchoolHub').then((m) => ({ default: m.TenantSchoolHub })))
 const SchoolRegistrationPage = lazy(() => import('@/features/tenant/SchoolRegistrationPage').then((m) => ({ default: m.SchoolRegistrationPage })))
 const MasterSaasPortal = lazy(() => import('@/features/saas/MasterSaasPortal').then((m) => ({ default: m.MasterSaasPortal })))
+const LandingPage = lazy(() => import('@/features/landing/LandingPage').then((m) => ({ default: m.LandingPage })))
 
 // Lazy-loaded Student Pages
 const StudentDashboard = lazy(() => import('@/features/student/StudentDashboard').then((m) => ({ default: m.StudentDashboard })))
@@ -111,7 +112,7 @@ function RootEntryRouter() {
   const { profile, loading } = useAuth()
   if (loading) return <LoadingScreen message="Opening Portal..." />
 
-  // 1. Check if visited via Tenant Subdomain or Custom Domain
+  // 1. If on a school subdomain → show that school's hub
   if (typeof window !== 'undefined') {
     const detected = detectTenantFromHost(window.location.hostname, tenantSchoolStore.getSchools())
     if (detected) {
@@ -119,7 +120,7 @@ function RootEntryRouter() {
     }
   }
 
-  // 2. Direct Portal Routing (Authenticated users go to their role portal; guests go to Portal Login)
+  // 2. Authenticated users → their role portal
   if (profile) {
     if (profile.role === 'admin') return <Navigate to="/admin" replace />
     if (profile.role === 'bursar') return <Navigate to="/bursar" replace />
@@ -128,7 +129,8 @@ function RootEntryRouter() {
     return <Navigate to="/student" replace />
   }
 
-  return <Navigate to="/login" replace />
+  // 3. Unauthenticated on root domain → public landing page
+  return <LandingPage />
 }
 
 /** Subdomain Route Resolver: If on a tenant subdomain, serve tenant desks directly without URL rewriting */
@@ -180,16 +182,9 @@ export function App() {
         <Route path="/teach-with-us" element={<TutorPublishCoursePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/change-password" element={<ChangePassword />} />
-        {/* Multi-Tenant Partner School Ecosystem — SaaS Admin Only */}
-        <Route
-          path="/register-school"
-          element={
-            <RequireSaasAdmin>
-              <SchoolRegistrationPage />
-            </RequireSaasAdmin>
-          }
-        />
-        {/* School Hub — canonical path is /schools/:slug; /s/:slug is kept as short alias */}
+        {/* Public School Self-Registration */}
+        <Route path="/register-school" element={<SchoolRegistrationPage />} />
+        {/* School Hub — accessible via subdomain or direct /schools/:slug path */}
         <Route path="/s/:schoolSlug" element={<TenantSchoolHub />} />
         <Route path="/s/:schoolSlug/:subview" element={<TenantSchoolHub />} />
         <Route path="/schools/:schoolSlug" element={<TenantSchoolHub />} />
