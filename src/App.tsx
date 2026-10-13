@@ -189,40 +189,15 @@ export function App() {
             </RequireSaasAdmin>
           }
         />
-        <Route
-          path="/schools/register"
-          element={
-            <RequireSaasAdmin>
-              <SchoolRegistrationPage />
-            </RequireSaasAdmin>
-          }
-        />
+        {/* School Hub — canonical path is /schools/:slug; /s/:slug is kept as short alias */}
         <Route path="/s/:schoolSlug" element={<TenantSchoolHub />} />
         <Route path="/s/:schoolSlug/:subview" element={<TenantSchoolHub />} />
         <Route path="/schools/:schoolSlug" element={<TenantSchoolHub />} />
         <Route path="/schools/:schoolSlug/:subview" element={<TenantSchoolHub />} />
 
-        {/* Platform Owner Master SaaS Billing & Product Key Licensing Portal (Restricted to Root Host) */}
+        {/* Platform Owner SaaS Portal — single canonical route */}
         <Route
           path="/saas-admin"
-          element={
-            <TenantSubdomainRouteOrCentral
-              subview="billing"
-              centralElement={<MasterSaasPortal />}
-            />
-          }
-        />
-        <Route
-          path="/superadmin"
-          element={
-            <TenantSubdomainRouteOrCentral
-              subview="billing"
-              centralElement={<MasterSaasPortal />}
-            />
-          }
-        />
-        <Route
-          path="/licensing"
           element={
             <TenantSubdomainRouteOrCentral
               subview="billing"
