@@ -1,0 +1,1381 @@
+import { supabase } from '@/lib/supabase'
+import type {
+  PartnerSchoolTenant,
+  CreateTenantSchoolInput,
+  AcademicCalendarPeriod,
+  TenantStaffMember,
+  TenantStudentMember,
+  TenantPayrollRecord,
+  TenantGradeRecord,
+  TenantLessonNote,
+  TenantFeePayment,
+  TenantTimetableEntry,
+  TenantSessionUser,
+  InstitutionProgram,
+  InstitutionCampus,
+} from '@/types/tenantSchool'
+
+const STORAGE_KEY = 'gc_v2_partner_schools_tenants'
+const CLOUD_SYNC_KEY = 'gc_v2_partner_schools_state'
+const STAFF_STORAGE_KEY = 'gc_v2_tenant_staff_members'
+const STUDENTS_STORAGE_KEY = 'gc_v2_tenant_students'
+const PAYROLL_STORAGE_KEY = 'gc_v2_tenant_payroll'
+const GRADES_STORAGE_KEY = 'gc_v2_tenant_grades'
+const NOTES_STORAGE_KEY = 'gc_v2_tenant_lesson_notes'
+const PAYMENTS_STORAGE_KEY = 'gc_v2_tenant_fee_payments'
+const TIMETABLE_STORAGE_KEY = 'gc_v2_tenant_timetables'
+const PROGRAMS_STORAGE_KEY = 'gc_v2_tenant_programs'
+const SESSION_STORAGE_KEY_PREFIX = 'gc_v2_tenant_session_'
+
+const INITIAL_PARTNER_SCHOOLS: PartnerSchoolTenant[] = []
+
+class TenantSchoolStore {
+  private schools: PartnerSchoolTenant[] = []
+  private programs: InstitutionProgram[] = []
+
+  constructor() {
+    this.loadSchools()
+    if (typeof window !== 'undefined') {
+      this.syncWithCloud()
+    }
+  }
+
+  public async syncWithCloud(): Promise<void> {
+    try {
+      const { data, error } = await supabase
+        .from('app_cloud_sync')
+        .select('payload')
+        .eq('id', CLOUD_SYNC_KEY)
+        .maybeSingle()
+
+      if (error || !data?.payload) return
+      const cloudState = data.payload as {
+        schools?: PartnerSchoolTenant[]
+        staff?: TenantStaffMember[]
+        students?: TenantStudentMember[]
+        programs?: InstitutionProgram[]
+      }
+
+      if (Array.isArray(cloudState.schools) && cloudState.schools.length > 0) {
+        const map = new Map<string, PartnerSchoolTenant>()
+        cloudState.schools.forEach((s) => map.set(s.slug.toLowerCase(), s))
+        this.schools.forEach((s) => map.set(s.slug.toLowerCase(), s))
+        this.schools = Array.from(map.values())
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.schools))
+        window.dispatchEvent(new CustomEvent('gc-tenant-schools-updated', { detail: this.schools }))
+      }
+      if (Array.isArray(cloudState.programs) && cloudState.programs.length > 0) {
+        this.loadPrograms()
+        const map = new Map<string, InstitutionProgram>()
+        cloudState.programs.forEach((pr) => map.set(pr.id, pr))
+        this.programs.forEach((pr) => map.set(pr.id, pr))
+        this.programs = Array.from(map.values())
+        localStorage.setItem(PROGRAMS_STORAGE_KEY, JSON.stringify(this.programs))
+      }
+      if (Array.isArray(cloudState.staff) && cloudState.staff.length > 0) {
+        this.loadStaff()
+        const map = new Map<string, TenantStaffMember>()
+        cloudState.staff.forEach((st) => map.set(st.id, st))
+        this.staff.forEach((st) => map.set(st.id, st))
+        this.staff = Array.from(map.values())
+        localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(this.staff))
+      }
+      if (Array.isArray(cloudState.students) && cloudState.students.length > 0) {
+        this.loadStudents()
+        const map = new Map<string, TenantStudentMember>()
+        cloudState.students.forEach((std) => map.set(std.id, std))
+        this.students.forEach((std) => map.set(std.id, std))
+        this.students = Array.from(map.values())
+        localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(this.students))
+      }
+    } catch {
+      // Offline fallback
+    }
+  }
+
+  private async pushToCloud(): Promise<void> {
+    if (typeof window === 'undefined') return
+    try {
+      if (this.staff.length === 0) this.loadStaff()
+      if (this.students.length === 0) this.loadStudents()
+      if (this.programs.length === 0) this.loadPrograms()
+      await supabase.from('app_cloud_sync').upsert(
+        {
+          id: CLOUD_SYNC_KEY,
+          payload: {
+            schools: this.schools,
+            staff: this.staff,
+            students: this.students,
+            programs: this.programs,
+          },
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
+    } catch {
+      // Ignore offline errors
+    }
+  }
+
+  private loadSchools() {
+    if (typeof window === 'undefined') {
+      this.schools = [...INITIAL_PARTNER_SCHOOLS]
+      return
+    }
+
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingSlugs = new Set(parsed.map((s: PartnerSchoolTenant) => s.slug.toLowerCase()))
+          const merged = [...parsed]
+          INITIAL_PARTNER_SCHOOLS.forEach((initSchool) => {
+            if (!existingSlugs.has(initSchool.slug.toLowerCase())) {
+              merged.push(initSchool)
+            }
+          })
+          this.schools = merged
+          return
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    this.schools = [...INITIAL_PARTNER_SCHOOLS]
+    this.saveSchools()
+  }
+
+  private saveSchools() {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.schools))
+      window.dispatchEvent(new CustomEvent('gc-tenant-schools-updated', { detail: this.schools }))
+      this.pushToCloud()
+    } catch {
+      // ignore
+    }
+  }
+
+  public getSchools(): PartnerSchoolTenant[] {
+    return [...this.schools]
+  }
+
+  public getSchoolBySlug(slug: string): PartnerSchoolTenant | null {
+    if (!slug) return null
+    const cleanSlug = slug.trim().toLowerCase()
+    return this.schools.find((s) => s.slug.toLowerCase() === cleanSlug) || null
+  }
+
+  public getSchoolById(id: string): PartnerSchoolTenant | null {
+    return this.schools.find((s) => s.id === id) || null
+  }
+
+  public deleteSchool(slug: string): void {
+    const clean = slug.trim().toLowerCase()
+    this.schools = this.schools.filter((s) => s.slug.toLowerCase() !== clean)
+    this.saveSchools()
+  }
+
+  public completeOnboardingStep(slug: string, stepId: string): PartnerSchoolTenant | null {
+    const school = this.getSchoolBySlug(slug)
+    if (!school) return null
+    const existing = school.onboarding_completed_steps || []
+    if (existing.includes(stepId)) return school
+    return this.updateSchoolBranding(slug, {
+      onboarding_completed_steps: [...existing, stepId],
+    })
+  }
+
+  public registerSchool(input: CreateTenantSchoolInput): PartnerSchoolTenant {
+    // Sanitize and ensure unique slug
+    let cleanSlug = input.slug
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+
+    if (!cleanSlug) {
+      cleanSlug = input.name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9-]/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 30)
+    }
+
+    // Check collision
+    let finalSlug = cleanSlug
+    let counter = 1
+    while (this.schools.some((s) => s.slug.toLowerCase() === finalSlug.toLowerCase())) {
+      finalSlug = `${cleanSlug}-${counter}`
+      counter++
+    }
+
+    const currentYear = new Date().getFullYear()
+
+    // Generate academic calendar periods based on choice (Term, Semester, Trimester, Quarter)
+    let calendar: AcademicCalendarPeriod[] = []
+    let activePeriodName = `Term 1 (${currentYear})`
+
+    if (input.academic_system === 'semester') {
+      activePeriodName = `Semester 1 (${currentYear})`
+      calendar = [
+        {
+          id: `cal_${Date.now()}_sem1`,
+          name: `Semester 1 (Fall Cohort ${currentYear})`,
+          code: 'SEM-1',
+          start_date: `${currentYear}-09-01`,
+          end_date: `${currentYear + 1}-01-20`,
+          status: 'Active',
+          exam_start_date: `${currentYear + 1}-01-08`,
+          exam_end_date: `${currentYear + 1}-01-18`,
+          fee_deadline: `${currentYear}-09-20`,
+        },
+        {
+          id: `cal_${Date.now()}_sem2`,
+          name: `Semester 2 (Spring Cohort ${currentYear + 1})`,
+          code: 'SEM-2',
+          start_date: `${currentYear + 1}-02-05`,
+          end_date: `${currentYear + 1}-06-25`,
+          status: 'Upcoming',
+          exam_start_date: `${currentYear + 1}-06-12`,
+          exam_end_date: `${currentYear + 1}-06-22`,
+          fee_deadline: `${currentYear + 1}-02-25`,
+        },
+      ]
+    } else if (input.academic_system === 'trimester') {
+      activePeriodName = `Trimester 1 (${currentYear})`
+      calendar = [
+        {
+          id: `cal_${Date.now()}_tri1`,
+          name: `Trimester 1 (Jan–Apr ${currentYear})`,
+          code: 'TRI-1',
+          start_date: `${currentYear}-01-12`,
+          end_date: `${currentYear}-04-18`,
+          status: 'Active',
+          exam_start_date: `${currentYear}-04-06`,
+          exam_end_date: `${currentYear}-04-17`,
+          fee_deadline: `${currentYear}-01-30`,
+        },
+        {
+          id: `cal_${Date.now()}_tri2`,
+          name: `Trimester 2 (May–Aug ${currentYear})`,
+          code: 'TRI-2',
+          start_date: `${currentYear}-05-11`,
+          end_date: `${currentYear}-08-15`,
+          status: 'Upcoming',
+          exam_start_date: `${currentYear}-08-03`,
+          exam_end_date: `${currentYear}-08-14`,
+          fee_deadline: `${currentYear}-05-29`,
+        },
+        {
+          id: `cal_${Date.now()}_tri3`,
+          name: `Trimester 3 (Sep–Dec ${currentYear})`,
+          code: 'TRI-3',
+          start_date: `${currentYear}-09-07`,
+          end_date: `${currentYear}-12-12`,
+          status: 'Upcoming',
+          exam_start_date: `${currentYear}-11-30`,
+          exam_end_date: `${currentYear}-12-11`,
+          fee_deadline: `${currentYear}-09-25`,
+        },
+      ]
+    } else if (input.academic_system === 'quarter') {
+      activePeriodName = `Quarter 1 (${currentYear})`
+      calendar = [
+        {
+          id: `cal_${Date.now()}_q1`,
+          name: `Quarter 1 (Q1 ${currentYear})`,
+          code: 'QTR-1',
+          start_date: `${currentYear}-01-05`,
+          end_date: `${currentYear}-03-20`,
+          status: 'Active',
+          exam_start_date: `${currentYear}-03-12`,
+          exam_end_date: `${currentYear}-03-19`,
+          fee_deadline: `${currentYear}-01-20`,
+        },
+        {
+          id: `cal_${Date.now()}_q2`,
+          name: `Quarter 2 (Q2 ${currentYear})`,
+          code: 'QTR-2',
+          start_date: `${currentYear}-04-06`,
+          end_date: `${currentYear}-06-19`,
+          status: 'Upcoming',
+          exam_start_date: `${currentYear}-06-10`,
+          exam_end_date: `${currentYear}-06-18`,
+          fee_deadline: `${currentYear}-04-20`,
+        },
+        {
+          id: `cal_${Date.now()}_q3`,
+          name: `Quarter 3 (Q3 ${currentYear})`,
+          code: 'QTR-3',
+          start_date: `${currentYear}-07-06`,
+          end_date: `${currentYear}-09-18`,
+          status: 'Upcoming',
+          exam_start_date: `${currentYear}-09-10`,
+          exam_end_date: `${currentYear}-09-17`,
+          fee_deadline: `${currentYear}-07-20`,
+        },
+        {
+          id: `cal_${Date.now()}_q4`,
+          name: `Quarter 4 (Q4 ${currentYear})`,
+          code: 'QTR-4',
+          start_date: `${currentYear}-10-05`,
+          end_date: `${currentYear}-12-18`,
+          status: 'Upcoming',
+          exam_start_date: `${currentYear}-12-09`,
+          exam_end_date: `${currentYear}-12-17`,
+          fee_deadline: `${currentYear}-10-20`,
+        },
+      ]
+    } else {
+      activePeriodName = `Term 1 (${currentYear})`
+      calendar = [
+        {
+          id: `cal_${Date.now()}_term1`,
+          name: `Term 1 (${currentYear})`,
+          code: 'TERM-1',
+          start_date: `${currentYear}-01-06`,
+          end_date: `${currentYear}-04-03`,
+          status: 'Active',
+          exam_start_date: `${currentYear}-03-24`,
+          exam_end_date: `${currentYear}-04-02`,
+          fee_deadline: `${currentYear}-01-25`,
+        },
+        {
+          id: `cal_${Date.now()}_term2`,
+          name: `Term 2 (${currentYear})`,
+          code: 'TERM-2',
+          start_date: `${currentYear}-05-04`,
+          end_date: `${currentYear}-08-07`,
+          status: 'Upcoming',
+          exam_start_date: `${currentYear}-07-28`,
+          exam_end_date: `${currentYear}-08-06`,
+          fee_deadline: `${currentYear}-05-20`,
+        },
+        {
+          id: `cal_${Date.now()}_term3`,
+          name: `Term 3 (${currentYear})`,
+          code: 'TERM-3',
+          start_date: `${currentYear}-08-31`,
+          end_date: `${currentYear}-11-20`,
+          status: 'Upcoming',
+          exam_start_date: `${currentYear}-11-10`,
+          exam_end_date: `${currentYear}-11-19`,
+          fee_deadline: `${currentYear}-09-15`,
+        },
+      ]
+    }
+
+    const deptsList = input.departments_list && input.departments_list.length > 0
+      ? input.departments_list
+      : []
+    const classesList = input.classes_list && input.classes_list.length > 0
+      ? input.classes_list
+      : []
+
+    const adminUsername = (input.admin_username || `admin@${finalSlug}.edu`).trim()
+    const adminPassword = (input.admin_password || `GC-${finalSlug.slice(0, 6).toUpperCase()}-2026`).trim()
+
+    const defaultFeatures = {
+      student_portal: true,
+      teacher_portal: true,
+      bursar_portal: true,
+      principal_portal: true,
+      online_admissions: true,
+      biometric_attendance: true,
+      report_cards: true,
+      e_library: true,
+    }
+
+    const campusCount = Math.max(
+      1,
+      input.campus_count || (input.campuses_list ? input.campuses_list.length : 1)
+    )
+    const campusesList: InstitutionCampus[] =
+      input.campuses_list && input.campuses_list.length > 0
+        ? input.campuses_list
+        : [{ id: `cmp_${Date.now()}_main`, name: 'Main Campus', is_main: true }]
+
+    // Monthly subscription rate: KES 2,500 per school or campus.
+    // If institution has multiple campuses, each campus is billed separately: campusCount * 2500
+    const monthlyRate =
+      input.subscription_monthly_rate ?? (campusCount * 2500)
+
+    const newSchool: PartnerSchoolTenant = {
+      id: `sch_${Date.now()}`,
+      name: input.name.trim(),
+      slug: finalSlug,
+      institution_category: input.institution_category || 'college',
+      motto: input.motto?.trim() || 'Knowledge, Discipline and Leadership',
+      logo_url: input.logo_url?.trim() || '/logo.png?v=2',
+      primary_color: input.primary_color || '#1e3a8a',
+      accent_color: input.accent_color || '#d4af37',
+      academic_system: input.academic_system,
+      grading_scale: input.grading_scale || 'letter_gpa',
+      academic_calendar: calendar,
+      active_period_name: activePeriodName,
+      curriculum_type: input.curriculum_type,
+      registration_number: input.registration_number?.trim() || undefined,
+      currency: input.currency?.trim() || 'KES',
+      country: input.country.trim(),
+      city: input.city.trim(),
+      address: input.address?.trim() || `${input.city}, ${input.country}`,
+      contact_email: input.contact_email.trim(),
+      contact_phone: input.contact_phone.trim(),
+      principal_name: input.principal_name.trim(),
+      principal_title: input.principal_title?.trim() || 'Principal / Head of Institution',
+      principal_email: input.principal_email?.trim() || input.contact_email.trim(),
+      admin_username: adminUsername,
+      admin_password: adminPassword,
+      custom_domain: input.custom_domain?.trim() || undefined,
+      subdomain: finalSlug,
+      campus_count: campusCount,
+      campuses_list: campusesList,
+      subscription_tier: input.subscription_tier || 'growth',
+      subscription_monthly_rate: monthlyRate,
+      subscription_billing_cycle: input.subscription_billing_cycle || 'monthly',
+      subscription_status: input.subscription_status || 'trial',
+      active_license_key: input.active_license_key,
+      license_valid_until: input.license_valid_until,
+      departments_list: deptsList,
+      classes_list: classesList,
+      onboarding_completed_steps: ['identity', 'calendar', 'modules', 'branding'],
+      stats: {
+        students: 0,
+        teachers: 1,
+        classes: classesList.length,
+        departments: deptsList.length,
+      },
+      features_enabled: {
+        ...defaultFeatures,
+        ...(input.features_enabled || {}),
+      },
+      created_at: new Date().toISOString(),
+      is_verified: true,
+    }
+
+    this.schools.unshift(newSchool)
+    this.seedStarterPrograms(finalSlug, input.institution_category || 'college', deptsList)
+
+    // Provision the Principal / Provost Executive Account automatically so credentials work immediately
+    const principalStaff = this.createStaffMember({
+      school_slug: finalSlug,
+      full_name: newSchool.principal_name,
+      email: newSchool.principal_email,
+      phone: newSchool.contact_phone,
+      role: 'principal',
+      title: newSchool.principal_title,
+      department: deptsList[0] || 'Executive Administration',
+      assigned_classes: classesList.slice(0, 2),
+      assigned_subjects: ['Institutional Governance'],
+      username: adminUsername,
+      temp_password: adminPassword,
+      salary_base: 0,
+      salary_housing: 0,
+      salary_transport: 0,
+      salary_tax: 0,
+      salary_pension: 0,
+    })
+
+    // Also pre-authenticate the Principal session for this newly onboarded school
+    this.setActiveSession(finalSlug, {
+      id: principalStaff.id,
+      school_slug: finalSlug,
+      name: principalStaff.full_name,
+      role: 'principal',
+      username: principalStaff.username,
+      title: principalStaff.title,
+      department: principalStaff.department,
+      staff_id: principalStaff.id,
+    })
+
+    this.saveSchools()
+    return newSchool
+  }
+
+  public updateSchoolCustomDomain(
+    slug: string,
+    customDomain: string
+  ): PartnerSchoolTenant | null {
+    return this.updateSchoolBranding(slug, {
+      custom_domain: customDomain.trim() || undefined,
+    })
+  }
+
+  public updateSchoolBranding(
+    slug: string,
+    updates: Partial<PartnerSchoolTenant>
+  ): PartnerSchoolTenant | null {
+    const school = this.getSchoolBySlug(slug)
+    if (!school) return null
+
+    const updated = { ...school, ...updates }
+    this.schools = this.schools.map((s) => (s.id === school.id ? updated : s))
+    this.saveSchools()
+    return updated
+  }
+
+  public updateSchoolSubscription(
+    slug: string,
+    tier: 'starter' | 'growth' | 'enterprise',
+    monthlyRate: number,
+    billingCycle: 'monthly' | 'annually'
+  ): PartnerSchoolTenant | null {
+    return this.updateSchoolBranding(slug, {
+      subscription_tier: tier,
+      subscription_monthly_rate: monthlyRate,
+      subscription_billing_cycle: billingCycle,
+    })
+  }
+
+  // ============================================================
+  // 1. STAFF MANAGEMENT & CREDENTIAL PROVISIONING
+  // ============================================================
+  private staff: TenantStaffMember[] = []
+
+  private loadStaff() {
+    if (typeof window === 'undefined') {
+      this.staff = [...INITIAL_STAFF_MEMBERS]
+      return
+    }
+    try {
+      const stored = localStorage.getItem(STAFF_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.staff = parsed
+          return
+        }
+      }
+    } catch {
+      // fallback
+    }
+    this.staff = [...INITIAL_STAFF_MEMBERS]
+    this.saveStaff()
+  }
+
+  private saveStaff() {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(this.staff))
+    } catch {}
+  }
+
+  public getStaffBySchool(slug: string): TenantStaffMember[] {
+    if (this.staff.length === 0) this.loadStaff()
+    const clean = slug.toLowerCase()
+    return this.staff.filter((s) => s.school_slug.toLowerCase() === clean)
+  }
+
+  public createStaffMember(
+    input: Omit<TenantStaffMember, 'id' | 'joined_date' | 'net_salary' | 'status'>
+  ): TenantStaffMember {
+    if (this.staff.length === 0) this.loadStaff()
+    const gross = (input.salary_base || 0) + (input.salary_housing || 0) + (input.salary_transport || 0)
+    const deductions = (input.salary_tax || 0) + (input.salary_pension || 0)
+    const net = Math.max(0, gross - deductions)
+
+    const newStaff: TenantStaffMember = {
+      ...input,
+      id: `staff_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      net_salary: net,
+      status: 'active',
+      joined_date: new Date().toISOString().split('T')[0],
+    }
+
+    this.staff.unshift(newStaff)
+    this.saveStaff()
+
+    // Automatically add to active monthly payroll register
+    if (this.payroll.length === 0) this.loadPayroll()
+    const curMonth = 'October 2026'
+    const newPayroll: TenantPayrollRecord = {
+      id: `pr_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      school_slug: newStaff.school_slug,
+      month_period: curMonth,
+      staff_id: newStaff.id,
+      staff_name: newStaff.full_name,
+      role: newStaff.role,
+      department: newStaff.department,
+      base_salary: input.salary_base || 3000,
+      housing_allowance: input.salary_housing || 400,
+      transport_allowance: input.salary_transport || 200,
+      gross_salary: gross,
+      tax_deduction: input.salary_tax || Math.round(gross * 0.18),
+      pension_deduction: input.salary_pension || Math.round(gross * 0.06),
+      net_salary: net,
+      status: 'approved',
+      payment_method: 'Bank Wire',
+    }
+    this.payroll.unshift(newPayroll)
+    this.savePayroll()
+
+    return newStaff
+  }
+
+  public deleteStaffMember(id: string): void {
+    if (this.staff.length === 0) this.loadStaff()
+    this.staff = this.staff.filter((s) => s.id !== id)
+    this.saveStaff()
+  }
+
+  // ============================================================
+  // 2. STUDENT ADMISSION & CREDENTIAL PROVISIONING
+  // ============================================================
+  private students: TenantStudentMember[] = []
+
+  private loadStudents() {
+    if (typeof window === 'undefined') {
+      this.students = [...INITIAL_STUDENTS]
+      return
+    }
+    try {
+      const stored = localStorage.getItem(STUDENTS_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.students = parsed
+          return
+        }
+      }
+    } catch {
+      // fallback
+    }
+    this.students = [...INITIAL_STUDENTS]
+    this.saveStudents()
+  }
+
+  private saveStudents() {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(this.students))
+    } catch {}
+  }
+
+  public getStudentsBySchool(slug: string): TenantStudentMember[] {
+    if (this.students.length === 0) this.loadStudents()
+    const clean = slug.toLowerCase()
+    return this.students.filter((s) => s.school_slug.toLowerCase() === clean)
+  }
+
+  public admitStudent(
+    input: Omit<TenantStudentMember, 'id' | 'admission_date' | 'fee_balance' | 'attendance_percent' | 'status'>
+  ): TenantStudentMember {
+    if (this.students.length === 0) this.loadStudents()
+    const feeBalance = Math.max(0, (input.fee_total || 0) - (input.fee_paid || 0))
+
+    const newStudent: TenantStudentMember = {
+      ...input,
+      id: `std_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      fee_balance: feeBalance,
+      attendance_percent: 100.0,
+      status: 'active',
+      admission_date: new Date().toISOString().split('T')[0],
+    }
+
+    this.students.unshift(newStudent)
+    this.saveStudents()
+
+    // Automatically record initial fee payment if any paid upon admission
+    if (newStudent.fee_paid > 0) {
+      this.recordFeePayment({
+        school_slug: newStudent.school_slug,
+        student_id: newStudent.id,
+        student_name: newStudent.full_name,
+        admission_number: newStudent.admission_number,
+        amount: newStudent.fee_paid,
+        period_name: 'Opening Term Registration & Tuition',
+        payment_method: 'Bank Wire',
+        recorded_by: 'Admissions Registrar',
+      })
+    }
+
+    // Auto-seed default subjects in gradebook for new student so Report Card works immediately
+    const defaultSubjects = [
+      'Pure Mathematics (MATH-101)',
+      'English & Communication (ENG-101)',
+      'Computer Science (CS-101)',
+      'Applied Physics (PHY-101)',
+      'General Chemistry (CHEM-101)',
+    ]
+    defaultSubjects.forEach((subj) => {
+      this.saveGradeRecord({
+        school_slug: newStudent.school_slug,
+        student_id: newStudent.id,
+        student_name: newStudent.full_name,
+        admission_number: newStudent.admission_number,
+        class_name: newStudent.grade_class,
+        subject_name: subj,
+        period_code: 'TERM-1',
+        cat1_score: 17,
+        cat2_score: 18,
+        exam_score: 52,
+        remarks: 'Enrolled candidate; demonstrated high aptitude and steady academic diligence.',
+        teacher_name: 'Subject Faculty Instructor',
+      })
+    })
+
+    return newStudent
+  }
+
+  public updateStudent(id: string, updates: Partial<TenantStudentMember>): TenantStudentMember | null {
+    if (this.students.length === 0) this.loadStudents()
+    const student = this.students.find((s) => s.id === id)
+    if (!student) return null
+
+    const updated = { ...student, ...updates }
+    if (typeof updates.fee_total === 'number' || typeof updates.fee_paid === 'number') {
+      const total = typeof updates.fee_total === 'number' ? updates.fee_total : updated.fee_total
+      const paid = typeof updates.fee_paid === 'number' ? updates.fee_paid : updated.fee_paid
+      updated.fee_balance = Math.max(0, total - paid)
+    }
+
+    this.students = this.students.map((s) => (s.id === id ? updated : s))
+    this.saveStudents()
+    return updated
+  }
+
+  // ============================================================
+  // 3. STAFF PAYROLL & COMPENSATION REGISTER
+  // ============================================================
+  private payroll: TenantPayrollRecord[] = []
+
+  private loadPayroll() {
+    if (typeof window === 'undefined') {
+      this.payroll = [...INITIAL_PAYROLL_RECORDS]
+      return
+    }
+    try {
+      const stored = localStorage.getItem(PAYROLL_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.payroll = parsed
+          return
+        }
+      }
+    } catch {
+      // fallback
+    }
+    this.payroll = [...INITIAL_PAYROLL_RECORDS]
+    this.savePayroll()
+  }
+
+  private savePayroll() {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(this.payroll))
+    } catch {}
+  }
+
+  public getPayrollBySchool(slug: string): TenantPayrollRecord[] {
+    if (this.payroll.length === 0) this.loadPayroll()
+    const clean = slug.toLowerCase()
+    return this.payroll.filter((p) => p.school_slug.toLowerCase() === clean)
+  }
+
+  public generateMonthlyPayroll(slug: string, monthPeriod: string): TenantPayrollRecord[] {
+    if (this.staff.length === 0) this.loadStaff()
+    if (this.payroll.length === 0) this.loadPayroll()
+
+    const schoolStaff = this.getStaffBySchool(slug)
+    const existingForMonth = this.payroll.filter(
+      (p) => p.school_slug.toLowerCase() === slug.toLowerCase() && p.month_period === monthPeriod
+    )
+
+    if (existingForMonth.length > 0) {
+      return existingForMonth
+    }
+
+    const newRecords: TenantPayrollRecord[] = schoolStaff.map((st) => {
+      const gross = st.salary_base + st.salary_housing + st.salary_transport
+      return {
+        id: `pr_${Date.now()}_${st.id}`,
+        school_slug: slug,
+        month_period: monthPeriod,
+        staff_id: st.id,
+        staff_name: st.full_name,
+        role: st.title || st.role,
+        department: st.department,
+        base_salary: st.salary_base,
+        housing_allowance: st.salary_housing,
+        transport_allowance: st.salary_transport,
+        gross_salary: gross,
+        tax_deduction: st.salary_tax,
+        pension_deduction: st.salary_pension,
+        net_salary: st.net_salary,
+        status: 'draft',
+        payment_method: 'Bank Wire',
+      }
+    })
+
+    this.payroll = [...newRecords, ...this.payroll]
+    this.savePayroll()
+    return newRecords
+  }
+
+  public approvePayrollBatch(slug: string, monthPeriod: string): void {
+    if (this.payroll.length === 0) this.loadPayroll()
+    this.payroll = this.payroll.map((p) => {
+      if (p.school_slug.toLowerCase() === slug.toLowerCase() && p.month_period === monthPeriod) {
+        return { ...p, status: 'approved' }
+      }
+      return p
+    })
+    this.savePayroll()
+  }
+
+  public disbursePayrollBatch(
+    slug: string,
+    monthPeriod: string,
+    method: 'Bank Wire' | 'Mobile Money' | 'Cheque' = 'Bank Wire'
+  ): void {
+    if (this.payroll.length === 0) this.loadPayroll()
+    const now = new Date().toISOString()
+    this.payroll = this.payroll.map((p) => {
+      if (p.school_slug.toLowerCase() === slug.toLowerCase() && p.month_period === monthPeriod) {
+        return { ...p, status: 'disbursed', disbursed_at: now, payment_method: method }
+      }
+      return p
+    })
+    this.savePayroll()
+  }
+
+  // ============================================================
+  // 4. CONTINUOUS ASSESSMENT GRADEBOOK & TRANSCRIPTS
+  // ============================================================
+  private grades: TenantGradeRecord[] = []
+
+  private loadGrades() {
+    if (typeof window === 'undefined') {
+      this.grades = [...INITIAL_GRADES]
+      return
+    }
+    try {
+      const stored = localStorage.getItem(GRADES_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.grades = parsed
+          return
+        }
+      }
+    } catch {
+      // fallback
+    }
+    this.grades = [...INITIAL_GRADES]
+    this.saveGrades()
+  }
+
+  private saveGrades() {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(GRADES_STORAGE_KEY, JSON.stringify(this.grades))
+    } catch {}
+  }
+
+  public getGradesBySchool(slug: string): TenantGradeRecord[] {
+    if (this.grades.length === 0) this.loadGrades()
+    const clean = slug.toLowerCase()
+    return this.grades.filter((g) => g.school_slug.toLowerCase() === clean)
+  }
+
+  public getGradesForStudent(slug: string, studentId: string): TenantGradeRecord[] {
+    const schoolGrades = this.getGradesBySchool(slug)
+    return schoolGrades.filter((g) => g.student_id === studentId)
+  }
+
+  public saveGradeRecord(
+    input: Omit<TenantGradeRecord, 'id' | 'updated_at' | 'total_score' | 'grade'>
+  ): TenantGradeRecord {
+    if (this.grades.length === 0) this.loadGrades()
+    const total = Math.min(100, Math.max(0, (input.cat1_score || 0) + (input.cat2_score || 0) + (input.exam_score || 0)))
+
+    let gradeLetter = 'F'
+    if (total >= 90) gradeLetter = 'A*'
+    else if (total >= 80) gradeLetter = 'A'
+    else if (total >= 70) gradeLetter = 'B'
+    else if (total >= 60) gradeLetter = 'C'
+    else if (total >= 50) gradeLetter = 'D'
+    else if (total >= 40) gradeLetter = 'E'
+
+    const existingIndex = this.grades.findIndex(
+      (g) =>
+        g.school_slug.toLowerCase() === input.school_slug.toLowerCase() &&
+        g.student_id === input.student_id &&
+        g.subject_name.toLowerCase() === input.subject_name.toLowerCase() &&
+        g.period_code === input.period_code
+    )
+
+    const record: TenantGradeRecord = {
+      ...input,
+      id: existingIndex >= 0 ? this.grades[existingIndex].id : `grd_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      total_score: total,
+      grade: gradeLetter,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (existingIndex >= 0) {
+      this.grades[existingIndex] = record
+    } else {
+      this.grades.unshift(record)
+    }
+
+    this.saveGrades()
+    return record
+  }
+
+  // ============================================================
+  // 5. LESSON STUDY NOTES & MATERIALS
+  // ============================================================
+  private lessonNotes: TenantLessonNote[] = []
+
+  private loadLessonNotes() {
+    if (typeof window === 'undefined') {
+      this.lessonNotes = [...INITIAL_LESSON_NOTES]
+      return
+    }
+    try {
+      const stored = localStorage.getItem(NOTES_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.lessonNotes = parsed
+          return
+        }
+      }
+    } catch {
+      // fallback
+    }
+    this.lessonNotes = [...INITIAL_LESSON_NOTES]
+    this.saveLessonNotes()
+  }
+
+  private saveLessonNotes() {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(this.lessonNotes))
+    } catch {}
+  }
+
+  public getLessonNotesBySchool(slug: string, className?: string): TenantLessonNote[] {
+    if (this.lessonNotes.length === 0) this.loadLessonNotes()
+    const clean = slug.toLowerCase()
+    let filtered = this.lessonNotes.filter((n) => n.school_slug.toLowerCase() === clean)
+    if (className) {
+      filtered = filtered.filter((n) => n.class_name.toLowerCase() === className.toLowerCase())
+    }
+    return filtered
+  }
+
+  public createLessonNote(input: Omit<TenantLessonNote, 'id' | 'created_at'>): TenantLessonNote {
+    if (this.lessonNotes.length === 0) this.loadLessonNotes()
+    const newNote: TenantLessonNote = {
+      ...input,
+      id: `note_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      created_at: new Date().toISOString(),
+    }
+    this.lessonNotes.unshift(newNote)
+    this.saveLessonNotes()
+    return newNote
+  }
+
+  // ============================================================
+  // 6. TUITION FEE INVOICES & VERIFIED RECEIPTING
+  // ============================================================
+  private payments: TenantFeePayment[] = []
+
+  private loadPayments() {
+    if (typeof window === 'undefined') {
+      this.payments = [...INITIAL_PAYMENTS]
+      return
+    }
+    try {
+      const stored = localStorage.getItem(PAYMENTS_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.payments = parsed
+          return
+        }
+      }
+    } catch {
+      // fallback
+    }
+    this.payments = [...INITIAL_PAYMENTS]
+    this.savePayments()
+  }
+
+  private savePayments() {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(PAYMENTS_STORAGE_KEY, JSON.stringify(this.payments))
+    } catch {}
+  }
+
+  public getPaymentsBySchool(slug: string): TenantFeePayment[] {
+    if (this.payments.length === 0) this.loadPayments()
+    const clean = slug.toLowerCase()
+    return this.payments.filter((p) => p.school_slug.toLowerCase() === clean)
+  }
+
+  public recordFeePayment(
+    input: Omit<TenantFeePayment, 'id' | 'receipt_number' | 'date'>
+  ): TenantFeePayment {
+    if (this.payments.length === 0) this.loadPayments()
+    const receiptNum = `RCP-${input.school_slug.toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`
+    const newPayment: TenantFeePayment = {
+      ...input,
+      id: `pmt_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      receipt_number: receiptNum,
+      date: new Date().toISOString(),
+    }
+
+    this.payments.unshift(newPayment)
+    this.savePayments()
+
+    // Also update student fee_paid and fee_balance
+    const student = this.students.find((s) => s.id === input.student_id)
+    if (student) {
+      const newPaid = student.fee_paid + input.amount
+      this.updateStudent(student.id, { fee_paid: newPaid })
+    }
+
+    return newPayment
+  }
+
+  // ============================================================
+  // 7. CLASS & FACULTY TIMETABLE SCHEDULE
+  // ============================================================
+  private timetables: TenantTimetableEntry[] = []
+
+  private loadTimetables() {
+    if (typeof window === 'undefined') {
+      this.timetables = [...INITIAL_TIMETABLES]
+      return
+    }
+    try {
+      const stored = localStorage.getItem(TIMETABLE_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.timetables = parsed
+          return
+        }
+      }
+    } catch {}
+    this.timetables = [...INITIAL_TIMETABLES]
+    this.saveTimetables()
+  }
+
+  private saveTimetables() {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(TIMETABLE_STORAGE_KEY, JSON.stringify(this.timetables))
+    } catch {}
+  }
+
+  public getTimetableBySchool(slug: string, className?: string): TenantTimetableEntry[] {
+    if (this.timetables.length === 0) this.loadTimetables()
+    const clean = slug.toLowerCase()
+    let list = this.timetables.filter((t) => t.school_slug.toLowerCase() === clean)
+    if (className && className !== 'All') {
+      list = list.filter((t) => t.class_name.toLowerCase() === className.toLowerCase())
+    }
+    if (list.length === 0) {
+      list = this.generateDefaultTimetable(slug, className || 'General Cohort')
+    }
+    return list
+  }
+
+  private generateDefaultTimetable(slug: string, className: string): TenantTimetableEntry[] {
+    const days: ('Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday')[] = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+    ]
+    const defaultPeriods = [
+      { num: 1, start: '08:00', end: '08:50', sub: 'Mathematics & Logic', teacher: 'Lead Instructor', room: 'Lecture Hall 1' },
+      { num: 2, start: '08:55', end: '09:45', sub: 'Language & Technical Writing', teacher: 'Department Faculty', room: 'Room 102' },
+      { num: 3, start: '10:00', end: '10:50', sub: 'Applied Technology & Computing', teacher: 'Lab Director', room: 'Computer Lab' },
+      { num: 4, start: '11:00', end: '11:50', sub: 'Core Sciences / Business Studies', teacher: 'Faculty Tutor', room: 'Room 201' },
+      { num: 5, start: '12:00', end: '12:50', sub: 'Practical Workshop & Case Study', teacher: 'Senior Tutor', room: 'Seminar Room' },
+      { num: 6, start: '14:00', end: '14:50', sub: 'Supervised Project & Research', teacher: 'Academic Mentor', room: 'Library / Lab' },
+    ]
+    const generated: TenantTimetableEntry[] = []
+    days.forEach((day, dIdx) => {
+      defaultPeriods.forEach((p) => {
+        generated.push({
+          id: `gen_tt_${slug}_${dIdx}_${p.num}`,
+          school_slug: slug,
+          class_name: className,
+          day_of_week: day,
+          period_number: p.num,
+          start_time: p.start,
+          end_time: p.end,
+          subject_name: p.sub,
+          teacher_name: p.teacher,
+          room: p.room,
+        })
+      })
+    })
+    return generated
+  }
+
+  public addTimetableEntry(entry: Omit<TenantTimetableEntry, 'id'>): TenantTimetableEntry {
+    if (this.timetables.length === 0) this.loadTimetables()
+    const newEntry: TenantTimetableEntry = {
+      ...entry,
+      id: `tt_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    }
+    this.timetables.push(newEntry)
+    this.saveTimetables()
+    return newEntry
+  }
+
+  public deleteTimetableEntry(id: string): void {
+    if (this.timetables.length === 0) this.loadTimetables()
+    this.timetables = this.timetables.filter((t) => t.id !== id)
+    this.saveTimetables()
+  }
+
+  // ============================================================
+  // 8. ACADEMIC PROGRAMS & COURSES OFFERED (LANDING PAGE DATA)
+  // ============================================================
+  private loadPrograms() {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = localStorage.getItem(PROGRAMS_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.programs = parsed
+          return
+        }
+      }
+    } catch {}
+  }
+
+  private savePrograms() {
+    if (typeof window === 'undefined') return
+    try {
+      localStorage.setItem(PROGRAMS_STORAGE_KEY, JSON.stringify(this.programs))
+      this.pushToCloud()
+      window.dispatchEvent(new CustomEvent('gc-tenant-programs-updated', { detail: this.programs }))
+    } catch {}
+  }
+
+  public getProgramsBySchool(slug: string): InstitutionProgram[] {
+    if (this.programs.length === 0) this.loadPrograms()
+    const clean = slug.toLowerCase().trim()
+    return this.programs.filter((p) => p.school_slug.toLowerCase() === clean)
+  }
+
+  public createProgram(
+    input: Omit<InstitutionProgram, 'id' | 'created_at'>
+  ): InstitutionProgram {
+    if (this.programs.length === 0) this.loadPrograms()
+    const newProg: InstitutionProgram = {
+      ...input,
+      id: `prog_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      created_at: new Date().toISOString(),
+    }
+    this.programs.unshift(newProg)
+    this.savePrograms()
+    return newProg
+  }
+
+  public updateProgram(
+    id: string,
+    updates: Partial<InstitutionProgram>
+  ): InstitutionProgram | null {
+    if (this.programs.length === 0) this.loadPrograms()
+    const index = this.programs.findIndex((p) => p.id === id)
+    if (index === -1) return null
+    const updated = { ...this.programs[index], ...updates }
+    this.programs[index] = updated
+    this.savePrograms()
+    return updated
+  }
+
+  public deleteProgram(id: string): void {
+    if (this.programs.length === 0) this.loadPrograms()
+    this.programs = this.programs.filter((p) => p.id !== id)
+    this.savePrograms()
+  }
+
+  public seedStarterPrograms(slug: string, category: string, depts: string[]): void {
+    if (this.programs.length === 0) this.loadPrograms()
+    const existing = this.getProgramsBySchool(slug)
+    if (existing.length > 0) return
+
+    const starterItems: Omit<InstitutionProgram, 'id' | 'created_at'>[] = []
+    const firstDept = depts[0] || 'School of Computing & IT'
+    const secondDept = depts[1] || 'Department of Business & Management'
+
+    if (category === 'school') {
+      starterItems.push(
+        {
+          school_slug: slug,
+          title: 'Senior Secondary STEM & Sciences Track',
+          department: firstDept,
+          level: 'High School / Secondary',
+          duration: '3 Years (Senior School)',
+          tuition_fee: 45000,
+          fee_currency: 'KES',
+          intake_period: 'January & May Term Intakes',
+          requirements: 'Junior School Assessment & KCPE/KPSEA Completion',
+          description: 'Comprehensive high school STEM program encompassing Pure Mathematics, Physics, Chemistry, Biology, and Computer Studies.',
+          career_outcomes: ['Engineering', 'Medicine', 'Computer Science', 'Biotechnology'],
+          featured: true,
+        },
+        {
+          school_slug: slug,
+          title: 'Arts, Languages & Social Sciences Curriculum',
+          department: secondDept,
+          level: 'High School / Secondary',
+          duration: '3 Years (Senior School)',
+          tuition_fee: 42000,
+          fee_currency: 'KES',
+          intake_period: 'January & May Term Intakes',
+          requirements: 'Junior School Completion Certificate',
+          description: 'Holistic secondary education focusing on Literature in English, History, Geography, Business Studies, and Creative Arts.',
+          career_outcomes: ['Law', 'Journalism', 'Diplomacy', 'Education'],
+          featured: false,
+        }
+      )
+    } else if (category === 'university') {
+      starterItems.push(
+        {
+          school_slug: slug,
+          title: 'Bachelor of Science in Software Engineering',
+          department: firstDept,
+          level: 'Degree',
+          duration: '4 Years (8 Semesters)',
+          tuition_fee: 75000,
+          fee_currency: 'KES',
+          intake_period: 'September (Fall) & January (Spring) Intakes',
+          requirements: 'KCSE Mean Grade C+ with C+ in Mathematics & English or Diploma in ICT',
+          description: 'Premier undergraduate degree curriculum covering Cloud Architecture, Artificial Intelligence, Mobile App Development, and Cyber Defense.',
+          career_outcomes: ['Software Architect', 'Cloud DevOps Engineer', 'AI Specialist'],
+          featured: true,
+        },
+        {
+          school_slug: slug,
+          title: 'Bachelor of Business Administration & Finance',
+          department: secondDept,
+          level: 'Degree',
+          duration: '4 Years (8 Semesters)',
+          tuition_fee: 65000,
+          fee_currency: 'KES',
+          intake_period: 'January & May Intakes',
+          requirements: 'KCSE Mean Grade C+ or Recognized Business Diploma',
+          description: 'Rigorous business program covering Corporate Finance, Strategic Management, Fintech, and Auditing.',
+          career_outcomes: ['Financial Analyst', 'Corporate Auditor', 'Investment Banker'],
+          featured: true,
+        }
+      )
+    } else {
+      // TVET / College / Academy default
+      starterItems.push(
+        {
+          school_slug: slug,
+          title: 'Diploma in Information Communication Technology (ICT)',
+          department: firstDept,
+          level: 'Diploma',
+          duration: '2 Years (6 Semesters / Modules)',
+          tuition_fee: 35000,
+          fee_currency: 'KES',
+          intake_period: 'January, May & September Intakes',
+          requirements: 'KCSE Mean Grade C- (Minus) or Certificate in ICT',
+          description: 'Practical TVET-accredited program covering Full-Stack Web Development, Networking (CCNA), Database Systems, and Hardware Troubleshooting.',
+          career_outcomes: ['Web Developer', 'Network Administrator', 'IT Support Officer'],
+          featured: true,
+        },
+        {
+          school_slug: slug,
+          title: 'Diploma in Business Management & Accounting',
+          department: secondDept,
+          level: 'Diploma',
+          duration: '2 Years (6 Semesters)',
+          tuition_fee: 30000,
+          fee_currency: 'KES',
+          intake_period: 'January, May & September Intakes',
+          requirements: 'KCSE Mean Grade C- or Business Certificate',
+          description: 'Industry-aligned diploma in Financial Accounting, Human Resource Management, Business Law, and Entrepreneurship.',
+          career_outcomes: ['Accountant', 'HR Officer', 'Operations Manager'],
+          featured: true,
+        },
+        {
+          school_slug: slug,
+          title: 'Certificate in Computer Programming & Web Design',
+          department: firstDept,
+          level: 'Certificate',
+          duration: '1 Year (3 Trimesters)',
+          tuition_fee: 25000,
+          fee_currency: 'KES',
+          intake_period: 'Monthly Modular Intakes',
+          requirements: 'KCSE Mean Grade D (Plain) or Artisan Certificate',
+          description: 'Foundational computing certificate equipping learners with Python, JavaScript, HTML5/CSS3, and Computer Maintenance skills.',
+          career_outcomes: ['Junior Developer', 'IT Assistant', 'Freelance Web Designer'],
+          featured: false,
+        }
+      )
+    }
+
+    starterItems.forEach((item) => {
+      this.createProgram(item)
+    })
+  }
+
+  // ============================================================
+  // 9. ACTIVE TENANT USER SESSION MANAGEMENT
+  // ============================================================
+  public getActiveSession(slug: string): TenantSessionUser | null {
+    if (typeof window === 'undefined') return null
+    try {
+      const key = `${SESSION_STORAGE_KEY_PREFIX}${slug.toLowerCase()}`
+      const stored = sessionStorage.getItem(key) || localStorage.getItem(key)
+      if (stored) {
+        return JSON.parse(stored)
+      }
+    } catch {}
+    return null
+  }
+
+  public setActiveSession(slug: string, session: TenantSessionUser | null): void {
+    if (typeof window === 'undefined') return
+    const key = `${SESSION_STORAGE_KEY_PREFIX}${slug.toLowerCase()}`
+    try {
+      if (session) {
+        sessionStorage.setItem(key, JSON.stringify(session))
+        localStorage.setItem(key, JSON.stringify(session))
+      } else {
+        sessionStorage.removeItem(key)
+        localStorage.removeItem(key)
+      }
+      window.dispatchEvent(new CustomEvent('gc-tenant-session-changed', { detail: { slug, session } }))
+    } catch {}
+  }
+}
+
+
+// ============================================================
+// CLEAN BASELINE DATA STORE (ZERO SEEDED TEST DATA)
+// ============================================================
+
+const INITIAL_STAFF_MEMBERS: TenantStaffMember[] = []
+const INITIAL_STUDENTS: TenantStudentMember[] = []
+const INITIAL_PAYROLL_RECORDS: TenantPayrollRecord[] = []
+const INITIAL_GRADES: TenantGradeRecord[] = []
+const INITIAL_LESSON_NOTES: TenantLessonNote[] = []
+const INITIAL_PAYMENTS: TenantFeePayment[] = []
+const INITIAL_TIMETABLES: TenantTimetableEntry[] = []
+
+export const tenantSchoolStore = new TenantSchoolStore()
