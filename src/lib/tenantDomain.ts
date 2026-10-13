@@ -11,10 +11,13 @@ export interface TenantDomainLinks {
   customDomainUrl: string | null
   portals: {
     hub: { subdomain: string; path: string }
+    admin: { subdomain: string; path: string }
     student: { subdomain: string; path: string }
     teacher: { subdomain: string; path: string }
     bursar: { subdomain: string; path: string }
     principal: { subdomain: string; path: string }
+    parent: { subdomain: string; path: string }
+    billing: { subdomain: string; path: string }
     calendar: { subdomain: string; path: string }
   }
 }
@@ -23,17 +26,28 @@ export interface TenantDomainLinks {
  * Returns special links and domain URLs for a given partner school.
  */
 export function getTenantDomainLinks(school: PartnerSchoolTenant): TenantDomainLinks {
-  const baseDomain = 'globalcollege.edu'
   const isBrowser = typeof window !== 'undefined'
-  const currentOrigin = isBrowser ? window.location.origin : `https://${baseDomain}`
+  const baseDomain = isBrowser ? window.location.host : ''
+  const currentOrigin = isBrowser ? window.location.origin : ''
   const protocol = isBrowser ? window.location.protocol : 'https:'
   const port = isBrowser && window.location.port ? `:${window.location.port}` : ''
 
-  // Subdomain URL calculation
-  // In dev / localhost: slug.localhost:port
-  // In production: slug.globalcollege.edu
-  let subdomainHost = `${school.slug}.${baseDomain}`
-  if (isBrowser && window.location.hostname.includes('localhost')) {
+  // Determine base host (e.g. cloud.example.com or localhost:5173)
+  let platformHost = baseDomain
+  const hostOnly = isBrowser ? window.location.hostname.toLowerCase() : ''
+  if (hostOnly.endsWith('.localhost')) {
+    platformHost = `localhost${port}`
+  } else {
+    const parts = hostOnly.split('.')
+    // If we're already on a tenant subdomain (e.g. prime.cloud.domain.com with 4+ parts),
+    // strip the leading subdomain part so we get cloud.domain.com
+    if (parts.length > 3) {
+      platformHost = parts.slice(1).join('.') + port
+    }
+  }
+
+  let subdomainHost = platformHost ? `${school.slug}.${platformHost}` : school.slug
+  if (isBrowser && hostOnly.includes('localhost')) {
     subdomainHost = `${school.slug}.localhost${port}`
   }
 
@@ -46,7 +60,7 @@ export function getTenantDomainLinks(school: PartnerSchoolTenant): TenantDomainL
     : null
 
   return {
-    subdomain: `${school.slug}.${baseDomain}`,
+    subdomain: `${school.slug}.${platformHost}`,
     subdomainUrl,
     pathUrl,
     customDomainUrl,
@@ -54,6 +68,10 @@ export function getTenantDomainLinks(school: PartnerSchoolTenant): TenantDomainL
       hub: {
         subdomain: `${subdomainUrl}/`,
         path: `${pathUrl}`,
+      },
+      admin: {
+        subdomain: `${subdomainUrl}/admin`,
+        path: `${pathUrl}/principal`,
       },
       student: {
         subdomain: `${subdomainUrl}/student`,
@@ -68,8 +86,16 @@ export function getTenantDomainLinks(school: PartnerSchoolTenant): TenantDomainL
         path: `${pathUrl}/bursar`,
       },
       principal: {
-        subdomain: `${subdomainUrl}/principal`,
+        subdomain: `${subdomainUrl}/admin`,
         path: `${pathUrl}/principal`,
+      },
+      parent: {
+        subdomain: `${subdomainUrl}/parent`,
+        path: `${pathUrl}/parent`,
+      },
+      billing: {
+        subdomain: `${subdomainUrl}/billing`,
+        path: `${pathUrl}/billing`,
       },
       calendar: {
         subdomain: `${subdomainUrl}/calendar`,
@@ -81,10 +107,6 @@ export function getTenantDomainLinks(school: PartnerSchoolTenant): TenantDomainL
 
 /**
  * Auto-detects if the current browser hostname is a tenant subdomain or custom domain.
- * Examples:
- * - "hillcrest.globalcollege.edu" -> slug "hillcrest"
- * - "hillcrest.localhost" -> slug "hillcrest"
- * - "portal.hillcrest.edu" -> matched against school.custom_domain
  */
 export function detectTenantFromHost(
   hostname: string,
@@ -111,24 +133,23 @@ export function detectTenantFromHost(
 
   // 2. Check standard base domains that are NOT tenant subdomains
   const nonTenantHosts = [
-    'globalcollege.edu',
-    'www.globalcollege.edu',
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    'smart-009.github.io',
-    'brent1_college',
   ]
   if (nonTenantHosts.includes(cleanHost)) {
     return null
   }
 
-  // 3. Check *.globalcollege.edu
-  if (cleanHost.endsWith('.globalcollege.edu')) {
-    const slug = cleanHost.slice(0, -'.globalcollege.edu'.length)
-    const found = schools.find((s) => s.slug.toLowerCase() === slug)
-    if (found) {
-      return { school: found, matchedVia: 'subdomain' }
+  // 3. Check subdomain if hostname has more than 2 segments (e.g. prime.cloud.domain)
+  const parts = cleanHost.split('.')
+  if (parts.length > 2) {
+    const slug = parts[0]
+    if (slug && slug !== 'www' && slug !== 'cloud' && slug !== 'app') {
+      const found = schools.find((s) => s.slug.toLowerCase() === slug)
+      if (found) {
+        return { school: found, matchedVia: 'subdomain' }
+      }
     }
   }
 

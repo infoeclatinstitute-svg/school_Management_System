@@ -72,32 +72,6 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
       <div className="navbar-spacer" />
 
       <div className="navbar-actions">
-        {/* Install Web App Button (Phone & Laptop/Computer) */}
-        {!isInstalled && !isNativeApp() && (
-          <button
-            type="button"
-            onClick={() => promptInstall()}
-            className="btn btn-sm"
-            style={{
-              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '4px 10px',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(5, 150, 105, 0.35)',
-            }}
-            title="Install Global College App on Phone or Laptop/Desktop"
-          >
-            <span>📲</span>
-            <span>Install App</span>
-          </button>
-        )}
 
         {/* Live School Bell Alert Button */}
         <button

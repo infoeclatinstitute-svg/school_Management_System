@@ -85,13 +85,13 @@ function RequireAuth({ children, allowedRoles }: { children: ReactElement; allow
 /** Portals-Only Entry Router with Subdomain & Custom Domain Auto-Detection */
 function RootEntryRouter() {
   const { profile, loading } = useAuth()
-  if (loading) return <LoadingScreen message="Opening Global College Portal..." />
+  if (loading) return <LoadingScreen message="Opening Portal..." />
 
   // 1. Check if visited via Tenant Subdomain or Custom Domain
   if (typeof window !== 'undefined') {
     const detected = detectTenantFromHost(window.location.hostname, tenantSchoolStore.getSchools())
     if (detected) {
-      return <Navigate to={`/s/${detected.school.slug}`} replace />
+      return <TenantSchoolHub forcedSlug={detected.school.slug} forcedSubview="hub" />
     }
   }
 
@@ -107,31 +107,26 @@ function RootEntryRouter() {
   return <Navigate to="/login" replace />
 }
 
+/** Subdomain Route Resolver: If on a tenant subdomain, serve tenant desks directly without URL rewriting */
+function TenantSubdomainRouteOrCentral({
+  subview,
+  centralElement,
+}: {
+  subview: string
+  centralElement: ReactElement
+}) {
+  const schools = tenantSchoolStore.getSchools()
+  const detected = typeof window !== 'undefined' ? detectTenantFromHost(window.location.hostname, schools) : null
+
+  if (detected) {
+    return <TenantSchoolHub forcedSlug={detected.school.slug} forcedSubview={subview} />
+  }
+
+  return centralElement
+}
+
 /** Proactive Subdomain Router: Directs sub-routes on tenant subdomains */
 function TenantSubdomainWatcher() {
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const detected = detectTenantFromHost(window.location.hostname, tenantSchoolStore.getSchools())
-    if (!detected) return
-
-    const path = location.pathname.toLowerCase()
-    // Do not redirect if already on a scoped /s/ or /schools/ route
-    if (path.startsWith('/s/') || path.startsWith('/schools/')) return
-
-    const knownSubviews = ['student', 'teacher', 'bursar', 'principal', 'admin', 'calendar', 'programs', 'courses']
-    const matched = knownSubviews.find((v) => path === `/${v}` || path.startsWith(`/${v}/`))
-
-    if (matched) {
-      const normalizedView = matched === 'admin' ? 'principal' : matched
-      navigate(`/s/${detected.school.slug}/${normalizedView}`, { replace: true })
-    } else if (path === '/' || path === '') {
-      navigate(`/s/${detected.school.slug}`, { replace: true })
-    }
-  }, [location.pathname, navigate])
-
   return null
 }
 
@@ -169,10 +164,34 @@ export function App() {
         <Route path="/schools/:schoolSlug" element={<TenantSchoolHub />} />
         <Route path="/schools/:schoolSlug/:subview" element={<TenantSchoolHub />} />
 
-        {/* Platform Owner Master SaaS Billing & Product Key Licensing Portal */}
-        <Route path="/saas-admin" element={<MasterSaasPortal />} />
-        <Route path="/superadmin" element={<MasterSaasPortal />} />
-        <Route path="/licensing" element={<MasterSaasPortal />} />
+        {/* Platform Owner Master SaaS Billing & Product Key Licensing Portal (Restricted to Root Host) */}
+        <Route
+          path="/saas-admin"
+          element={
+            <TenantSubdomainRouteOrCentral
+              subview="billing"
+              centralElement={<MasterSaasPortal />}
+            />
+          }
+        />
+        <Route
+          path="/superadmin"
+          element={
+            <TenantSubdomainRouteOrCentral
+              subview="billing"
+              centralElement={<MasterSaasPortal />}
+            />
+          }
+        />
+        <Route
+          path="/licensing"
+          element={
+            <TenantSubdomainRouteOrCentral
+              subview="billing"
+              centralElement={<MasterSaasPortal />}
+            />
+          }
+        />
         {/* Open Portal Routes with App Layout */}
         <Route element={<LayoutShell />}>
           <Route path="/library" element={<ResourceLibrary />} />
@@ -194,18 +213,74 @@ export function App() {
           <Route path="/discipline" element={<DisciplineTracker />} />
           <Route path="/students" element={<StudentDirectory />} />
 
-          {/* Specialized Roles & Desks */}
-          <Route path="/bursar" element={<BursarDesk />} />
+          {/* Specialized Roles & Desks - School Subdomain Aware */}
+          <Route
+            path="/admin"
+            element={
+              <TenantSubdomainRouteOrCentral
+                subview="principal"
+                centralElement={
+                  <RequireAuth allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </RequireAuth>
+                }
+              />
+            }
+          />
+          <Route
+            path="/principal"
+            element={
+              <TenantSubdomainRouteOrCentral
+                subview="principal"
+                centralElement={
+                  <RequireAuth allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </RequireAuth>
+                }
+              />
+            }
+          />
+          <Route
+            path="/bursar"
+            element={
+              <TenantSubdomainRouteOrCentral
+                subview="bursar"
+                centralElement={<BursarDesk />}
+              />
+            }
+          />
           <Route path="/secretary" element={<Navigate to="/bursar" replace />} />
-          <Route path="/parent" element={<ParentDashboard />} />
+          <Route
+            path="/parent"
+            element={
+              <TenantSubdomainRouteOrCentral
+                subview="student"
+                centralElement={<ParentDashboard />}
+              />
+            }
+          />
+          <Route
+            path="/billing"
+            element={
+              <TenantSubdomainRouteOrCentral
+                subview="billing"
+                centralElement={<Navigate to="/saas-admin" replace />}
+              />
+            }
+          />
 
           {/* Student Portal Routes (Protected with Native App Hardware DRM) */}
           <Route
             path="/student"
             element={
-              <StudentNativeGuard>
-                <StudentDashboard />
-              </StudentNativeGuard>
+              <TenantSubdomainRouteOrCentral
+                subview="student"
+                centralElement={
+                  <StudentNativeGuard>
+                    <StudentDashboard />
+                  </StudentNativeGuard>
+                }
+              />
             }
           />
           <Route
@@ -253,9 +328,14 @@ export function App() {
           <Route
             path="/teacher"
             element={
-              <RequireAuth allowedRoles={['teacher', 'admin']}>
-                <TeacherDashboard />
-              </RequireAuth>
+              <TenantSubdomainRouteOrCentral
+                subview="teacher"
+                centralElement={
+                  <RequireAuth allowedRoles={['teacher', 'admin']}>
+                    <TeacherDashboard />
+                  </RequireAuth>
+                }
+              />
             }
           />
           <Route
@@ -332,14 +412,7 @@ export function App() {
           />
 
           {/* Admin Portal Routes */}
-          <Route
-            path="/admin"
-            element={
-              <RequireAuth allowedRoles={['admin']}>
-                <AdminDashboard />
-              </RequireAuth>
-            }
-          />
+
           <Route
             path="/admin/users"
             element={

@@ -64,7 +64,7 @@ export function CreateCourse() {
         {
           id: `res-${Date.now()}-1`,
           file_name: 'Module 1 - Lecture Slides & Code Guide (PDF)',
-          file_url: 'https://globalcollege.edu/docs/syllabus.pdf',
+          file_url: 'https://cloud.eclat.institute/docs/syllabus.pdf',
           file_type: 'PDF',
         },
       ],
@@ -227,7 +227,7 @@ export function CreateCourse() {
           id: `tch-${Date.now()}`,
           name: customTeacherName.trim(),
           title: customTeacherTitle.trim() || 'Faculty Lecturer',
-          email: `${customTeacherName.toLowerCase().replace(/[^a-z0-9]/g, '.')}@globalcollege.edu`,
+          email: `${customTeacherName.toLowerCase().replace(/[^a-z0-9]/g, '.')}@cloud.eclat.institute`,
           department: deptNameFinal,
           specialty: title.trim(),
           created_at: new Date().toISOString(),

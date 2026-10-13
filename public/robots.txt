@@ -1,12 +1,20 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /api/
-Disallow: /privacy-policy
-Disallow: /privacy
+Disallow: /saas-admin
+Disallow: /superadmin
+Disallow: /licensing
 
-# AI Search Engine & Large Language Model Crawlers
+# Search Engine Crawlers
+User-agent: Googlebot
+Allow: /
+
 User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
 Allow: /
 
 User-agent: GPTBot
@@ -18,9 +26,4 @@ Allow: /
 User-agent: PerplexityBot
 Allow: /
 
-User-agent: Applebot-Extended
-Allow: /
-
-Sitemap: https://www.globalcollege.edu/sitemap.xml
-# LLM & AI Knowledge Grounding
-# https://www.globalcollege.edu/llms.txt
+Sitemap: https://cloud.eclat.institute/sitemap.xml

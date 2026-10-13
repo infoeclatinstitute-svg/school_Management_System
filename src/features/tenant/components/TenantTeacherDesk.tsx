@@ -42,7 +42,7 @@ export function TenantTeacherDesk({
     subject_name: 'Pure Mathematics (MATH-101)',
     title: '',
     summary: '',
-    file_url: 'https://docs.globalcollege.edu/notes/study-guide.pdf',
+      file_url: 'https://cloud.eclat.institute/docs/notes/study-guide.pdf',
   })
 
   // Students in selected attendance class
@@ -85,7 +85,7 @@ export function TenantTeacherDesk({
       subject_name: 'Pure Mathematics (MATH-101)',
       title: '',
       summary: '',
-      file_url: 'https://docs.globalcollege.edu/notes/study-guide.pdf',
+        file_url: 'https://cloud.eclat.institute/docs/notes/study-guide.pdf',
     })
     onReloadData()
     setSaveSuccessMsg('Published study notes to student learning portal!')

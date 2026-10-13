@@ -54,17 +54,17 @@ export const INSTITUTION_CONFIG: InstitutionConfig = {
   description:
     (import.meta.env.VITE_INSTITUTION_DESC as string) ||
     'Unified School Management System (SIMS, LMS, Bursar, Examinations & Multi-Portal ERP) for Global College.',
-  websiteUrl: (import.meta.env.VITE_WEBSITE_URL as string) || 'https://portal.globalcollege.edu',
-  portalUrl: (import.meta.env.VITE_PORTAL_URL as string) || 'https://portal.globalcollege.edu/login',
-  domain: (import.meta.env.VITE_INSTITUTION_DOMAIN as string) || 'globalcollege.edu',
+  websiteUrl: (import.meta.env.VITE_WEBSITE_URL as string) || 'https://cloud.eclat.institute',
+  portalUrl: (import.meta.env.VITE_PORTAL_URL as string) || 'https://cloud.eclat.institute/login',
+  domain: (import.meta.env.VITE_INSTITUTION_DOMAIN as string) || 'cloud.eclat.institute',
 
   contact: {
     phone: (import.meta.env.VITE_INSTITUTION_PHONE as string) || '+254 712 345 678',
     phoneRaw: (import.meta.env.VITE_INSTITUTION_PHONE_RAW as string) || '254712345678',
     phoneFormatted: (import.meta.env.VITE_INSTITUTION_PHONE as string) || '+254 712 345 678',
     whatsappNumber: (import.meta.env.VITE_WHATSAPP_NUMBER as string) || '254712345678',
-    email: (import.meta.env.VITE_INSTITUTION_EMAIL as string) || 'admin@globalcollege.edu',
-    admissionsEmail: (import.meta.env.VITE_ADMISSIONS_EMAIL as string) || 'admissions@globalcollege.edu',
+    email: (import.meta.env.VITE_INSTITUTION_EMAIL as string) || 'info.eclatinstitute@gmail.com',
+    admissionsEmail: (import.meta.env.VITE_ADMISSIONS_EMAIL as string) || 'info.eclatinstitute@gmail.com',
   },
 
   bank: {
@@ -107,7 +107,7 @@ export const INSTITUTIONAL_SCHOOLS = [
     icon: '💼',
     color: '#f59e0b',
     dean_name: 'Office of the Dean — School of Business',
-    dean_email: 'business.faculty@globalcollege.edu',
+    dean_email: 'business.faculty@cloud.eclat.institute',
     departments: [
       {
         id: 'dept-biztech',
@@ -152,7 +152,7 @@ export const INSTITUTIONAL_SCHOOLS = [
     icon: '💻',
     color: '#6366f1',
     dean_name: 'Office of the Dean — School of IT & Data Science',
-    dean_email: 'tech.faculty@globalcollege.edu',
+    dean_email: 'tech.faculty@cloud.eclat.institute',
     departments: [
       {
         id: 'dept-swe',
@@ -206,7 +206,7 @@ export const INSTITUTIONAL_SCHOOLS = [
     icon: '🗣️',
     color: '#10b981',
     dean_name: 'Office of the Dean — School of Language',
-    dean_email: 'languages.faculty@globalcollege.edu',
+    dean_email: 'languages.faculty@cloud.eclat.institute',
     departments: [
       {
         id: 'dept-ielts',

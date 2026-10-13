@@ -211,7 +211,7 @@ export function TenantStudentDesk({
               cursor: 'pointer',
             }}
           >
-            💳 Fee Statement (${activeStudent.fee_balance} due)
+            💳 Fee Statement ({school.currency || 'KES'} {activeStudent.fee_balance.toLocaleString()} due)
           </button>
           <button
             type="button"
@@ -440,16 +440,25 @@ export function TenantStudentDesk({
                 </tr>
               </thead>
               <tbody>
-                {classTimetable.map((t) => (
-                  <tr key={t.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: 800, color: primaryColor }}>{t.day_of_week}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: 700, color: '#64748b' }}>Period {t.period_number}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: 600 }}>{t.start_time} - {t.end_time}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>{t.subject_name}</td>
-                    <td style={{ padding: '0.75rem', color: '#475569' }}>{t.teacher_name}</td>
-                    <td style={{ padding: '0.75rem', color: '#64748b' }}>{t.room}</td>
+                {classTimetable.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b' }}>
+                      <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📅</div>
+                      <div style={{ fontWeight: 700 }}>No class timetable published yet for {activeStudent.grade_class}.</div>
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  classTimetable.map((t) => (
+                    <tr key={t.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: 800, color: primaryColor }}>{t.day_of_week}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 700, color: '#64748b' }}>Period {t.period_number}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600 }}>{t.start_time} - {t.end_time}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>{t.subject_name}</td>
+                      <td style={{ padding: '0.75rem', color: '#475569' }}>{t.teacher_name}</td>
+                      <td style={{ padding: '0.75rem', color: '#64748b' }}>{t.room}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -493,13 +502,13 @@ export function TenantStudentDesk({
             <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>TERM TUITION BILLED</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-                ${activeStudent.fee_total.toLocaleString()}
+                {school.currency || 'KES'} {activeStudent.fee_total.toLocaleString()}
               </div>
             </div>
             <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '12px', border: '1px solid #a7f3d0' }}>
               <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>TOTAL AMOUNT PAID</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#065f46', marginTop: '2px' }}>
-                ${activeStudent.fee_paid.toLocaleString()}
+                {school.currency || 'KES'} {activeStudent.fee_paid.toLocaleString()}
               </div>
             </div>
             <div style={{ background: activeStudent.fee_balance > 0 ? '#fef2f2' : '#ecfdf5', padding: '1rem', borderRadius: '12px', border: `1px solid ${activeStudent.fee_balance > 0 ? '#fecaca' : '#a7f3d0'}` }}>
@@ -507,7 +516,7 @@ export function TenantStudentDesk({
                 OUTSTANDING BALANCE
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 900, color: activeStudent.fee_balance > 0 ? '#991b1b' : '#065f46', marginTop: '2px' }}>
-                ${activeStudent.fee_balance.toLocaleString()}
+                {school.currency || 'KES'} {activeStudent.fee_balance.toLocaleString()}
               </div>
             </div>
           </div>
@@ -533,7 +542,7 @@ export function TenantStudentDesk({
                     <td style={{ padding: '0.75rem', color: '#64748b' }}>{new Date(p.date).toLocaleDateString('en-GB')}</td>
                     <td style={{ padding: '0.75rem', color: '#475569' }}>{p.payment_method}</td>
                     <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 900, color: '#16a34a' }}>
-                      ${p.amount.toLocaleString()}
+                      {school.currency || 'KES'} {p.amount.toLocaleString()}
                     </td>
                     <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                       <button

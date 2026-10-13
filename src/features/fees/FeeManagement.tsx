@@ -481,7 +481,7 @@ export function FeeManagement() {
                     boxShadow: '0 4px 14px rgba(0, 195, 247, 0.4)',
                   }}
                   onClick={() => {
-                    const studentEmail = (profile as any)?.email || (currentStudent as any)?.email || 'student@globalcollege.edu'
+                    const studentEmail = (profile as any)?.email || (currentStudent as any)?.email || 'student@cloud.eclat.institute'
                     const studentName = currentStudent?.full_name || profile?.full_name || 'Student'
                     const studentAdm = currentStudent?.admission_number || profile?.admission_number || ''
 

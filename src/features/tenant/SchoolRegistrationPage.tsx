@@ -302,7 +302,7 @@ export function SchoolRegistrationPage() {
         .replace(/(^-|-$)+/g, '')
       setSlug(generatedSlug)
       if (!isUsernameManual && generatedSlug) {
-        setAdminUsername(`admin@${generatedSlug}.edu`)
+        setAdminUsername(`admin.${generatedSlug}`)
       }
     }
   }
@@ -315,7 +315,7 @@ export function SchoolRegistrationPage() {
       .replace(/-+/g, '-')
     setSlug(clean)
     if (!isUsernameManual && clean) {
-      setAdminUsername(`admin@${clean}.edu`)
+      setAdminUsername(`admin.${clean}`)
     }
   }
 
@@ -467,7 +467,7 @@ export function SchoolRegistrationPage() {
       `EXECUTIVE PRINCIPAL / PROVOST LOGIN:`,
       `Portal URL: ${domainLinks.portals.principal.path}`,
       `Head of Institution: ${registeredSchool.principal_name} (${registeredSchool.principal_title})`,
-      `Username: ${registeredSchool.admin_username || `admin@${registeredSchool.slug}.edu`}`,
+      `Username: ${registeredSchool.admin_username || `admin.${registeredSchool.slug}`}`,
       `Password: ${registeredSchool.admin_password || 'GC-ADMIN-2026'}`,
       `====================================================`,
     ].join('\n')
@@ -1348,7 +1348,7 @@ export function SchoolRegistrationPage() {
                         >
                           {slugAlreadyExists
                             ? '⚠️ Handle exists (will auto-append number)'
-                            : `✓ ${slug}.globalcollege.edu is available`}
+                            : `✓ /s/${slug} is available`}
                         </span>
                       )}
                     </div>

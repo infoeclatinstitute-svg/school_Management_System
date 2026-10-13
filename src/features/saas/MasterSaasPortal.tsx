@@ -61,6 +61,10 @@ export function MasterSaasPortal() {
   // Search filter
   const [searchFilter, setSearchFilter] = useState('')
 
+  // Selected School Detail & Password Reset State
+  const [inspectedSchool, setInspectedSchool] = useState<PartnerSchoolTenant | null>(null)
+  const [generatedAdminPasswordMsg, setGeneratedAdminPasswordMsg] = useState<{ schoolSlug: string; pass: string } | null>(null)
+
   // Sync state listeners
   useEffect(() => {
     const handleSync = () => {
@@ -280,9 +284,9 @@ export function MasterSaasPortal() {
             </button>
           </form>
 
-          <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #1e293b', fontSize: '0.74rem', color: '#64748b' }}>
-            Default Passcode: <code>GC-MASTER-2026</code> • Restricted to Authorized Platform Owners
-          </div>
+              <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #1e293b', fontSize: '0.74rem', color: '#64748b' }}>
+                🔒 Platform Owner Directorate • Restricted to Authorized Platform Owners Only
+              </div>
         </div>
       </div>
     )
@@ -958,25 +962,53 @@ export function MasterSaasPortal() {
                 </p>
               </div>
 
-              <div style={{ position: 'relative', width: '260px' }}>
-                <input
-                  type="text"
-                  placeholder="Filter institutions..."
-                  value={searchFilter}
-                  onChange={(e) => setSearchFilter(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.85rem 0.6rem 2.2rem',
-                    borderRadius: '10px',
-                    background: '#0a0f1d',
-                    border: '1px solid #334155',
-                    color: '#ffffff',
-                    fontSize: '0.84rem',
-                    outline: 'none',
-                  }}
-                />
-                <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>
-                  <SearchIcon size={14} />
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {schools.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('⚠️ Are you sure you want to clean the database and delete ALL existing institutions & licenses? This will reset the platform to a completely clean state.')) {
+                        tenantSchoolStore.clearAllSchools()
+                        licensingStore.clearAllLicensingData()
+                        setSchools([])
+                        setLicenses([])
+                        setInvoices([])
+                      }
+                    }}
+                    style={{
+                      background: '#7f1d1d',
+                      color: '#fecaca',
+                      border: '1px solid #991b1b',
+                      padding: '0.55rem 0.9rem',
+                      borderRadius: '10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    🗑️ Clean All Schools
+                  </button>
+                )}
+                <div style={{ position: 'relative', width: '220px' }}>
+                  <input
+                    type="text"
+                    placeholder="Filter institutions..."
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 0.85rem 0.6rem 2.2rem',
+                      borderRadius: '10px',
+                      background: '#0a0f1d',
+                      border: '1px solid #334155',
+                      color: '#ffffff',
+                      fontSize: '0.84rem',
+                      outline: 'none',
+                    }}
+                  />
+                  <div style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>
+                    <SearchIcon size={14} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1063,6 +1095,46 @@ export function MasterSaasPortal() {
                                 </button>
                                 <button
                                   type="button"
+                                  onClick={() => setInspectedSchool(sch)}
+                                  style={{
+                                    background: '#334155',
+                                    color: '#f8fafc',
+                                    border: 'none',
+                                    padding: '0.4rem 0.7rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                  }}
+                                  title="View full institution profile, campuses & contact information"
+                                >
+                                  🔍 Details
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const res = tenantSchoolStore.resetSchoolAdminPassword(sch.slug)
+                                    if (res.success) {
+                                      setGeneratedAdminPasswordMsg({ schoolSlug: sch.slug, pass: res.newPassword })
+                                      setSchools(tenantSchoolStore.getSchools())
+                                    }
+                                  }}
+                                  style={{
+                                    background: '#854d0e',
+                                    color: '#fef08a',
+                                    border: 'none',
+                                    padding: '0.4rem 0.7rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                  }}
+                                  title="Regenerate Admin temporary password"
+                                >
+                                  🔑 Reset Pass
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => setPaymentModalSchool(sch)}
                                   style={{
                                     background: '#10b981',
@@ -1091,6 +1163,28 @@ export function MasterSaasPortal() {
                                 >
                                   Hub →
                                 </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Delete institution "${sch.name}"? This will remove all associated records.`)) {
+                                      tenantSchoolStore.deleteSchool(sch.slug)
+                                      setSchools(tenantSchoolStore.getSchools())
+                                    }
+                                  }}
+                                  style={{
+                                    background: '#3f1212',
+                                    color: '#f87171',
+                                    border: '1px solid #7f1d1d',
+                                    padding: '0.4rem 0.6rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                  title={`Delete ${sch.name}`}
+                                >
+                                  🗑️
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -1258,6 +1352,298 @@ export function MasterSaasPortal() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: RESET ADMIN PASSWORD NOTIFICATION */}
+        {generatedAdminPasswordMsg && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: '1.25rem',
+            }}
+            onClick={() => setGeneratedAdminPasswordMsg(null)}
+          >
+            <div
+              style={{
+                background: '#131b2e',
+                borderRadius: '24px',
+                maxWidth: '480px',
+                width: '100%',
+                padding: '2rem',
+                border: '2px solid #854d0e',
+                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.7)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '1.8rem' }}>🔑</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#fef08a' }}>
+                    New Admin Temporary Password
+                  </h3>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                    School: <strong>{generatedAdminPasswordMsg.schoolSlug}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: 1.5, margin: '0 0 1rem' }}>
+                A new temporary password has been successfully regenerated. Provide this to the school principal or administrator. They can change it inside their profile:
+              </p>
+
+              <div
+                style={{
+                  background: '#090d16',
+                  borderRadius: '12px',
+                  padding: '1rem',
+                  border: '1px solid #334155',
+                  fontFamily: 'monospace',
+                  fontSize: '1.3rem',
+                  fontWeight: 900,
+                  color: '#fbbf24',
+                  textAlign: 'center',
+                  letterSpacing: '0.08em',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                {generatedAdminPasswordMsg.pass}
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => copyText(generatedAdminPasswordMsg.pass, 'admin_pass_copied')}
+                  style={{
+                    flex: 1,
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.75rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  {copiedKey === 'admin_pass_copied' ? '✓ Copied Password!' : '📋 Copy Password'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGeneratedAdminPasswordMsg(null)}
+                  style={{
+                    background: '#1e293b',
+                    color: '#cbd5e1',
+                    border: 'none',
+                    padding: '0.75rem 1.25rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: FULL REGISTERED SCHOOL INFORMATION INSPECTOR */}
+        {inspectedSchool && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: '1.25rem',
+            }}
+            onClick={() => setInspectedSchool(null)}
+          >
+            <div
+              style={{
+                background: '#131b2e',
+                borderRadius: '24px',
+                maxWidth: '680px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '2rem',
+                border: '1px solid #334155',
+                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.7)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid #1e293b', paddingBottom: '1rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    🏛️ Full Institution Dossier
+                  </span>
+                  <h3 style={{ margin: '4px 0 0', fontSize: '1.4rem', fontWeight: 900, color: '#f8fafc' }}>
+                    {inspectedSchool.name}
+                  </h3>
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
+                    URL Slug: <strong>{inspectedSchool.slug}</strong> • Custom Domain: <strong>{inspectedSchool.custom_domain || 'None (Using Subdomain)'}</strong>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setInspectedSchool(null)}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Grid of Profile Information */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Executive Leadership</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#f8fafc', marginTop: '3px' }}>
+                    {inspectedSchool.principal_name}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                    Title: {inspectedSchool.principal_title} • Email: {inspectedSchool.principal_email}
+                  </div>
+                </div>
+
+                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Administrator Account</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fbbf24', marginTop: '3px', fontFamily: 'monospace' }}>
+                    Username: {inspectedSchool.admin_username || `${inspectedSchool.slug}.admin`}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                    Current Password: <strong style={{ color: '#f8fafc' }}>{inspectedSchool.admin_password || '(Hidden / Default)'}</strong>
+                  </div>
+                </div>
+
+                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Campus Configuration</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#f8fafc', marginTop: '3px' }}>
+                    {inspectedSchool.campus_count || 1} Registered Campus(es)
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                    Billing Rate: KES {((inspectedSchool.campus_count || 1) * 2500).toLocaleString()} / Month
+                  </div>
+                </div>
+
+                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Institutional Contacts</div>
+                  <div style={{ fontSize: '0.85rem', color: '#f8fafc', marginTop: '3px' }}>
+                    📞 {inspectedSchool.contact_phone}
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
+                    ✉️ {inspectedSchool.contact_email}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
+                    📍 {inspectedSchool.address || `${inspectedSchool.city}, ${inspectedSchool.country}`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Registered Counts */}
+              <div style={{ background: '#0a0f1d', padding: '1.25rem', borderRadius: '14px', border: '1px solid #1e293b', marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+                  Live Enrolled Members &amp; Academic Structure
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ background: '#131b2e', padding: '0.75rem', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
+                      {tenantSchoolStore.getStudentsBySchool(inspectedSchool.slug).length}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Students</div>
+                  </div>
+                  <div style={{ background: '#131b2e', padding: '0.75rem', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
+                      {tenantSchoolStore.getStaffBySchool(inspectedSchool.slug).length}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Staff &amp; Teachers</div>
+                  </div>
+                  <div style={{ background: '#131b2e', padding: '0.75rem', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
+                      {(inspectedSchool.departments_list || []).length}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Faculties</div>
+                  </div>
+                  <div style={{ background: '#131b2e', padding: '0.75rem', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
+                      {(inspectedSchool.classes_list || []).length}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Cohorts</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons inside inspector */}
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const res = tenantSchoolStore.resetSchoolAdminPassword(inspectedSchool.slug)
+                    if (res.success) {
+                      setGeneratedAdminPasswordMsg({ schoolSlug: inspectedSchool.slug, pass: res.newPassword })
+                      const updated = tenantSchoolStore.getSchoolBySlug(inspectedSchool.slug)
+                      if (updated) setInspectedSchool(updated)
+                      setSchools(tenantSchoolStore.getSchools())
+                    }
+                  }}
+                  style={{
+                    background: '#854d0e',
+                    color: '#fef08a',
+                    border: 'none',
+                    padding: '0.7rem 1.25rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontSize: '0.84rem',
+                  }}
+                >
+                  ⚡ Regenerate Admin Password
+                </button>
+                <Link
+                  to={`/s/${inspectedSchool.slug}`}
+                  style={{
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    padding: '0.7rem 1.25rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    textDecoration: 'none',
+                    fontSize: '0.84rem',
+                  }}
+                >
+                  Open Campus Hub →
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setInspectedSchool(null)}
+                  style={{
+                    background: '#1e293b',
+                    color: '#cbd5e1',
+                    border: 'none',
+                    padding: '0.7rem 1.25rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontSize: '0.84rem',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}

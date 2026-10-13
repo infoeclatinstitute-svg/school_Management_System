@@ -178,6 +178,31 @@ class TenantSchoolStore {
     this.saveSchools()
   }
 
+  public clearAllSchools(): void {
+    this.schools = []
+    this.staff = []
+    this.students = []
+    this.payroll = []
+    this.grades = []
+    this.lessonNotes = []
+    this.payments = []
+    this.timetables = []
+    this.programs = []
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY)
+      localStorage.removeItem(STAFF_STORAGE_KEY)
+      localStorage.removeItem(STUDENTS_STORAGE_KEY)
+      localStorage.removeItem(PAYROLL_STORAGE_KEY)
+      localStorage.removeItem(GRADES_STORAGE_KEY)
+      localStorage.removeItem(NOTES_STORAGE_KEY)
+      localStorage.removeItem(PAYMENTS_STORAGE_KEY)
+      localStorage.removeItem(TIMETABLE_STORAGE_KEY)
+      localStorage.removeItem(PROGRAMS_STORAGE_KEY)
+      window.dispatchEvent(new CustomEvent('gc-tenant-schools-updated', { detail: [] }))
+      this.pushToCloud()
+    }
+  }
+
   public completeOnboardingStep(slug: string, stepId: string): PartnerSchoolTenant | null {
     const school = this.getSchoolBySlug(slug)
     if (!school) return null
@@ -377,7 +402,7 @@ class TenantSchoolStore {
       ? input.classes_list
       : []
 
-    const adminUsername = (input.admin_username || `admin@${finalSlug}.edu`).trim()
+    const adminUsername = (input.admin_username || `admin.${finalSlug}`).trim()
     const adminPassword = (input.admin_password || `GC-${finalSlug.slice(0, 6).toUpperCase()}-2026`).trim()
 
     const defaultFeatures = {
@@ -519,6 +544,31 @@ class TenantSchoolStore {
     return updated
   }
 
+  public resetSchoolAdminPassword(slug: string, newPassword?: string): { success: boolean; newPassword: string; message: string } {
+    const school = this.getSchoolBySlug(slug)
+    if (!school) return { success: false, newPassword: '', message: 'School not found' }
+
+    const generatedPassword = newPassword || `AdminPass${Math.floor(1000 + Math.random() * 9000)}!`
+    this.updateSchoolBranding(slug, {
+      admin_password: generatedPassword,
+    })
+
+    // Also update the principal's staff member record if one exists
+    const staffList = this.getStaffBySchool(slug)
+    const principalStaff = staffList.find((s) => s.role === 'principal' || s.role === 'admin')
+    if (principalStaff) {
+      this.updateStaffMember(principalStaff.id, {
+        temp_password: generatedPassword,
+      })
+    }
+
+    return {
+      success: true,
+      newPassword: generatedPassword,
+      message: `New temporary password generated for ${school.name} Executive Admin.`,
+    }
+  }
+
   public updateSchoolSubscription(
     slug: string,
     tier: 'starter' | 'growth' | 'enterprise',
@@ -621,6 +671,19 @@ class TenantSchoolStore {
     if (this.staff.length === 0) this.loadStaff()
     this.staff = this.staff.filter((s) => s.id !== id)
     this.saveStaff()
+  }
+
+  public updateStaffMember(
+    id: string,
+    updates: Partial<Omit<TenantStaffMember, 'id' | 'school_slug'>>
+  ): TenantStaffMember | null {
+    if (this.staff.length === 0) this.loadStaff()
+    const idx = this.staff.findIndex((s) => s.id === id)
+    if (idx === -1) return null
+    const updated: TenantStaffMember = { ...this.staff[idx], ...updates }
+    this.staff[idx] = updated
+    this.saveStaff()
+    return updated
   }
 
   // ============================================================
@@ -737,6 +800,29 @@ class TenantSchoolStore {
     this.students = this.students.map((s) => (s.id === id ? updated : s))
     this.saveStudents()
     return updated
+  }
+
+  public resetStudentCredentials(id: string, newPassword?: string): { success: boolean; newPassword: string; message: string } {
+    if (this.students.length === 0) this.loadStudents()
+    const student = this.students.find((s) => s.id === id)
+    if (!student) return { success: false, newPassword: '', message: 'Student not found' }
+
+    const generatedPin = newPassword || `PIN-${Math.floor(1000 + Math.random() * 9000)}`
+    this.updateStudent(id, {
+      temp_password: generatedPin,
+    })
+
+    return {
+      success: true,
+      newPassword: generatedPin,
+      message: `New login password generated for ${student.full_name}: ${generatedPin}`,
+    }
+  }
+
+  public deleteStudent(id: string): void {
+    if (this.students.length === 0) this.loadStudents()
+    this.students = this.students.filter((s) => s.id !== id)
+    this.saveStudents()
   }
 
   // ============================================================
@@ -1086,46 +1172,20 @@ class TenantSchoolStore {
     if (className && className !== 'All') {
       list = list.filter((t) => t.class_name.toLowerCase() === className.toLowerCase())
     }
-    if (list.length === 0) {
-      list = this.generateDefaultTimetable(slug, className || 'General Cohort')
-    }
     return list
   }
 
-  private generateDefaultTimetable(slug: string, className: string): TenantTimetableEntry[] {
-    const days: ('Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday')[] = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-    ]
-    const defaultPeriods = [
-      { num: 1, start: '08:00', end: '08:50', sub: 'Mathematics & Logic', teacher: 'Lead Instructor', room: 'Lecture Hall 1' },
-      { num: 2, start: '08:55', end: '09:45', sub: 'Language & Technical Writing', teacher: 'Department Faculty', room: 'Room 102' },
-      { num: 3, start: '10:00', end: '10:50', sub: 'Applied Technology & Computing', teacher: 'Lab Director', room: 'Computer Lab' },
-      { num: 4, start: '11:00', end: '11:50', sub: 'Core Sciences / Business Studies', teacher: 'Faculty Tutor', room: 'Room 201' },
-      { num: 5, start: '12:00', end: '12:50', sub: 'Practical Workshop & Case Study', teacher: 'Senior Tutor', room: 'Seminar Room' },
-      { num: 6, start: '14:00', end: '14:50', sub: 'Supervised Project & Research', teacher: 'Academic Mentor', room: 'Library / Lab' },
-    ]
-    const generated: TenantTimetableEntry[] = []
-    days.forEach((day, dIdx) => {
-      defaultPeriods.forEach((p) => {
-        generated.push({
-          id: `gen_tt_${slug}_${dIdx}_${p.num}`,
-          school_slug: slug,
-          class_name: className,
-          day_of_week: day,
-          period_number: p.num,
-          start_time: p.start,
-          end_time: p.end,
-          subject_name: p.sub,
-          teacher_name: p.teacher,
-          room: p.room,
-        })
-      })
-    })
-    return generated
+  public updateTimetableEntry(
+    id: string,
+    updates: Partial<Omit<TenantTimetableEntry, 'id' | 'school_slug'>>
+  ): TenantTimetableEntry | null {
+    if (this.timetables.length === 0) this.loadTimetables()
+    const idx = this.timetables.findIndex((t) => t.id === id)
+    if (idx === -1) return null
+    const updated: TenantTimetableEntry = { ...this.timetables[idx], ...updates }
+    this.timetables[idx] = updated
+    this.saveTimetables()
+    return updated
   }
 
   public addTimetableEntry(entry: Omit<TenantTimetableEntry, 'id'>): TenantTimetableEntry {
@@ -1210,128 +1270,8 @@ class TenantSchoolStore {
     this.savePrograms()
   }
 
-  public seedStarterPrograms(slug: string, category: string, depts: string[]): void {
-    if (this.programs.length === 0) this.loadPrograms()
-    const existing = this.getProgramsBySchool(slug)
-    if (existing.length > 0) return
-
-    const starterItems: Omit<InstitutionProgram, 'id' | 'created_at'>[] = []
-    const firstDept = depts[0] || 'School of Computing & IT'
-    const secondDept = depts[1] || 'Department of Business & Management'
-
-    if (category === 'school') {
-      starterItems.push(
-        {
-          school_slug: slug,
-          title: 'Senior Secondary STEM & Sciences Track',
-          department: firstDept,
-          level: 'High School / Secondary',
-          duration: '3 Years (Senior School)',
-          tuition_fee: 45000,
-          fee_currency: 'KES',
-          intake_period: 'January & May Term Intakes',
-          requirements: 'Junior School Assessment & KCPE/KPSEA Completion',
-          description: 'Comprehensive high school STEM program encompassing Pure Mathematics, Physics, Chemistry, Biology, and Computer Studies.',
-          career_outcomes: ['Engineering', 'Medicine', 'Computer Science', 'Biotechnology'],
-          featured: true,
-        },
-        {
-          school_slug: slug,
-          title: 'Arts, Languages & Social Sciences Curriculum',
-          department: secondDept,
-          level: 'High School / Secondary',
-          duration: '3 Years (Senior School)',
-          tuition_fee: 42000,
-          fee_currency: 'KES',
-          intake_period: 'January & May Term Intakes',
-          requirements: 'Junior School Completion Certificate',
-          description: 'Holistic secondary education focusing on Literature in English, History, Geography, Business Studies, and Creative Arts.',
-          career_outcomes: ['Law', 'Journalism', 'Diplomacy', 'Education'],
-          featured: false,
-        }
-      )
-    } else if (category === 'university') {
-      starterItems.push(
-        {
-          school_slug: slug,
-          title: 'Bachelor of Science in Software Engineering',
-          department: firstDept,
-          level: 'Degree',
-          duration: '4 Years (8 Semesters)',
-          tuition_fee: 75000,
-          fee_currency: 'KES',
-          intake_period: 'September (Fall) & January (Spring) Intakes',
-          requirements: 'KCSE Mean Grade C+ with C+ in Mathematics & English or Diploma in ICT',
-          description: 'Premier undergraduate degree curriculum covering Cloud Architecture, Artificial Intelligence, Mobile App Development, and Cyber Defense.',
-          career_outcomes: ['Software Architect', 'Cloud DevOps Engineer', 'AI Specialist'],
-          featured: true,
-        },
-        {
-          school_slug: slug,
-          title: 'Bachelor of Business Administration & Finance',
-          department: secondDept,
-          level: 'Degree',
-          duration: '4 Years (8 Semesters)',
-          tuition_fee: 65000,
-          fee_currency: 'KES',
-          intake_period: 'January & May Intakes',
-          requirements: 'KCSE Mean Grade C+ or Recognized Business Diploma',
-          description: 'Rigorous business program covering Corporate Finance, Strategic Management, Fintech, and Auditing.',
-          career_outcomes: ['Financial Analyst', 'Corporate Auditor', 'Investment Banker'],
-          featured: true,
-        }
-      )
-    } else {
-      // TVET / College / Academy default
-      starterItems.push(
-        {
-          school_slug: slug,
-          title: 'Diploma in Information Communication Technology (ICT)',
-          department: firstDept,
-          level: 'Diploma',
-          duration: '2 Years (6 Semesters / Modules)',
-          tuition_fee: 35000,
-          fee_currency: 'KES',
-          intake_period: 'January, May & September Intakes',
-          requirements: 'KCSE Mean Grade C- (Minus) or Certificate in ICT',
-          description: 'Practical TVET-accredited program covering Full-Stack Web Development, Networking (CCNA), Database Systems, and Hardware Troubleshooting.',
-          career_outcomes: ['Web Developer', 'Network Administrator', 'IT Support Officer'],
-          featured: true,
-        },
-        {
-          school_slug: slug,
-          title: 'Diploma in Business Management & Accounting',
-          department: secondDept,
-          level: 'Diploma',
-          duration: '2 Years (6 Semesters)',
-          tuition_fee: 30000,
-          fee_currency: 'KES',
-          intake_period: 'January, May & September Intakes',
-          requirements: 'KCSE Mean Grade C- or Business Certificate',
-          description: 'Industry-aligned diploma in Financial Accounting, Human Resource Management, Business Law, and Entrepreneurship.',
-          career_outcomes: ['Accountant', 'HR Officer', 'Operations Manager'],
-          featured: true,
-        },
-        {
-          school_slug: slug,
-          title: 'Certificate in Computer Programming & Web Design',
-          department: firstDept,
-          level: 'Certificate',
-          duration: '1 Year (3 Trimesters)',
-          tuition_fee: 25000,
-          fee_currency: 'KES',
-          intake_period: 'Monthly Modular Intakes',
-          requirements: 'KCSE Mean Grade D (Plain) or Artisan Certificate',
-          description: 'Foundational computing certificate equipping learners with Python, JavaScript, HTML5/CSS3, and Computer Maintenance skills.',
-          career_outcomes: ['Junior Developer', 'IT Assistant', 'Freelance Web Designer'],
-          featured: false,
-        }
-      )
-    }
-
-    starterItems.forEach((item) => {
-      this.createProgram(item)
-    })
+  public seedStarterPrograms(_slug: string, _category: string, _depts: string[]): void {
+    // Keep empty: ensure newly created schools have a 100% clean and unpopulated database
   }
 
   // ============================================================

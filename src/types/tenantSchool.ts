@@ -58,7 +58,7 @@ export interface InstitutionProgram {
 export interface PartnerSchoolTenant {
   id: string
   name: string // e.g. "Hillcrest British International College"
-  slug: string // unique URL slug: "hillcrest" -> globalcollege.edu/s/hillcrest
+  slug: string // unique URL slug: "hillcrest" -> cloud.eclat.institute/s/hillcrest
   institution_category?: InstitutionCategory
   registration_number?: string // Ministry / TVETA / CUE Accreditation No.
   currency?: string // e.g. "USD", "KES", "UGX", "TZS", "NGN", "GBP", "EUR"
@@ -81,8 +81,8 @@ export interface PartnerSchoolTenant {
   contact_email: string
   contact_phone: string
   website?: string
-  custom_domain?: string // e.g. "portal.hillcrest.edu" or "lms.apextech.ac.ke"
-  subdomain?: string     // e.g. "hillcrest" -> "hillcrest.globalcollege.edu"
+  custom_domain?: string // e.g. "portal.hillcrest.ac.ke" or "lms.apextech.ac.ke"
+  subdomain?: string     // e.g. "hillcrest" -> "hillcrest.cloud.eclat.institute"
   principal_name: string
   principal_title: string // e.g. "Principal", "Head of School", "Dean", "Director"
   principal_email: string

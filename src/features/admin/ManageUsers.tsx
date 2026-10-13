@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/Spinner'
 import { RoleBadge } from '@/components/ui/Badge'
 import { isAccessExpired, formatDate, daysUntil, sanitizeInput } from '@/lib/utils'
 import { hashPassword } from '@/lib/crypto'
+import { INSTITUTION_CONFIG } from '@/config/institution'
 import type { Profile, Role, Class } from '@/lib/database.types'
 
 export function ManageUsers() {
@@ -416,7 +417,7 @@ export function ManageUsers() {
           staff_id: cleanAdm,
           name: cleanName,
           title: 'Faculty Lecturer',
-          email: `${cleanKey}@globalcollege.edu`,
+          email: `${cleanKey}@${INSTITUTION_CONFIG.domain}`,
           department: selectedCourseNames[0] || 'Academic Faculty',
           specialty: selectedCourseNames.join(', ') || 'General Studies & Practical Labs',
           portal_password: cleanPass,

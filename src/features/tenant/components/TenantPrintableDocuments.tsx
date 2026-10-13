@@ -245,7 +245,7 @@ export function StudentAdmissionLetterModal({
               <div>
                 <div style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 700 }}>Student Portal URL:</div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
-                  https://{school.custom_domain || `${school.slug}.globalcollege.edu`}/student
+                  {school.custom_domain ? `https://${school.custom_domain}/student` : `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${school.slug}/student`}
                 </div>
               </div>
               <div>
@@ -322,10 +322,10 @@ export function StudentAdmissionLetterModal({
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Financial Clearance:</div>
               <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                Total Term Fee: ${student.fee_total.toLocaleString()}
+                Total Term Fee: {school.currency || 'KES'} {student.fee_total.toLocaleString()}
               </div>
               <div style={{ fontSize: '0.82rem', fontWeight: 800, color: student.fee_balance === 0 ? '#16a34a' : '#dc2626' }}>
-                {student.fee_balance === 0 ? '✓ Tuition Paid in Full' : `Balance Remaining: $${student.fee_balance.toLocaleString()}`}
+                {student.fee_balance === 0 ? '✓ Tuition Paid in Full' : `Balance Remaining: ${school.currency || 'KES'} ${student.fee_balance.toLocaleString()}`}
               </div>
             </div>
           </div>
@@ -522,7 +522,7 @@ export function StaffLoginSlipModal({
             <div>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>NET MONTHLY SALARY</div>
               <div style={{ fontSize: '1rem', fontWeight: 900, color: '#16a34a' }}>
-                ${staff.net_salary.toLocaleString()}
+                {school.currency || 'KES'} {staff.net_salary.toLocaleString()}
               </div>
             </div>
           </div>
@@ -543,7 +543,7 @@ export function StaffLoginSlipModal({
               <div>
                 <div style={{ fontSize: '0.74rem', color: '#1d4ed8', fontWeight: 700 }}>Desk Portal URL:</div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>
-                  https://{school.custom_domain || `${school.slug}.globalcollege.edu`}/{staff.role}
+                  {school.custom_domain ? `https://${school.custom_domain}/${staff.role}` : `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${school.slug}/${staff.role}`}
                 </div>
               </div>
               <div>
@@ -762,19 +762,19 @@ export function StaffPayslipModal({
               </h3>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.85rem' }}>
                 <span>Basic Salary</span>
-                <span style={{ fontWeight: 800 }}>${payslip.base_salary.toLocaleString()}</span>
+                <span style={{ fontWeight: 800 }}>{school.currency || 'KES'} {payslip.base_salary.toLocaleString()}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.85rem' }}>
                 <span>Housing Allowance</span>
-                <span style={{ fontWeight: 800 }}>${payslip.housing_allowance.toLocaleString()}</span>
+                <span style={{ fontWeight: 800 }}>{school.currency || 'KES'} {payslip.housing_allowance.toLocaleString()}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.85rem' }}>
                 <span>Transport Allowance</span>
-                <span style={{ fontWeight: 800 }}>${payslip.transport_allowance.toLocaleString()}</span>
+                <span style={{ fontWeight: 800 }}>{school.currency || 'KES'} {payslip.transport_allowance.toLocaleString()}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #86efac', paddingTop: '0.75rem', marginTop: '0.5rem', fontWeight: 900, fontSize: '0.95rem', color: '#14532d' }}>
                 <span>Total Gross Earnings</span>
-                <span>${payslip.gross_salary.toLocaleString()}</span>
+                <span>{school.currency || 'KES'} {payslip.gross_salary.toLocaleString()}</span>
               </div>
             </div>
 
@@ -785,15 +785,15 @@ export function StaffPayslipModal({
               </h3>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.85rem' }}>
                 <span>Statutory PAYE Tax</span>
-                <span style={{ fontWeight: 800 }}>-${payslip.tax_deduction.toLocaleString()}</span>
+                <span style={{ fontWeight: 800 }}>-{school.currency || 'KES'} {payslip.tax_deduction.toLocaleString()}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.85rem' }}>
                 <span>Retirement Pension Fund</span>
-                <span style={{ fontWeight: 800 }}>-${payslip.pension_deduction.toLocaleString()}</span>
+                <span style={{ fontWeight: 800 }}>-{school.currency || 'KES'} {payslip.pension_deduction.toLocaleString()}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #fca5a5', paddingTop: '0.75rem', marginTop: '0.5rem', fontWeight: 900, fontSize: '0.95rem', color: '#7f1d1d' }}>
                 <span>Total Deductions</span>
-                <span>-${(payslip.tax_deduction + payslip.pension_deduction).toLocaleString()}</span>
+                <span>-{school.currency || 'KES'} {(payslip.tax_deduction + payslip.pension_deduction).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -818,7 +818,7 @@ export function StaffPayslipModal({
               <div style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>Direct Bank Transfer / Wire</div>
             </div>
             <div style={{ fontSize: '2rem', fontWeight: 900, color: '#38bdf8' }}>
-              ${payslip.net_salary.toLocaleString()}
+              {school.currency || 'KES'} {payslip.net_salary.toLocaleString()}
             </div>
           </div>
 
@@ -1030,7 +1030,7 @@ export function FeeReceiptModal({
               </div>
             </div>
             <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#15803d' }}>
-              ${receipt.amount.toLocaleString()}
+              {school.currency || 'KES'} {receipt.amount.toLocaleString()}
             </div>
           </div>
 

@@ -139,6 +139,17 @@ class LicensingStore {
     localStorage.removeItem(MASTER_AUTH_STORAGE_KEY)
   }
 
+  public clearAllLicensingData(): void {
+    this.licenses = []
+    this.invoices = []
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(LICENSES_STORAGE_KEY)
+      localStorage.removeItem(INVOICES_STORAGE_KEY)
+      this.pushToCloud()
+      this.notify()
+    }
+  }
+
   // -------------------------------------------------------------
   // Metrics & Calculations
   // -------------------------------------------------------------

@@ -497,7 +497,7 @@ export function TutorPublishCoursePage() {
           code: finalDepartmentName.split(/\s+/).map((w) => w[0]).join('').slice(0, 5).toUpperCase() || 'DEPT',
           description: `Dynamic department registered by ${providerType === 'partner_institution' ? (institutionName.trim() || 'Partner School') : finalTutorOrSchoolName}.`,
           hod_name: providerType === 'partner_institution' ? (institutionSignatory.trim() || 'Academic Dean') : finalTutorOrSchoolName,
-          hod_email: email.trim() || 'admissions@globalcollege.edu',
+          hod_email: email.trim() || 'info.eclatinstitute@gmail.com',
           programs: [finalProgramName],
           school_id: 'school-Global College',
           school_name: providerType === 'partner_institution' ? (institutionName.trim() || 'Partner School') : 'Global College',

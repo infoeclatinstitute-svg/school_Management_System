@@ -41,7 +41,7 @@ export function TenantBursarDesk({
   // New Payment Form Input
   const [newPaymentInput, setNewPaymentInput] = useState({
     student_id: studentList[0]?.id || '',
-    amount: 1800,
+    amount: 0,
     payment_method: 'Bank Wire' as 'Bank Wire' | 'Mobile Money (M-Pesa)' | 'Credit Card' | 'Cash',
   })
 
@@ -208,12 +208,12 @@ export function TenantBursarDesk({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TOTAL BILLED TUITION</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>${totalBilled.toLocaleString()}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{school.currency || 'KES'} {totalBilled.toLocaleString()}</div>
           <div style={{ fontSize: '0.76rem', color: '#64748b' }}>{studentList.length} Invoiced Students</div>
         </div>
         <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>COLLECTED REVENUE</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>${totalCollected.toLocaleString()}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{school.currency || 'KES'} {totalCollected.toLocaleString()}</div>
           <div style={{ fontSize: '0.76rem', color: '#16a34a', fontWeight: 700 }}>
             {totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 100}% Recovery Rate
           </div>
@@ -221,13 +221,13 @@ export function TenantBursarDesk({
         <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>OUTSTANDING ARREARS</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 900, color: totalArrears > 0 ? '#dc2626' : '#16a34a', marginTop: '2px' }}>
-            ${totalArrears.toLocaleString()}
+            {school.currency || 'KES'} {totalArrears.toLocaleString()}
           </div>
           <div style={{ fontSize: '0.76rem', color: '#dc2626' }}>{defaultersList.length} Pending Balances</div>
         </div>
         <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
           <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>NET DISBURSED PAYROLL</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>${totalNetPayroll.toLocaleString()}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{school.currency || 'KES'} {totalNetPayroll.toLocaleString()}</div>
           <div style={{ fontSize: '0.76rem', color: '#b45309', fontWeight: 700 }}>{payrollList.length} Active Staff Slips</div>
         </div>
       </div>
@@ -276,10 +276,10 @@ export function TenantBursarDesk({
                   <tr key={p.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                     <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>{p.staff_name}</td>
                     <td style={{ padding: '0.75rem', color: '#64748b' }}>{p.role} • {p.department}</td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>${p.base_salary.toLocaleString()}</td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right', color: '#059669' }}>+${(p.housing_allowance + p.transport_allowance).toLocaleString()}</td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right', color: '#dc2626' }}>-${(p.tax_deduction + p.pension_deduction).toLocaleString()}</td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 900, color: '#0f172a' }}>${p.net_salary.toLocaleString()}</td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right' }}>{school.currency || 'KES'} {p.base_salary.toLocaleString()}</td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right', color: '#059669' }}>+{school.currency || 'KES'} {(p.housing_allowance + p.transport_allowance).toLocaleString()}</td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right', color: '#dc2626' }}>-{school.currency || 'KES'} {(p.tax_deduction + p.pension_deduction).toLocaleString()}</td>
+                    <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 900, color: '#0f172a' }}>{school.currency || 'KES'} {p.net_salary.toLocaleString()}</td>
                     <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                       <span
                         style={{
@@ -366,7 +366,7 @@ export function TenantBursarDesk({
                       </td>
                       <td style={{ padding: '0.75rem', color: '#475569' }}>{p.payment_method}</td>
                       <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 900, color: '#16a34a' }}>
-                        ${p.amount.toLocaleString()}
+                        {school.currency || 'KES'} {p.amount.toLocaleString()}
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                         <button
@@ -423,15 +423,15 @@ export function TenantBursarDesk({
                       <td style={{ padding: '0.75rem', fontWeight: 800, color: primaryColor }}>{s.admission_number}</td>
                       <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
                       <td style={{ padding: '0.75rem', color: '#64748b' }}>{s.grade_class}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>${s.fee_total.toLocaleString()}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#16a34a' }}>${s.fee_paid.toLocaleString()}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right' }}>{school.currency || 'KES'} {s.fee_total.toLocaleString()}</td>
+                      <td style={{ padding: '0.75rem', textAlign: 'right', color: '#16a34a' }}>{school.currency || 'KES'} {s.fee_paid.toLocaleString()}</td>
                       <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 900, color: '#dc2626' }}>
-                        ${s.fee_balance.toLocaleString()}
+                        {school.currency || 'KES'} {s.fee_balance.toLocaleString()}
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                         <button
                           type="button"
-                          onClick={() => alert(`Generated Fee Demand Notice for ${s.guardian_name} (${s.guardian_phone}) for balance $${s.fee_balance}!`)}
+                          onClick={() => alert(`Generated Fee Demand Notice for ${s.guardian_name} (${s.guardian_phone}) for balance ${school.currency || 'KES'} ${s.fee_balance}!`)}
                           style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.74rem', fontWeight: 800, cursor: 'pointer' }}
                         >
                           📩 Send Demand
@@ -447,36 +447,55 @@ export function TenantBursarDesk({
       )}
 
       {/* SUBTAB 4: FEE STRUCTURE */}
-      {bursarSubTab === 'structure' && (
-        <div style={{ background: '#ffffff', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0' }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: '0 0 1rem', color: '#0f172a' }}>
-            Official Institutional Term Fee Structure &amp; Levies
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>Grade 10 &amp; 11 Senior Academic Series</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b45309', marginTop: '4px' }}>$1,800 / Term</div>
-              <ul style={{ paddingLeft: '1.25rem', fontSize: '0.84rem', color: '#475569', lineHeight: 1.8, marginTop: '8px' }}>
-                <li>Tuition &amp; Core Academic Syllabus Instruction ($1,200)</li>
-                <li>STEM Physics &amp; Chemistry Laboratory Levy ($250)</li>
-                <li>Computer Science &amp; Coding Terminal Fee ($200)</li>
-                <li>Examination Center &amp; Library Resource ($150)</li>
-              </ul>
+      {bursarSubTab === 'structure' && (() => {
+        const schoolPrograms = tenantSchoolStore.getProgramsBySchool(school.slug)
+        return (
+          <div style={{ background: '#ffffff', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
+                  Official Institutional Term Fee Structure &amp; Levies
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                  Standard tuition fees and billable schedules per academic program / level.
+                </p>
+              </div>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>Form 3 &amp; 4 Secondary Cohort</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b45309', marginTop: '4px' }}>$1,500 / Term</div>
-              <ul style={{ paddingLeft: '1.25rem', fontSize: '0.84rem', color: '#475569', lineHeight: 1.8, marginTop: '8px' }}>
-                <li>Academic Instruction &amp; Course Notes ($1,000)</li>
-                <li>Science Practical Material &amp; Reagents ($250)</li>
-                <li>Continuous Assessment CAT &amp; Exam Papers ($150)</li>
-                <li>Activity &amp; Sports Ground Levy ($100)</li>
-              </ul>
-            </div>
+            {schoolPrograms.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📋</div>
+                <h4 style={{ margin: '0 0 0.35rem', color: '#0f172a', fontWeight: 800 }}>No Program Fee Schedules Configured</h4>
+                <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b' }}>
+                  The Principal can register academic programs and tuition rates in the Principal / Admin Desk.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+                {schoolPrograms.map((prog) => (
+                  <div key={prog.id} style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>{prog.title}</div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>{prog.level} • {prog.department}</div>
+                    <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b45309', marginTop: '6px' }}>
+                      {school.currency || prog.fee_currency || 'KES'} {prog.tuition_fee.toLocaleString()} / Term
+                    </div>
+                    {prog.duration && (
+                      <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '6px' }}>
+                        ⏱️ Duration: <strong>{prog.duration}</strong>
+                      </div>
+                    )}
+                    {prog.intake_period && (
+                      <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '4px' }}>
+                        📅 Intake: <strong>{prog.intake_period}</strong>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* MODAL: RECORD FEE PAYMENT */}
       {showRecordPaymentModal && (
@@ -493,7 +512,7 @@ export function TenantBursarDesk({
                 >
                   {studentList.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.full_name} ({s.admission_number}) — Balance: ${s.fee_balance}
+                      {s.full_name} ({s.admission_number}) — Balance: {school.currency || 'KES'} {s.fee_balance}
                     </option>
                   ))}
                 </select>
@@ -501,7 +520,7 @@ export function TenantBursarDesk({
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>Amount to Credit ($)</label>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>Amount to Credit ({school.currency || 'KES'})</label>
                   <input
                     type="number"
                     required

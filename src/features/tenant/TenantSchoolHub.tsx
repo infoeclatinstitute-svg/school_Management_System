@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
-import { getTenantDomainLinks } from '@/lib/tenantDomain'
+import { getTenantDomainLinks, detectTenantFromHost } from '@/lib/tenantDomain'
 import type { TenantDomainLinks } from '@/lib/tenantDomain'
 import { INSTITUTION_CONFIG } from '@/config/institution'
 import type {
@@ -52,11 +52,31 @@ import {
   FeeReceiptModal,
 } from './components/TenantPrintableDocuments'
 
-export function TenantSchoolHub() {
-  const { schoolSlug, subview } = useParams<{ schoolSlug: string; subview?: string }>()
+export interface TenantSchoolHubProps {
+  forcedSlug?: string
+  forcedSubview?: string
+}
+
+export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubProps = {}) {
+  const { schoolSlug: routeSlug, subview: routeSubview } = useParams<{ schoolSlug: string; subview?: string }>()
+  const schoolSlug = forcedSlug || routeSlug
+  const subview = forcedSubview || routeSubview
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useAuth()
+
+  const isSubdomainMode = typeof window !== 'undefined' && Boolean(detectTenantFromHost(window.location.hostname, tenantSchoolStore.getSchools()))
+
+  const getDeskRoute = (tab: string) => {
+    if (isSubdomainMode) {
+      if (tab === 'hub') return '/'
+      if (tab === 'principal') return '/admin'
+      return `/${tab}`
+    }
+    const currentSlug = school?.slug || schoolSlug || ''
+    if (tab === 'hub') return `/s/${currentSlug}`
+    return `/s/${currentSlug}/${tab}`
+  }
 
   const [school, setSchool] = useState<PartnerSchoolTenant | null>(null)
   const [loading, setLoading] = useState(true)
@@ -102,13 +122,15 @@ export function TenantSchoolHub() {
   })()
 
   // Active Tab: Hub, Programs, Calendar, Student, Teacher, Bursar, Principal
-  const [activeTab, setActiveTab] = useState<'hub' | 'programs' | 'calendar' | 'student' | 'teacher' | 'bursar' | 'principal'>(() => {
-    if (subview === 'programs' || subview === 'courses') return 'programs'
-    if (subview === 'student') return 'student'
-    if (subview === 'teacher') return 'teacher'
-    if (subview === 'bursar') return 'bursar'
-    if (subview === 'principal' || subview === 'admin') return 'principal'
-    if (subview === 'calendar') return 'calendar'
+  const [activeTab, setActiveTab] = useState<'hub' | 'programs' | 'calendar' | 'student' | 'teacher' | 'bursar' | 'principal' | 'billing'>(() => {
+    const s = forcedSubview || subview
+    if (s === 'programs' || s === 'courses') return 'programs'
+    if (s === 'student' || s === 'parent') return 'student'
+    if (s === 'teacher') return 'teacher'
+    if (s === 'bursar') return 'bursar'
+    if (s === 'principal' || s === 'admin') return 'principal'
+    if (s === 'calendar') return 'calendar'
+    if (s === 'billing' || s === 'license' || s === 'subscription') return 'billing'
     return 'hub'
   })
 
@@ -119,14 +141,16 @@ export function TenantSchoolHub() {
 
   // Synchronize route subview
   useEffect(() => {
-    if (subview === 'programs' || subview === 'courses') setActiveTab('programs')
-    else if (subview === 'student') setActiveTab('student')
-    else if (subview === 'teacher') setActiveTab('teacher')
-    else if (subview === 'bursar') setActiveTab('bursar')
-    else if (subview === 'principal' || subview === 'admin') setActiveTab('principal')
-    else if (subview === 'calendar') setActiveTab('calendar')
+    const s = forcedSubview || subview
+    if (s === 'programs' || s === 'courses') setActiveTab('programs')
+    else if (s === 'student' || s === 'parent') setActiveTab('student')
+    else if (s === 'teacher') setActiveTab('teacher')
+    else if (s === 'bursar') setActiveTab('bursar')
+    else if (s === 'principal' || s === 'admin') setActiveTab('principal')
+    else if (s === 'calendar') setActiveTab('calendar')
+    else if (s === 'billing' || s === 'license' || s === 'subscription') setActiveTab('billing')
     else setActiveTab('hub')
-  }, [subview])
+  }, [forcedSubview, subview])
 
   // Reload School Data Helper
   const reloadSchoolData = (slug: string) => {
@@ -167,9 +191,10 @@ export function TenantSchoolHub() {
 
       if (customMatched) {
         targetSlug = customMatched.slug
-      } else if (hostname.endsWith('.globalcollege.edu')) {
-        const sub = hostname.replace('.globalcollege.edu', '')
-        if (sub && sub !== 'www' && sub !== 'app') {
+      } else if (typeof window !== 'undefined' && hostname.split('.').length > 2) {
+        const parts = hostname.split('.')
+        const sub = parts[0]
+        if (sub && sub !== 'www' && sub !== 'cloud' && sub !== 'app') {
           targetSlug = sub
         }
       }
@@ -342,6 +367,106 @@ export function TenantSchoolHub() {
           }}
         >
           Sign In to Access {deskName} ➔
+        </button>
+      </div>
+    </div>
+  )
+
+  const isLicenseActive = Boolean(school.active_license_key && school.subscription_status === 'active')
+
+  // Product Key License Required Fallback Card
+  const renderLicenseRequiredCard = (deskName: string) => (
+    <div
+      style={{
+        background: '#ffffff',
+        borderRadius: '24px',
+        padding: '3rem 2rem',
+        border: '1.5px solid #fde68a',
+        maxWidth: '680px',
+        margin: '2rem auto',
+        textAlign: 'center',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.04)',
+      }}
+    >
+      <div
+        style={{
+          width: '64px',
+          height: '64px',
+          borderRadius: '20px',
+          background: '#fef3c7',
+          color: '#b45309',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 1.5rem',
+          fontSize: '1.8rem',
+        }}
+      >
+        🔑
+      </div>
+
+      <span
+        style={{
+          fontSize: '0.72rem',
+          fontWeight: 800,
+          color: '#b45309',
+          background: '#fef3c7',
+          padding: '3px 10px',
+          borderRadius: '6px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
+        Product Key Activation Required
+      </span>
+
+      <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '0.75rem 0 0.5rem' }}>
+        License Key Required for {deskName}
+      </h2>
+
+      <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 1.5rem' }}>
+        {school.name} is currently awaiting institutional Product Key activation. To unlock the {deskName} and start using your digital campus, please enter your 19-character Product Key.
+      </p>
+
+      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => {
+            setLicenseFeedback(null)
+            setShowLicenseModal(true)
+          }}
+          style={{
+            background: primaryColor,
+            color: '#ffffff',
+            fontWeight: 800,
+            padding: '0.75rem 1.75rem',
+            borderRadius: '12px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+            boxShadow: `0 4px 16px ${primaryColor}40`,
+          }}
+        >
+          🔑 Enter Product Key ➔
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('billing')
+            navigate(getDeskRoute('billing'))
+          }}
+          style={{
+            background: '#f8fafc',
+            color: '#0f172a',
+            fontWeight: 800,
+            padding: '0.75rem 1.5rem',
+            borderRadius: '12px',
+            border: '1.5px solid #cbd5e1',
+            cursor: 'pointer',
+            fontSize: '0.9rem',
+          }}
+        >
+          💳 Open Billing &amp; Licensing Portal
         </button>
       </div>
     </div>
@@ -524,7 +649,7 @@ export function TenantSchoolHub() {
           <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', gap: '0.25rem', overflowX: 'auto', scrollbarWidth: 'none' }}>
             <button
               type="button"
-              onClick={() => { setActiveTab('hub'); navigate(`/s/${school.slug}`) }}
+              onClick={() => { setActiveTab('hub'); navigate(getDeskRoute('hub')) }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -545,7 +670,7 @@ export function TenantSchoolHub() {
 
             <button
               type="button"
-              onClick={() => { setActiveTab('programs'); navigate(`/s/${school.slug}/programs`) }}
+              onClick={() => { setActiveTab('programs'); navigate(getDeskRoute('programs')) }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -566,7 +691,7 @@ export function TenantSchoolHub() {
 
             <button
               type="button"
-              onClick={() => { setActiveTab('calendar'); navigate(`/s/${school.slug}/calendar`) }}
+              onClick={() => { setActiveTab('calendar'); navigate(getDeskRoute('calendar')) }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -588,7 +713,7 @@ export function TenantSchoolHub() {
             {/* Principal Office Tab */}
             <button
               type="button"
-              onClick={() => { setActiveTab('principal'); navigate(`/s/${school.slug}/principal`) }}
+              onClick={() => { setActiveTab('principal'); navigate(getDeskRoute('principal')) }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -610,7 +735,7 @@ export function TenantSchoolHub() {
             {/* Bursar Desk Tab */}
             <button
               type="button"
-              onClick={() => { setActiveTab('bursar'); navigate(`/s/${school.slug}/bursar`) }}
+              onClick={() => { setActiveTab('bursar'); navigate(getDeskRoute('bursar')) }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -632,7 +757,7 @@ export function TenantSchoolHub() {
             {/* Teacher Portal Tab */}
             <button
               type="button"
-              onClick={() => { setActiveTab('teacher'); navigate(`/s/${school.slug}/teacher`) }}
+              onClick={() => { setActiveTab('teacher'); navigate(getDeskRoute('teacher')) }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -654,7 +779,7 @@ export function TenantSchoolHub() {
             {/* Student Portal Tab */}
             <button
               type="button"
-              onClick={() => { setActiveTab('student'); navigate(`/s/${school.slug}/student`) }}
+              onClick={() => { setActiveTab('student'); navigate(getDeskRoute('student')) }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -672,6 +797,33 @@ export function TenantSchoolHub() {
               <GraduationCapIcon size={15} />
               <span>Student Portal</span>
             </button>
+
+            {/* Billing & Subscription Tab */}
+            <button
+              type="button"
+              onClick={() => { setActiveTab('billing'); navigate(getDeskRoute('billing')) }}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0.65rem 0.9rem',
+                fontSize: '0.82rem',
+                fontWeight: activeTab === 'billing' ? 800 : 600,
+                color: activeTab === 'billing' ? primaryColor : isLicenseActive ? '#64748b' : '#b45309',
+                borderBottom: activeTab === 'billing' ? `2.5px solid ${primaryColor}` : '2.5px solid transparent',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <CreditCardIcon size={15} />
+              <span>Billing &amp; Subscription</span>
+              {!isLicenseActive && (
+                <span style={{ fontSize: '0.65rem', background: '#fef3c7', color: '#b45309', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                  Key Req.
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </header>
@@ -681,6 +833,79 @@ export function TenantSchoolHub() {
         {/* VIEW 1: MAIN HUB */}
         {activeTab === 'hub' && (
           <div>
+            {/* Subscription Activation Required Banner */}
+            {!isLicenseActive && (
+              <div
+                style={{
+                  background: '#fffbeb',
+                  border: '1.5px solid #fde68a',
+                  borderRadius: '16px',
+                  padding: '1.25rem 1.5rem',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
+                  boxShadow: '0 4px 14px rgba(245, 158, 11, 0.08)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ fontSize: '2rem' }}>🔑</div>
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#92400e' }}>
+                      Subscription Product Key Required
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
+                      This digital campus is awaiting Product Key activation. Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Enter your activation key to unlock all portal desks.
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLicenseFeedback(null)
+                      setShowLicenseModal(true)
+                    }}
+                    style={{
+                      background: '#b45309',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      padding: '0.6rem 1.25rem',
+                      borderRadius: '10px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.84rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>🔑 Enter Product Key</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('billing')
+                      navigate(getDeskRoute('billing'))
+                    }}
+                    style={{
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      fontWeight: 800,
+                      padding: '0.6rem 1rem',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      cursor: 'pointer',
+                      fontSize: '0.84rem',
+                    }}
+                  >
+                    View Billing Details &rarr;
+                  </button>
+                </div>
+              </div>
+            )}
             {/* School Hero Banner */}
             <div
               style={{
@@ -881,12 +1106,9 @@ export function TenantSchoolHub() {
                   <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
                     <GraduationCapIcon size={24} color="#1d4ed8" />
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.75rem' }}>
                     Student Learning Portal
                   </h3>
-                  <div style={{ fontSize: '0.78rem', color: '#2563eb', fontWeight: 700, marginBottom: '0.75rem' }}>
-                    URL: /s/{school.slug}/student
-                  </div>
                   <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1.25rem' }}>
                     Enrolled candidates log in to access virtual lectures, class timetables, continuous assessments, submitted homework, and stamped report cards.
                   </p>
@@ -894,7 +1116,7 @@ export function TenantSchoolHub() {
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
                   <button
                     type="button"
-                    onClick={() => { setActiveTab('student'); navigate(`/s/${school.slug}/student`) }}
+                    onClick={() => { setActiveTab('student'); navigate(getDeskRoute('student')) }}
                     style={{
                       flex: 1,
                       background: '#1d4ed8',
@@ -916,7 +1138,7 @@ export function TenantSchoolHub() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(`/s/${school.slug}/student`, 'Student Portal URL')}
+                    onClick={() => copyToClipboard(domainLinks.portals.student.subdomain, 'Student Portal Link')}
                     style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}
                     title="Copy Student Portal Link"
                   >
@@ -931,12 +1153,9 @@ export function TenantSchoolHub() {
                   <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
                     <UserIcon size={24} />
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.75rem' }}>
                     Teacher &amp; Faculty Desk
                   </h3>
-                  <div style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700, marginBottom: '0.75rem' }}>
-                    URL: /s/{school.slug}/teacher
-                  </div>
                   <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1.25rem' }}>
                     Subject tutors and class teachers take morning/afternoon attendance, enter CAT and exam marks into continuous gradebooks, and upload lesson study materials.
                   </p>
@@ -944,7 +1163,7 @@ export function TenantSchoolHub() {
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
                   <button
                     type="button"
-                    onClick={() => { setActiveTab('teacher'); navigate(`/s/${school.slug}/teacher`) }}
+                    onClick={() => { setActiveTab('teacher'); navigate(getDeskRoute('teacher')) }}
                     style={{
                       flex: 1,
                       background: '#059669',
@@ -966,7 +1185,7 @@ export function TenantSchoolHub() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(`/s/${school.slug}/teacher`, 'Teacher Portal URL')}
+                    onClick={() => copyToClipboard(domainLinks.portals.teacher.subdomain, 'Teacher Desk Link')}
                     style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}
                     title="Copy Teacher Portal Link"
                   >
@@ -981,12 +1200,9 @@ export function TenantSchoolHub() {
                   <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fefce8', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
                     <CreditCardIcon size={24} color="#b45309" />
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.75rem' }}>
                     Bursar &amp; Finance Office
                   </h3>
-                  <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: 700, marginBottom: '0.75rem' }}>
-                    URL: /s/{school.slug}/bursar
-                  </div>
                   <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1.25rem' }}>
                     Finance staff track tuition payments, reconcile bank wire deposits, manage student arrears, and process monthly staff salary payroll registers.
                   </p>
@@ -994,7 +1210,7 @@ export function TenantSchoolHub() {
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
                   <button
                     type="button"
-                    onClick={() => { setActiveTab('bursar'); navigate(`/s/${school.slug}/bursar`) }}
+                    onClick={() => { setActiveTab('bursar'); navigate(getDeskRoute('bursar')) }}
                     style={{
                       flex: 1,
                       background: '#b45309',
@@ -1016,7 +1232,7 @@ export function TenantSchoolHub() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(`/s/${school.slug}/bursar`, 'Bursar Desk URL')}
+                    onClick={() => copyToClipboard(domainLinks.portals.bursar.subdomain, 'Bursar Desk Link')}
                     style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}
                     title="Copy Bursar Desk Link"
                   >
@@ -1031,12 +1247,9 @@ export function TenantSchoolHub() {
                   <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${primaryColor}14`, color: primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
                     <ShieldCheckIcon size={24} color={primaryColor} />
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.5rem' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.75rem' }}>
                     Principal &amp; Executive Office
                   </h3>
-                  <div style={{ fontSize: '0.78rem', color: primaryColor, fontWeight: 700, marginBottom: '0.75rem' }}>
-                    URL: /s/{school.slug}/principal
-                  </div>
                   <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1.25rem' }}>
                     Executive leadership desk to hire faculty, admit students, issue credentials, manage timetables, authorize payroll disbursements, and manage cloud subscription.
                   </p>
@@ -1044,7 +1257,7 @@ export function TenantSchoolHub() {
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
                   <button
                     type="button"
-                    onClick={() => { setActiveTab('principal'); navigate(`/s/${school.slug}/principal`) }}
+                    onClick={() => { setActiveTab('principal'); navigate(getDeskRoute('principal')) }}
                     style={{
                       flex: 1,
                       background: primaryColor,
@@ -1066,7 +1279,7 @@ export function TenantSchoolHub() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(`/s/${school.slug}/principal`, 'Principal Desk URL')}
+                    onClick={() => copyToClipboard(domainLinks.portals.admin.subdomain, 'Principal Office Link')}
                     style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}
                     title="Copy Principal Desk Link"
                   >
@@ -1085,7 +1298,7 @@ export function TenantSchoolHub() {
             isAdmin={activeRole === 'admin'}
             onOpenAdmissions={() => {
               setActiveTab('principal')
-              navigate(`/s/${school.slug}/principal`)
+              navigate(getDeskRoute('principal'))
             }}
           />
         )}
@@ -1158,7 +1371,9 @@ export function TenantSchoolHub() {
 
         {/* VIEW 3: STUDENT DESK */}
         {activeTab === 'student' && (
-          activeRole !== 'admin' && activeRole !== 'student' ? (
+          !isLicenseActive ? (
+            renderLicenseRequiredCard('Student Learning Portal')
+          ) : activeRole !== 'admin' && activeRole !== 'student' ? (
             renderRestrictedCard(
               'Student Learning Portal',
               'This workspace contains personalized course modules, lecture notes, timetable periods, attendance tracking, and individual report card results. Access is strictly scoped to enrolled students and executive administrators.',
@@ -1180,7 +1395,9 @@ export function TenantSchoolHub() {
 
         {/* VIEW 4: TEACHER DESK */}
         {activeTab === 'teacher' && (
-          activeRole !== 'admin' && activeRole !== 'teacher' ? (
+          !isLicenseActive ? (
+            renderLicenseRequiredCard('Teacher & Faculty Workspace')
+          ) : activeRole !== 'admin' && activeRole !== 'teacher' ? (
             renderRestrictedCard(
               'Teacher & Faculty Workspace',
               'This workspace contains attendance registers, continuous assessment test (CAT) gradebooks, student examination marks entry, and curriculum materials. Only teaching faculty and executive administrators may enter.',
@@ -1199,7 +1416,9 @@ export function TenantSchoolHub() {
 
         {/* VIEW 5: BURSAR DESK */}
         {activeTab === 'bursar' && (
-          activeRole !== 'admin' && activeRole !== 'bursar' ? (
+          !isLicenseActive ? (
+            renderLicenseRequiredCard('Bursar & Finance Office')
+          ) : activeRole !== 'admin' && activeRole !== 'bursar' ? (
             renderRestrictedCard(
               'Bursar & Finance Office',
               'This finance desk contains confidential institution revenue ledgers, student fee balances, tuition invoices, and receipt printing. Only bursars and executive administrators may enter.',
@@ -1221,7 +1440,9 @@ export function TenantSchoolHub() {
 
         {/* VIEW 6: PRINCIPAL DESK */}
         {activeTab === 'principal' && (
-          activeRole !== 'admin' ? (
+          !isLicenseActive ? (
+            renderLicenseRequiredCard(`${school.principal_title} Executive Office`)
+          ) : activeRole !== 'admin' ? (
             renderRestrictedCard(
               `${school.principal_title} Executive Office`,
               'Executive leadership tools, staff hiring, student admissions, login credential issuance, calendar system setup, and cloud LMS subscription management require Executive Administrator credentials.',
@@ -1239,6 +1460,181 @@ export function TenantSchoolHub() {
               onOpenDomainSettings={() => setShowDomainModal(true)}
             />
           )
+        )}
+
+        {/* VIEW 7: BILLING & LICENSING PORTAL */}
+        {activeTab === 'billing' && (
+          <div style={{ maxWidth: '980px', margin: '0 auto' }}>
+            <div style={{ background: '#ffffff', borderRadius: '24px', padding: '2.5rem', border: '1px solid #e2e8f0', boxShadow: '0 8px 30px rgba(0,0,0,0.04)', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.74rem', fontWeight: 800, color: primaryColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {school.name} SUBSCRIPTION GOVERNANCE
+                  </span>
+                  <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a', margin: '4px 0 0' }}>
+                    Institutional Campus Billing &amp; Licensing Portal
+                  </h2>
+                  <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '3px' }}>
+                    Multi-Campus Management, Active License Key Status &amp; Subscription Renewal
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    fontSize: '0.82rem',
+                    background: isLicenseActive ? '#dcfce7' : '#fef3c7',
+                    color: isLicenseActive ? '#15803d' : '#b45309',
+                    border: isLicenseActive ? '1px solid #86efac' : '1px solid #fde68a',
+                  }}
+                >
+                  {isLicenseActive ? '✓ LICENSE ACTIVE & VERIFIED' : '⚠️ PENDING ACTIVATION KEY'}
+                </span>
+              </div>
+
+              {/* Status & Pricing Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Registered Campuses</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+                    {school.campus_count || (school.campuses_list ? school.campuses_list.length : 1)} Campus(es)
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                    Standard Rate: <strong>KES 2,500 / campus / month</strong>
+                  </div>
+                </div>
+
+                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Monthly Billing Total</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#1e3a8a', marginTop: '4px' }}>
+                    KES {((school.campus_count || (school.campuses_list ? school.campuses_list.length : 1)) * 2500).toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                    Billed Monthly • Unlimited Users
+                  </div>
+                </div>
+
+                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Active Product Key</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 900, fontFamily: 'monospace', color: isLicenseActive ? '#15803d' : '#b45309', marginTop: '6px' }}>
+                    {school.active_license_key || 'No Key Activated'}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                    {school.license_valid_until ? `Valid Through: ${new Date(school.license_valid_until).toLocaleDateString()}` : 'Activation Required'}
+                  </div>
+                </div>
+              </div>
+
+              {/* M-Pesa Instructions Card */}
+              <div style={{ background: '#ecfdf5', border: '1.5px solid #a7f3d0', borderRadius: '16px', padding: '1.5rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '1.5rem' }}>📲</span>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#065f46' }}>
+                    M-Pesa Subscription Payment Channel
+                  </h3>
+                </div>
+                <p style={{ margin: '0 0 10px', fontSize: '0.84rem', color: '#047857' }}>
+                  Send your institution's monthly subscription fee (<strong>KES 2,500 per campus</strong>) to:
+                </p>
+                <div style={{ background: '#ffffff', border: '1px solid #6ee7b7', padding: '0.75rem 1.25rem', borderRadius: '10px', display: 'inline-block', fontSize: '1.25rem', fontWeight: 900, color: '#047857', letterSpacing: '0.04em' }}>
+                  M-Pesa: 0740027346
+                </div>
+                <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: '#059669' }}>
+                  Once transaction is confirmed, your 19-character Product Key will be issued to activate access below.
+                </p>
+              </div>
+
+              {/* Activation Key Entry Form */}
+              <div style={{ background: '#f8fafc', padding: '1.75rem', borderRadius: '18px', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem' }}>
+                  🔑 Enter Product Key to Activate or Renew
+                </h3>
+                <p style={{ margin: '0 0 1.25rem', fontSize: '0.84rem', color: '#64748b' }}>
+                  Paste the 19-character Product Key issued for {school.name} to activate full digital campus access:
+                </p>
+
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    placeholder="GC-LIC-XXXX-XXXX-XXXX-XXXX"
+                    value={licenseKeyInput}
+                    onChange={(e) => setLicenseKeyInput(e.target.value.toUpperCase())}
+                    style={{
+                      flex: 1,
+                      minWidth: '260px',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '12px',
+                      border: '2px solid #cbd5e1',
+                      fontSize: '0.95rem',
+                      fontFamily: 'monospace',
+                      fontWeight: 800,
+                      letterSpacing: '0.05em',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!licenseKeyInput.trim()) {
+                        setLicenseFeedback({ type: 'error', message: 'Please enter a valid product key.' })
+                        return
+                      }
+                      const res = licensingStore.redeemProductKey(licenseKeyInput.trim(), school.slug)
+                      if (res.success) {
+                        setLicenseFeedback({ type: 'success', message: res.message })
+                        const updated = tenantSchoolStore.getSchoolBySlug(school.slug)
+                        if (updated) setSchool(updated)
+                      } else {
+                        setLicenseFeedback({ type: 'error', message: res.message })
+                      }
+                    }}
+                    style={{
+                      padding: '0.75rem 1.75rem',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: primaryColor,
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Activate Subscription
+                  </button>
+                </div>
+
+                {licenseFeedback && (
+                  <div
+                    style={{
+                      marginTop: '1rem',
+                      padding: '0.85rem 1rem',
+                      borderRadius: '10px',
+                      fontSize: '0.84rem',
+                      fontWeight: 700,
+                      background: licenseFeedback.type === 'success' ? '#dcfce7' : '#fee2e2',
+                      color: licenseFeedback.type === 'success' ? '#166534' : '#991b1b',
+                      border: licenseFeedback.type === 'success' ? '1px solid #86efac' : '1px solid #fca5a5',
+                    }}
+                  >
+                    {licenseFeedback.message}
+                  </div>
+                )}
+              </div>
+
+              {/* Master Platform Link */}
+              <div style={{ textAlign: 'right' }}>
+                <Link
+                  to="/saas-admin"
+                  target="_blank"
+                  style={{ fontSize: '0.82rem', color: '#1d4ed8', fontWeight: 800, textDecoration: 'none' }}
+                >
+                  Platform Owner Master SaaS Portal &rarr;
+                </Link>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 
@@ -1352,7 +1748,7 @@ export function TenantSchoolHub() {
             </div>
 
             <p style={{ fontSize: '0.84rem', color: '#64748b', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
-              Connect your school's private custom domain (e.g. <code>portal.{school.slug}.edu</code>) to this SIS portal.
+              Connect your school's private custom domain (e.g. <code>portal.{school.slug}.ac.ke</code> or <code>{school.slug}.school</code>) to this SIS portal.
             </p>
 
             <div style={{ marginBottom: '1.25rem' }}>
@@ -1361,7 +1757,7 @@ export function TenantSchoolHub() {
               </label>
               <input
                 type="text"
-                placeholder="e.g. portal.hillcrest.edu"
+                placeholder="e.g. portal.hillcrest.ac.ke"
                 value={customDomainInput}
                 onChange={(e) => setCustomDomainInput(e.target.value)}
                 style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', boxSizing: 'border-box' }}
@@ -1378,7 +1774,7 @@ export function TenantSchoolHub() {
               <strong>DNS Verification Instructions:</strong>
               <div>Type: <strong>CNAME</strong></div>
               <div>Host: <strong>@ / portal</strong></div>
-              <div>Target: <strong>tenants.globalcollege.edu</strong></div>
+              <div>Target: <strong>{typeof window !== 'undefined' ? window.location.host : 'cloud-host'}</strong></div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>

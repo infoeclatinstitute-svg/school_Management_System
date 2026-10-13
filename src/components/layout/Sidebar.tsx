@@ -75,7 +75,6 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
 
   const adminNav: NavItem[] = [
     { to: '/admin', label: 'Admin Dashboard', icon: SettingsIcon },
-    { to: '/saas-admin', label: 'SaaS Billing & Product Keys', icon: ShieldCheckIcon },
     { to: '/register-school', label: 'School & College Onboarding', icon: BuildingIcon },
     { to: '/admin/intakes', label: 'Intake Scheduler & Adverts', icon: CalendarIcon },
     { to: '/admin/classes', label: 'Academic Programs & Courses', icon: BookOpenIcon },
