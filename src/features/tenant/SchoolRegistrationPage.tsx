@@ -1,5 +1,6 @@
 import { useState, useEffect, useId } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { getTenantDomainLinks } from '@/lib/tenantDomain'
 import type {
@@ -199,9 +200,12 @@ const MODULE_OPTIONS: {
 export function SchoolRegistrationPage() {
   const navigate = useNavigate()
   const formId = useId()
+  const { profile } = useAuth()
 
-  // Mode Toggle: 'wizard' | 'directory'
-  const [viewMode, setViewMode] = useState<'wizard' | 'directory'>('wizard')
+  // Only a logged-in admin on the root domain (not a school subdomain) can see the directory or delete schools
+  const isSaasAdmin = profile?.role === 'admin'
+
+  // Mode: Dedicated 5-step registration wizard
   const [existingSchools, setExistingSchools] = useState<PartnerSchoolTenant[]>(() =>
     tenantSchoolStore.getSchools()
   )
@@ -782,7 +786,7 @@ export function SchoolRegistrationPage() {
               type="button"
               onClick={() => {
                 setRegisteredSchool(null)
-                setViewMode('directory')
+                setStep(1)
               }}
               style={{
                 background: '#f1f5f9',
@@ -795,7 +799,7 @@ export function SchoolRegistrationPage() {
                 cursor: 'pointer',
               }}
             >
-              View All Onboarded Institutions ({existingSchools.length})
+              + Onboard Another Institution
             </button>
           </div>
         </div>
@@ -868,45 +872,10 @@ export function SchoolRegistrationPage() {
             </div>
           </Link>
 
-          {/* Mode Switcher + Navigation */}
+          {/* Navigation */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-            <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '4px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('wizard')}
-                style={{
-                  background: viewMode === 'wizard' ? '#1d4ed8' : 'transparent',
-                  color: viewMode === 'wizard' ? '#ffffff' : '#475569',
-                  border: 'none',
-                  padding: '0.45rem 0.9rem',
-                  borderRadius: '9px',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                + Onboard New Institution
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('directory')}
-                style={{
-                  background: viewMode === 'directory' ? '#1d4ed8' : 'transparent',
-                  color: viewMode === 'directory' ? '#ffffff' : '#475569',
-                  border: 'none',
-                  padding: '0.45rem 0.9rem',
-                  borderRadius: '9px',
-                  fontSize: '0.8rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                🏛️ Onboarded Directory ({existingSchools.length})
-              </button>
-            </div>
-
             <Link
-              to="/dashboard"
+              to="/"
               style={{
                 fontSize: '0.82rem',
                 fontWeight: 700,
@@ -915,224 +884,19 @@ export function SchoolRegistrationPage() {
                 padding: '0.5rem 0.9rem',
                 borderRadius: '10px',
                 border: '1px solid #cbd5e1',
+                background: '#ffffff',
               }}
             >
-              Main Portal
+              ← Back to Home
             </Link>
           </div>
         </div>
       </header>
 
       {/* ============================================================================
-          DIRECTORY VIEW: MANAGE & LAUNCH ONBOARDED SCHOOLS & COLLEGES
+          5-STEP INTERACTIVE ONBOARDING WIZARD FOR SCHOOLS & COLLEGES
       ============================================================================ */}
-      {viewMode === 'directory' ? (
-        <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2.5rem 1.5rem 5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
-            <div>
-              <h1 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                Onboarded Schools, Colleges &amp; Campuses ({existingSchools.length})
-              </h1>
-              <p style={{ color: '#64748b', fontSize: '0.95rem', margin: '0.35rem 0 0' }}>
-                Launch any provisioned campus hub, access role desks directly, or onboard a new partner institution.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setViewMode('wizard')}
-              style={{
-                background: '#1d4ed8',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '0.75rem 1.25rem',
-                fontSize: '0.9rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
-            >
-              + Onboard New School / College
-            </button>
-          </div>
-
-          {existingSchools.length === 0 ? (
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: '24px',
-                padding: '3.5rem 2rem',
-                textAlign: 'center',
-                border: '1px dashed #cbd5e1',
-              }}
-            >
-              <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🏛️</div>
-              <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.4rem' }}>
-                No Partner Schools or Colleges Onboarded Yet
-              </h3>
-              <p style={{ color: '#64748b', maxWidth: '520px', margin: '0 auto 1.5rem', fontSize: '0.92rem', lineHeight: 1.6 }}>
-                Use the 5-step Institution Onboarding Wizard to provision a dedicated campus portal for a Primary/High School, TVET College, University, or Professional Academy in under 60 seconds.
-              </p>
-              <button
-                type="button"
-                onClick={() => setViewMode('wizard')}
-                style={{
-                  background: '#1d4ed8',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '14px',
-                  padding: '0.85rem 1.6rem',
-                  fontSize: '0.95rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                Start First Institution Onboarding →
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.25rem' }}>
-              {existingSchools.map((sch) => (
-                <div
-                  key={sch.id}
-                  style={{
-                    background: '#ffffff',
-                    borderRadius: '20px',
-                    border: '1px solid #e2e8f0',
-                    overflow: 'hidden',
-                    boxShadow: '0 8px 24px rgba(15, 23, 42, 0.04)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        background: `linear-gradient(135deg, ${sch.primary_color} 0%, #0f172a 100%)`,
-                        color: '#ffffff',
-                        padding: '1.25rem',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', background: 'rgba(255,255,255,0.16)', padding: '3px 8px', borderRadius: '999px' }}>
-                          {(sch.institution_category || 'college').toUpperCase()} • {sch.academic_system.toUpperCase()}
-                        </span>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: sch.accent_color }}>
-                          /s/{sch.slug}
-                        </span>
-                      </div>
-                      <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900 }}>{sch.name}</h3>
-                      <p style={{ margin: '4px 0 0', fontSize: '0.78rem', opacity: 0.85 }}>
-                        📍 {sch.city}, {sch.country} • 👤 {sch.principal_name}
-                      </p>
-                    </div>
-
-                    <div style={{ padding: '1rem 1.25rem' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', textAlign: 'center', background: '#f8fafc', padding: '0.65rem', borderRadius: '12px', marginBottom: '0.9rem' }}>
-                        <div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
-                            {tenantSchoolStore.getStudentsBySchool(sch.slug).length}
-                          </div>
-                          <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700 }}>Students</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
-                            {tenantSchoolStore.getStaffBySchool(sch.slug).length}
-                          </div>
-                          <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700 }}>Staff</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
-                            {(sch.departments_list || []).length || sch.stats.departments}
-                          </div>
-                          <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700 }}>Faculties</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
-                            {(sch.classes_list || []).length || sch.stats.classes}
-                          </div>
-                          <div style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 700 }}>Cohorts</div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                        <Link
-                          to={`/s/${sch.slug}/principal`}
-                          style={{ fontSize: '0.73rem', fontWeight: 700, background: '#f1f5f9', color: '#334155', padding: '4px 8px', borderRadius: '6px', textDecoration: 'none' }}
-                        >
-                          🛡️ Principal Desk
-                        </Link>
-                        <Link
-                          to={`/s/${sch.slug}/teacher`}
-                          style={{ fontSize: '0.73rem', fontWeight: 700, background: '#f1f5f9', color: '#334155', padding: '4px 8px', borderRadius: '6px', textDecoration: 'none' }}
-                        >
-                          👨‍🏫 Faculty Desk
-                        </Link>
-                        <Link
-                          to={`/s/${sch.slug}/bursar`}
-                          style={{ fontSize: '0.73rem', fontWeight: 700, background: '#f1f5f9', color: '#334155', padding: '4px 8px', borderRadius: '6px', textDecoration: 'none' }}
-                        >
-                          💳 Bursar
-                        </Link>
-                        <Link
-                          to={`/s/${sch.slug}/student`}
-                          style={{ fontSize: '0.73rem', fontWeight: 700, background: '#f1f5f9', color: '#334155', padding: '4px 8px', borderRadius: '6px', textDecoration: 'none' }}
-                        >
-                          🎓 Student Portal
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ padding: '0 1.25rem 1.25rem', display: 'flex', gap: '0.5rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/s/${sch.slug}`)}
-                      style={{
-                        flex: 1,
-                        background: sch.primary_color,
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '10px',
-                        padding: '0.65rem',
-                        fontSize: '0.82rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Open Campus Hub →
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm(`Remove ${sch.name} from onboarded institutions?`)) {
-                          tenantSchoolStore.deleteSchool(sch.slug)
-                        }
-                      }}
-                      style={{
-                        background: '#fef2f2',
-                        color: '#dc2626',
-                        border: '1px solid #fecaca',
-                        borderRadius: '10px',
-                        padding: '0.65rem 0.85rem',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
-      ) : (
-        /* ============================================================================
-            5-STEP INTERACTIVE ONBOARDING WIZARD FOR SCHOOLS & COLLEGES
-        ============================================================================ */
-        <main style={{ maxWidth: '1220px', margin: '0 auto', padding: '2rem 1.5rem 5rem' }}>
+      <main style={{ maxWidth: '1220px', margin: '0 auto', padding: '2rem 1.5rem 5rem' }}>
           {/* Hero Title */}
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div
@@ -2558,7 +2322,6 @@ export function SchoolRegistrationPage() {
             </div>
           </div>
         </main>
-      )}
     </div>
   )
 }

