@@ -261,7 +261,7 @@ export function SchoolRegistrationPage() {
   // Step 4: Branding, Leadership & Admin Credentials
   const [primaryColor, setPrimaryColor] = useState('#1e3a8a')
   const [accentColor, setAccentColor] = useState('#0284c7')
-  const [logoUrl] = useState('/logo.png?v=2')
+  const [logoUrl, setLogoUrl] = useState('/logo.png?v=2')
   const [principalName, setPrincipalName] = useState('')
   const [principalTitle, setPrincipalTitle] = useState('College Principal / Provost')
   const [principalEmail, setPrincipalEmail] = useState('')
@@ -1955,6 +1955,70 @@ export function SchoolRegistrationPage() {
                           onChange={(e) => setAccentColor(e.target.value)}
                           style={{ flex: 1, padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', fontWeight: 700 }}
                         />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* School Logo Upload */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: '0.45rem' }}>
+                      School / College Logo
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                      {/* Preview */}
+                      <div
+                        style={{
+                          width: '80px', height: '80px', borderRadius: '12px',
+                          border: '2px dashed #cbd5e1', background: '#f8fafc',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          overflow: 'hidden', flexShrink: 0,
+                        }}
+                      >
+                        {logoUrl && logoUrl !== '/logo.png?v=2' ? (
+                          <img src={logoUrl} alt="Logo preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        ) : (
+                          <span style={{ fontSize: '2rem' }}>🏫</span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label
+                          style={{
+                            display: 'inline-block', background: '#1e3a8a', color: '#fff',
+                            borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem',
+                            fontWeight: 700, cursor: 'pointer',
+                          }}
+                        >
+                          📁 Choose Logo File
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert('Logo must be under 2 MB.')
+                                return
+                              }
+                              const reader = new FileReader()
+                              reader.onload = (ev) => {
+                                const result = ev.target?.result as string
+                                if (result) setLogoUrl(result)
+                              }
+                              reader.readAsDataURL(file)
+                            }}
+                          />
+                        </label>
+                        {logoUrl && logoUrl !== '/logo.png?v=2' && (
+                          <button
+                            type="button"
+                            onClick={() => setLogoUrl('/logo.png?v=2')}
+                            style={{ background: 'none', border: '1px solid #f87171', color: '#ef4444', borderRadius: '8px', padding: '0.35rem 0.75rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            ✕ Remove
+                          </button>
+                        )}
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>PNG, JPG, SVG or WebP · Max 2 MB</span>
                       </div>
                     </div>
                   </div>
