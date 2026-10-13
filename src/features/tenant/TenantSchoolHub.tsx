@@ -173,48 +173,84 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
     }
   }
 
-  // Load School on Mount
+  // Load School on Mount — with cloud sync fallback
   useEffect(() => {
-    setLoading(true)
-    let targetSlug = (schoolSlug || 'hillcrest').toLowerCase()
+    let cancelled = false
+    const resolveTargetSlug = () => {
+      let targetSlug = (schoolSlug || '').toLowerCase()
 
-    // Host detection for subdomains or custom domains
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname.toLowerCase()
-      const allSchools = tenantSchoolStore.getSchools()
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname.toLowerCase()
+        const allSchools = tenantSchoolStore.getSchools()
 
-      const customMatched = allSchools.find((s) => {
-        if (!s.custom_domain) return false
-        const cleanCustom = s.custom_domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase()
-        return hostname === cleanCustom
-      })
+        const customMatched = allSchools.find((s) => {
+          if (!s.custom_domain) return false
+          const cleanCustom = s.custom_domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase()
+          return hostname === cleanCustom
+        })
 
-      if (customMatched) {
-        targetSlug = customMatched.slug
-      } else if (typeof window !== 'undefined' && hostname.split('.').length > 2) {
-        const parts = hostname.split('.')
-        const sub = parts[0]
-        if (sub && sub !== 'www' && sub !== 'cloud' && sub !== 'app') {
-          targetSlug = sub
+        if (customMatched) {
+          targetSlug = customMatched.slug
+        } else if (hostname.split('.').length > 2) {
+          const parts = hostname.split('.')
+          const sub = parts[0]
+          if (sub && sub !== 'www' && sub !== 'cloud' && sub !== 'app') {
+            targetSlug = sub
+          }
         }
       }
+      return targetSlug
     }
 
-    const foundSchool = tenantSchoolStore.getSchoolBySlug(targetSlug)
-    if (foundSchool) {
-      setSchool(foundSchool)
-      setCustomDomainInput(foundSchool.custom_domain || '')
-      reloadSchoolData(foundSchool.slug)
+    const applySchool = (slug: string) => {
+      const foundSchool = tenantSchoolStore.getSchoolBySlug(slug)
+      if (foundSchool && !cancelled) {
+        setSchool(foundSchool)
+        setCustomDomainInput(foundSchool.custom_domain || '')
+        reloadSchoolData(foundSchool.slug)
+        const savedSession = tenantSchoolStore.getActiveSession(foundSchool.slug)
+        setCurrentSession(savedSession || null)
+        return true
+      }
+      return false
+    }
 
-      // Initialize session if present
-      const savedSession = tenantSchoolStore.getActiveSession(foundSchool.slug)
-      if (savedSession) {
-        setCurrentSession(savedSession)
-      } else {
-        setCurrentSession(null)
+    const run = async () => {
+      setLoading(true)
+      const targetSlug = resolveTargetSlug()
+
+      // First try local/cached data
+      if (applySchool(targetSlug)) {
+        if (!cancelled) setLoading(false)
+        return
+      }
+
+      // Not found locally — pull from Supabase cloud sync and retry
+      try {
+        await tenantSchoolStore.syncWithCloud()
+      } catch { /* offline — ignore */ }
+
+      if (!cancelled) {
+        applySchool(resolveTargetSlug())
+        setLoading(false)
       }
     }
-    setLoading(false)
+
+    run()
+
+    // Also listen for real-time cloud updates (e.g. from another tab or push)
+    const handleCloudUpdate = () => {
+      if (!cancelled) {
+        const slug = resolveTargetSlug()
+        applySchool(slug)
+      }
+    }
+    window.addEventListener('gc-tenant-schools-updated', handleCloudUpdate)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('gc-tenant-schools-updated', handleCloudUpdate)
+    }
   }, [schoolSlug])
 
   const copyToClipboard = (text: string, label: string) => {
