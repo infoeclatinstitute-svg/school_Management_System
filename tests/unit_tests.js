@@ -452,15 +452,17 @@ test('Electron desktop entry point (electron/main.cjs) and PWA install UI compon
   assert.ok(installModal.includes('Laptop &amp; Computer') && installModal.includes('Phone (Android / iOS)'), 'Install modal must guide both Laptop/Desktop and Phone users')
 })
 
-test('Login.tsx displays Students Portal, auto-fills only Admin credentials, and disables public self-registration', () => {
+test('Login.tsx is a clean SaaS admin-only login — no public portal selection, no self-registration, no auto-filled school credentials', () => {
   const loginTsx = fs.readFileSync(path.join(ROOT_DIR, 'src', 'features', 'auth', 'Login.tsx'), 'utf8')
   const manageUsersTsx = fs.readFileSync(path.join(ROOT_DIR, 'src', 'features', 'admin', 'ManageUsers.tsx'), 'utf8')
 
   assert.equal(loginTsx.includes('Create New Account'), false, 'Login.tsx must not expose a public Create New Account tab')
   assert.equal(loginTsx.includes('handleRegister'), false, 'Login.tsx must not contain public self-registration handler')
   assert.equal(loginTsx.includes('Vocational & Short Courses Portal'), false, 'Old Vocational & Short Courses Portal label must be removed')
-  assert.ok(loginTsx.includes("label: 'Students Portal'"), 'Login.tsx must label the student portal as Students Portal')
-  assert.ok(loginTsx.includes('Official Administrator-Provisioned Access'), 'Login.tsx must display the Administrator-Provisioned Access notice')
+  // Root domain login is SaaS admin-only — no school portal selector
+  assert.equal(loginTsx.includes("label: 'Students Portal'"), false, 'Login.tsx must NOT have a school portal selector on the root domain')
+  assert.ok(loginTsx.includes('Platform Admin Portal') || loginTsx.includes('platform administration'), 'Login.tsx must be a platform admin login, not a school portal')
+  assert.ok(loginTsx.includes("school's dedicated URL") || loginTsx.includes("school's"), 'Login.tsx must direct school users to their own school URL')
   assert.ok(manageUsersTsx.includes('Issue Official Portal Login Credentials'), 'ManageUsers.tsx must allow Admin to issue credentials for all roles')
   assert.ok(manageUsersTsx.includes('Set Login Password'), 'ManageUsers.tsx must allow Admin to set/reset user passwords')
 })
