@@ -496,7 +496,7 @@ export function TenantTeacherDesk({
       {/* MODAL: UPLOAD STUDY NOTE */}
       {showUploadNoteModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '540px', width: '100%', padding: '2rem', border: '2px solid #059669' }}>
+          <div style={{ maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', boxSizing: 'border-box', background: '#ffffff', borderRadius: '20px', maxWidth: '540px', width: '100%', padding: 'clamp(1.1rem, 4vw, 2rem)', border: '2px solid #059669' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: '0 0 1rem', color: '#0f172a' }}>+ Upload Course Material / Notes</h3>
             <form onSubmit={handleCreateNote}>
               <div style={{ marginBottom: '1rem' }}>

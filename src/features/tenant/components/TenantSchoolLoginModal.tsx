@@ -158,14 +158,14 @@ export function TenantSchoolLoginModal({
         backdropFilter: 'blur(6px)',
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         padding: '1.25rem',
         overflowY: 'auto',
       }}
     >
       <div
-        style={{
+        style={{ margin: 'auto',
           background: '#ffffff',
           borderRadius: '24px',
           maxWidth: '520px',

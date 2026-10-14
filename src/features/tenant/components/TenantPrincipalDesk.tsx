@@ -1021,7 +1021,7 @@ export function TenantPrincipalDesk({
       {/* MODAL: ADD STAFF */}
       {showAddStaffModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '640px', width: '100%', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', border: `2px solid ${primaryColor}` }}>
+          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '640px', width: '100%', padding: '2rem', maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', border: `2px solid ${primaryColor}` }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: '0 0 1rem', color: '#0f172a' }}>+ Register &amp; Appoint Staff Member</h3>
             <form onSubmit={handleCreateStaff}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -1149,7 +1149,7 @@ export function TenantPrincipalDesk({
       {/* MODAL: ADMIT STUDENT */}
       {showAdmitStudentModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '640px', width: '100%', padding: '2rem', maxHeight: '90vh', overflowY: 'auto', border: `2px solid ${primaryColor}` }}>
+          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '640px', width: '100%', padding: '2rem', maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', border: `2px solid ${primaryColor}` }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: '0 0 1rem', color: '#0f172a' }}>+ Admit Candidate &amp; Issue Credentials</h3>
             <form onSubmit={handleAdmitStudent}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -1248,7 +1248,7 @@ export function TenantPrincipalDesk({
       {/* MODAL: EDIT / ISSUE STAFF CREDENTIALS */}
       {editingStaffCreds && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '500px', width: '100%', padding: '2rem', border: `2px solid ${primaryColor}` }}>
+          <div style={{ maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', boxSizing: 'border-box', background: '#ffffff', borderRadius: '20px', maxWidth: '500px', width: '100%', padding: 'clamp(1.1rem, 4vw, 2rem)', border: `2px solid ${primaryColor}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
@@ -1326,7 +1326,7 @@ export function TenantPrincipalDesk({
       {/* MODAL: EDIT / REGENERATE STUDENT CREDENTIALS */}
       {editingStudentCreds && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '500px', width: '100%', padding: '2rem', border: `2px solid ${primaryColor}` }}>
+          <div style={{ maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', boxSizing: 'border-box', background: '#ffffff', borderRadius: '20px', maxWidth: '500px', width: '100%', padding: 'clamp(1.1rem, 4vw, 2rem)', border: `2px solid ${primaryColor}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
@@ -1404,7 +1404,7 @@ export function TenantPrincipalDesk({
       {/* MODAL: ADD / EDIT TIMETABLE PERIOD */}
       {showAddTimetableModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '540px', width: '100%', padding: '2rem', border: `2px solid ${primaryColor}` }}>
+          <div style={{ maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', boxSizing: 'border-box', background: '#ffffff', borderRadius: '20px', maxWidth: '540px', width: '100%', padding: 'clamp(1.1rem, 4vw, 2rem)', border: `2px solid ${primaryColor}` }}>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: '0 0 1rem', color: '#0f172a' }}>
               {editingPeriod ? '✏️ Edit Timetable Lecture Period' : '+ Add Timetable Lecture Period'}
             </h3>

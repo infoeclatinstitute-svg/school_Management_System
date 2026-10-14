@@ -570,7 +570,7 @@ export function TenantProgramsPage({
               width: '100%',
               padding: '2rem',
               boxShadow: '0 24px 48px rgba(0, 0, 0, 0.2)',
-              maxHeight: '90vh',
+              maxHeight: 'calc(100dvh - 2rem)',
               overflowY: 'auto',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -739,7 +739,7 @@ export function TenantProgramsPage({
               width: '100%',
               padding: '2rem',
               boxShadow: '0 24px 48px rgba(0, 0, 0, 0.2)',
-              maxHeight: '90vh',
+              maxHeight: 'calc(100dvh - 2rem)',
               overflowY: 'auto',
             }}
             onClick={(e) => e.stopPropagation()}

@@ -1772,7 +1772,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       {/* MODAL: DOMAIN & DNS CONFIGURATION */}
       {showDomainModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '24px', maxWidth: '580px', width: '100%', padding: '2rem', border: `2px solid ${primaryColor}` }}>
+          <div style={{ background: '#ffffff', borderRadius: '24px', maxWidth: '580px', width: '100%', maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', padding: 'clamp(1.1rem, 4vw, 2rem)', border: `2px solid ${primaryColor}`, boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
                 Custom Domain &amp; DNS Management
@@ -1845,7 +1845,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       {/* MODAL: PRODUCT KEY LICENSE ACTIVATION */}
       {showLicenseModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '24px', maxWidth: '580px', width: '100%', padding: '2rem', border: `2px solid ${primaryColor}`, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: '#ffffff', borderRadius: '24px', maxWidth: '580px', width: '100%', maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', padding: 'clamp(1.1rem, 4vw, 2rem)', border: `2px solid ${primaryColor}`, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '1.4rem' }}>🔑</span>

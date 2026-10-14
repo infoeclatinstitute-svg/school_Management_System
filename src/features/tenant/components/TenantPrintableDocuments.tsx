@@ -33,14 +33,14 @@ export function StudentAdmissionLetterModal({
         backdropFilter: 'blur(5px)',
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         padding: '1.5rem',
         overflowY: 'auto',
       }}
     >
       <div
-        style={{
+        style={{ margin: 'auto',
           background: '#ffffff',
           borderRadius: '20px',
           maxWidth: '820px',
@@ -355,14 +355,14 @@ export function StaffLoginSlipModal({
         backdropFilter: 'blur(5px)',
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         padding: '1.5rem',
         overflowY: 'auto',
       }}
     >
       <div
-        style={{
+        style={{ margin: 'auto',
           background: '#ffffff',
           borderRadius: '20px',
           maxWidth: '820px',
@@ -613,14 +613,14 @@ export function StaffPayslipModal({
         backdropFilter: 'blur(5px)',
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         padding: '1.5rem',
         overflowY: 'auto',
       }}
     >
       <div
-        style={{
+        style={{ margin: 'auto',
           background: '#ffffff',
           borderRadius: '20px',
           maxWidth: '820px',
@@ -870,14 +870,14 @@ export function FeeReceiptModal({
         backdropFilter: 'blur(5px)',
         zIndex: 9999,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         padding: '1.5rem',
         overflowY: 'auto',
       }}
     >
       <div
-        style={{
+        style={{ margin: 'auto',
           background: '#ffffff',
           borderRadius: '20px',
           maxWidth: '820px',

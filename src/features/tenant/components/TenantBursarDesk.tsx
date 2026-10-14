@@ -500,7 +500,7 @@ export function TenantBursarDesk({
       {/* MODAL: RECORD FEE PAYMENT */}
       {showRecordPaymentModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '20px', maxWidth: '540px', width: '100%', padding: '2rem', border: '2px solid #b45309' }}>
+          <div style={{ maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', boxSizing: 'border-box', background: '#ffffff', borderRadius: '20px', maxWidth: '540px', width: '100%', padding: 'clamp(1.1rem, 4vw, 2rem)', border: '2px solid #b45309' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: '0 0 1rem', color: '#0f172a' }}>+ Record Tuition Fee Payment</h3>
             <form onSubmit={handleRecordPayment}>
               <div style={{ marginBottom: '1rem' }}>
