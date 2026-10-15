@@ -1,6 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { INSTITUTION_CONFIG } from '@/config/institution'
 import { GraduationCapIcon, CheckIcon, CodeIcon, ChartBarIcon, SparklesIcon } from '@/components/icons/AppIcons'
+import { useAuth } from '@/hooks/useAuth'
+import { getActiveCertificateTemplate, CertificateTemplateConfig } from '@/lib/certificateTemplate'
+import { CertificateTemplateEditor } from '@/components/shared/CertificateTemplateEditor'
 
 export interface CertificateData {
   student_name: string
@@ -126,6 +129,33 @@ export function CertificateGenerator({
   const [activeCert, setActiveCert] = useState<CertificateData>(cert)
   const [copied, setCopied] = useState(false)
 
+  const { profile } = useAuth()
+  const isAdminOrStaff =
+    profile?.role === 'admin' ||
+    (profile?.role as any) === 'superadmin' ||
+    profile?.role === 'teacher' ||
+    profile?.role === 'bursar'
+
+  const [customTemplate, setCustomTemplate] = useState<CertificateTemplateConfig | null>(() =>
+    getActiveCertificateTemplate()
+  )
+  const [useCustomTemplate, setUseCustomTemplate] = useState<boolean>(() =>
+    Boolean(getActiveCertificateTemplate()?.isActive)
+  )
+  const [showEditorModal, setShowEditorModal] = useState(false)
+
+  useEffect(() => {
+    const handleTemplateUpdated = (e: any) => {
+      const tmpl = e.detail as CertificateTemplateConfig | null
+      setCustomTemplate(tmpl)
+      if (tmpl && tmpl.isActive) {
+        setUseCustomTemplate(true)
+      }
+    }
+    window.addEventListener('gc-certificate-template-updated', handleTemplateUpdated)
+    return () => window.removeEventListener('gc-certificate-template-updated', handleTemplateUpdated)
+  }, [])
+
   // Generate deterministic SHA-256 hash preview if not provided
   const certHash = useMemo(() => {
     if (activeCert.hash) return activeCert.hash
@@ -220,6 +250,79 @@ export function CertificateGenerator({
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            {/* Custom Template vs Classic Diploma Switcher (if custom template exists) */}
+            {customTemplate && customTemplate.backgroundImageUrl && (
+              <div
+                style={{
+                  display: 'flex',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  borderRadius: '10px',
+                  padding: '3px',
+                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setUseCustomTemplate(true)}
+                  style={{
+                    background: useCustomTemplate ? '#ffffff' : 'transparent',
+                    color: useCustomTemplate ? '#1e3a8a' : '#ffffff',
+                    border: 'none',
+                    borderRadius: '7px',
+                    padding: '5px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  🎨 Custom Certificate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUseCustomTemplate(false)}
+                  style={{
+                    background: !useCustomTemplate ? '#ffffff' : 'transparent',
+                    color: !useCustomTemplate ? '#1e3a8a' : '#ffffff',
+                    border: 'none',
+                    borderRadius: '7px',
+                    padding: '5px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  📜 Classic Gold
+                </button>
+              </div>
+            )}
+
+            {/* Admin Upload / Template Studio Button */}
+            {isAdminOrStaff && (
+              <button
+                type="button"
+                onClick={() => setShowEditorModal(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.35)',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                  padding: '0.6rem 1rem',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Upload or customize institutional certificate template"
+              >
+                <span>⚙️ Upload / Custom Studio</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={handlePrint}
@@ -385,30 +488,235 @@ export function CertificateGenerator({
 
         {/* Scrollable Document Container */}
         <div style={{ padding: '1.25rem 0.75rem', display: 'flex', justifyContent: 'center', overflowX: 'auto', WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
-          {/* ============================================================
-              MASTER CONFERRED CERTIFICATE CANVAS (PRINT & VIEW ENGINE)
-              Dimensions formatted for standard A4 landscape (1.414 aspect)
-              ============================================================ */}
-          <div
-            id="official-certificate-document"
-            style={{
-              width: '100%',
-              maxWidth: '1000px',
-              aspectRatio: '1.414 / 1',
-              minHeight: '680px',
-              background: '#fdfbf7',
-              color: '#090d16',
-              position: 'relative',
-              boxSizing: 'border-box',
-              padding: '24px',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
-              fontFamily: '"Cormorant Garamond", Georgia, serif',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
+          {useCustomTemplate && customTemplate && customTemplate.isActive ? (
+            /* ============================================================
+               ADMIN-UPLOADED CUSTOM INSTITUTIONAL CERTIFICATE CANVAS
+               Dynamically automated with student credentials & QR security
+               ============================================================ */
+            <div
+              id="official-certificate-document"
+              style={{
+                width: '100%',
+                maxWidth: '1000px',
+                aspectRatio: `${customTemplate.aspectRatio || 1.414} / 1`,
+                minHeight: '660px',
+                position: 'relative',
+                backgroundImage: `url(${customTemplate.backgroundImageUrl})`,
+                backgroundSize: '100% 100%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                overflow: 'hidden',
+                userSelect: 'none',
+                boxSizing: 'border-box',
+              }}
+            >
+              {/* Student Name */}
+              {customTemplate.fields.studentName.enabled && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${customTemplate.fields.studentName.x}%`,
+                    top: `${customTemplate.fields.studentName.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: `clamp(18px, ${customTemplate.fields.studentName.fontSize * 0.11}vw, ${customTemplate.fields.studentName.fontSize}px)`,
+                    color: customTemplate.fields.studentName.color,
+                    fontWeight: customTemplate.fields.studentName.fontWeight || 'bold',
+                    fontFamily: customTemplate.fields.studentName.fontFamily || 'serif',
+                    letterSpacing: customTemplate.fields.studentName.letterSpacing || 'normal',
+                    textAlign: customTemplate.fields.studentName.textAlign || 'center',
+                    whiteSpace: 'nowrap',
+                    textShadow: '0 1px 2px rgba(255,255,255,0.7)',
+                  }}
+                >
+                  {activeCert.student_name}
+                </div>
+              )}
+
+              {/* Admission / Reg Number */}
+              {customTemplate.fields.admissionNumber.enabled && activeCert.admission_number && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${customTemplate.fields.admissionNumber.x}%`,
+                    top: `${customTemplate.fields.admissionNumber.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: `clamp(10px, ${customTemplate.fields.admissionNumber.fontSize * 0.1}vw, ${customTemplate.fields.admissionNumber.fontSize}px)`,
+                    color: customTemplate.fields.admissionNumber.color,
+                    fontWeight: customTemplate.fields.admissionNumber.fontWeight || '600',
+                    fontFamily: customTemplate.fields.admissionNumber.fontFamily || 'sans-serif',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {customTemplate.fields.admissionNumber.prefix || ''}{activeCert.admission_number}
+                </div>
+              )}
+
+              {/* Course / Program Title */}
+              {customTemplate.fields.courseTitle.enabled && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${customTemplate.fields.courseTitle.x}%`,
+                    top: `${customTemplate.fields.courseTitle.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: `clamp(13px, ${customTemplate.fields.courseTitle.fontSize * 0.1}vw, ${customTemplate.fields.courseTitle.fontSize}px)`,
+                    color: customTemplate.fields.courseTitle.color,
+                    fontWeight: customTemplate.fields.courseTitle.fontWeight || 'bold',
+                    fontFamily: customTemplate.fields.courseTitle.fontFamily || 'serif',
+                    letterSpacing: customTemplate.fields.courseTitle.letterSpacing || 'normal',
+                    textAlign: customTemplate.fields.courseTitle.textAlign || 'center',
+                    maxWidth: '85%',
+                    lineHeight: 1.25,
+                    textShadow: '0 1px 2px rgba(255,255,255,0.7)',
+                  }}
+                >
+                  {activeCert.course_title}
+                </div>
+              )}
+
+              {/* Academic Grade / Honors */}
+              {customTemplate.fields.grade.enabled && activeCert.grade && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${customTemplate.fields.grade.x}%`,
+                    top: `${customTemplate.fields.grade.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: `clamp(11px, ${customTemplate.fields.grade.fontSize * 0.1}vw, ${customTemplate.fields.grade.fontSize}px)`,
+                    color: customTemplate.fields.grade.color,
+                    fontWeight: customTemplate.fields.grade.fontWeight || '700',
+                    fontFamily: customTemplate.fields.grade.fontFamily || 'sans-serif',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {customTemplate.fields.grade.prefix || ''}{activeCert.grade}
+                </div>
+              )}
+
+              {/* Issue Date */}
+              {customTemplate.fields.issueDate.enabled && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${customTemplate.fields.issueDate.x}%`,
+                    top: `${customTemplate.fields.issueDate.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: `clamp(10px, ${customTemplate.fields.issueDate.fontSize * 0.1}vw, ${customTemplate.fields.issueDate.fontSize}px)`,
+                    color: customTemplate.fields.issueDate.color,
+                    fontWeight: customTemplate.fields.issueDate.fontWeight || '600',
+                    fontFamily: customTemplate.fields.issueDate.fontFamily || 'sans-serif',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {customTemplate.fields.issueDate.prefix || ''}{activeCert.issue_date}
+                </div>
+              )}
+
+              {/* Certificate Serial Number */}
+              {customTemplate.fields.certificateNo.enabled && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${customTemplate.fields.certificateNo.x}%`,
+                    top: `${customTemplate.fields.certificateNo.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: `clamp(9px, ${customTemplate.fields.certificateNo.fontSize * 0.1}vw, ${customTemplate.fields.certificateNo.fontSize}px)`,
+                    color: customTemplate.fields.certificateNo.color,
+                    fontWeight: customTemplate.fields.certificateNo.fontWeight || '600',
+                    fontFamily: customTemplate.fields.certificateNo.fontFamily || 'monospace',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {customTemplate.fields.certificateNo.prefix || ''}{activeCert.certificate_no}
+                </div>
+              )}
+
+              {/* Cryptographic QR Code Verification */}
+              {customTemplate.fields.qrCode.enabled && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${customTemplate.fields.qrCode.x}%`,
+                    top: `${customTemplate.fields.qrCode.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    padding: '4px',
+                    background: '#ffffff',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                  }}
+                  title={`Scan to verify: ${verifyUrl}`}
+                >
+                  <svg viewBox="0 0 25 25" width={customTemplate.fields.qrCode.size} height={customTemplate.fields.qrCode.size} fill="#090d16">
+                    <rect x="1" y="1" width="7" height="7" fill="#090d16" />
+                    <rect x="2" y="2" width="5" height="5" fill="#ffffff" />
+                    <rect x="3" y="3" width="3" height="3" fill="#090d16" />
+
+                    <rect x="17" y="1" width="7" height="7" fill="#090d16" />
+                    <rect x="18" y="2" width="5" height="5" fill="#ffffff" />
+                    <rect x="19" y="3" width="3" height="3" fill="#090d16" />
+
+                    <rect x="1" y="17" width="7" height="7" fill="#090d16" />
+                    <rect x="2" y="18" width="5" height="5" fill="#ffffff" />
+                    <rect x="3" y="19" width="3" height="3" fill="#090d16" />
+
+                    <rect x="10" y="2" width="2" height="2" />
+                    <rect x="14" y="2" width="1" height="3" />
+                    <rect x="10" y="6" width="3" height="1" />
+                    <rect x="10" y="9" width="5" height="5" fill="#090d16" />
+                    <rect x="11" y="10" width="3" height="3" fill="#ffffff" />
+                    <rect x="12" y="11" width="1" height="1" fill="#090d16" />
+
+                    <rect x="1" y="10" width="2" height="4" />
+                    <rect x="5" y="11" width="2" height="2" />
+                    <rect x="7" y="9" width="1" height="4" />
+
+                    <rect x="17" y="10" width="3" height="2" />
+                    <rect x="21" y="11" width="2" height="3" />
+                    <rect x="18" y="14" width="4" height="1" />
+
+                    <rect x="10" y="16" width="3" height="2" />
+                    <rect x="14" y="18" width="2" height="4" />
+                    <rect x="10" y="20" width="3" height="2" />
+
+                    <rect x="17" y="18" width="2" height="2" />
+                    <rect x="20" y="17" width="3" height="2" />
+                    <rect x="18" y="21" width="4" height="2" />
+                  </svg>
+                  <span style={{ fontSize: '7px', fontWeight: 800, color: '#15803d', letterSpacing: '0.04em', marginTop: '1px' }}>
+                    VERIFIED
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ============================================================
+                MASTER CONFERRED CERTIFICATE CANVAS (PRINT & VIEW ENGINE)
+                Dimensions formatted for standard A4 landscape (1.414 aspect)
+                ============================================================ */
+            <div
+              id="official-certificate-document"
+              style={{
+                width: '100%',
+                maxWidth: '1000px',
+                aspectRatio: '1.414 / 1',
+                minHeight: '680px',
+                background: '#fdfbf7',
+                color: '#090d16',
+                position: 'relative',
+                boxSizing: 'border-box',
+                padding: '24px',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                fontFamily: '"Cormorant Garamond", Georgia, serif',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
             {/* Background Parchment & Guilloché Texture Pattern */}
             <div
               style={{
@@ -1086,7 +1394,28 @@ export function CertificateGenerator({
               </div>
             </div>
           </div>
-        </div>
+        )}
+      </div>
+
+        {/* Certificate Template Studio Modal for Admin & Faculty */}
+        {showEditorModal && (
+          <div className="modal-overlay no-print" onClick={() => setShowEditorModal(false)} style={{ zIndex: 1500, padding: '1rem' }}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: '1240px', width: '100%', maxHeight: '94vh', overflowY: 'auto', padding: 0 }}
+            >
+              <CertificateTemplateEditor
+                onSaved={(savedTmpl) => {
+                  setCustomTemplate(savedTmpl)
+                  setUseCustomTemplate(true)
+                  setShowEditorModal(false)
+                }}
+                onClose={() => setShowEditorModal(false)}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Global Print Stylesheet for High-DPI Output */}
         <style>

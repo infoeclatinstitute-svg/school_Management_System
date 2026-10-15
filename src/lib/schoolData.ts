@@ -254,6 +254,9 @@ class SchoolDataStore {
                 localStorage.setItem('gc_v2_local_credentials', JSON.stringify(merged))
                 localStorage.setItem('gc_local_credentials', JSON.stringify(merged))
               } catch {}
+            } else if (cleanKey === 'certificate_template') {
+              this.set('certificate_template', row.data)
+              window.dispatchEvent(new CustomEvent('gc-certificate-template-updated', { detail: row.data }))
             }
             window.dispatchEvent(new CustomEvent('gc-data-synced'))
           }
@@ -282,6 +285,7 @@ class SchoolDataStore {
       'unit_registrations',
       'biometric_passes',
       'credentials',
+      'certificate_template',
     ]
 
     for (const key of keys) {
@@ -998,6 +1002,19 @@ class SchoolDataStore {
       }
     )
     schoolEventBus.publish('STUDENT_UPDATED')
+  }
+
+  // --- Institutional Certificate Template CRUD & Cloud Sync ---
+  getCertificateTemplate<T = any>(): T | null {
+    return this.get<T | null>('certificate_template', null)
+  }
+
+  async setCertificateTemplate(template: any): Promise<void> {
+    this.set('certificate_template', template)
+    try {
+      await idbStorage.set('gc_v2_school_certificate_template', template)
+    } catch {}
+    await this.pushCollectionToCloud('certificate_template', template)
   }
 
   // --- Timetable CRUD (ACID Protected) ---

@@ -5,6 +5,7 @@ import type { ReportCard, ExamSession } from '@/types/school'
 import { ReportCardGenerator } from './ReportCardGenerator'
 import { CertificateGenerator } from '@/components/shared/CertificateGenerator'
 import type { CertificateData } from '@/components/shared/CertificateGenerator'
+import { CertificateTemplateEditor } from '@/components/shared/CertificateTemplateEditor'
 import { Link } from 'react-router-dom'
 
 export function ExamManagement() {
@@ -15,7 +16,7 @@ export function ExamManagement() {
   const [reportCards] = useState<ReportCard[]>(() => schoolStore.getReportCards())
   const [selectedReportCard, setSelectedReportCard] = useState<ReportCard | null>(null)
   const [selectedCert, setSelectedCert] = useState<CertificateData | null>(null)
-  const [activeTab, setActiveTab] = useState<'sessions' | 'reportcards' | 'ranking'>('reportcards')
+  const [activeTab, setActiveTab] = useState<'sessions' | 'reportcards' | 'ranking' | 'template'>('reportcards')
 
   const allStudents = schoolStore.getStudents()
   const currentStudent =
@@ -329,6 +330,14 @@ export function ExamManagement() {
           >
             🏆 Merit Ranking Broadsheet
           </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${activeTab === 'template' ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setActiveTab('template')}
+            style={{ whiteSpace: 'nowrap', flexShrink: 0, fontWeight: 700, minHeight: '36px' }}
+          >
+            📜 Upload Certificate Template
+          </button>
         </div>
       </div>
 
@@ -508,6 +517,13 @@ export function ExamManagement() {
           </div>
         )
       })()}
+
+      {/* Tab 4: Certificate Template & Automation Studio */}
+      {activeTab === 'template' && (
+        <div style={{ marginTop: '0.5rem' }}>
+          <CertificateTemplateEditor />
+        </div>
+      )}
 
       {/* Official Report Card Printable Modal */}
       {selectedReportCard && (
