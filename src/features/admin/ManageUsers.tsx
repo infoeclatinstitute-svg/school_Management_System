@@ -107,8 +107,7 @@ export function ManageUsers() {
         profile: resettingUser,
         created_at: resettingUser.created_at || new Date().toISOString(),
       }
-      localStorage.setItem('gc_v2_local_credentials', JSON.stringify(parsed))
-      localStorage.setItem('gc_local_credentials', JSON.stringify(parsed))
+      await schoolStore.saveCredentials(parsed)
     } catch {}
 
     if (resettingUser.role === 'student') {
@@ -357,8 +356,7 @@ export function ManageUsers() {
           profile: newProfile,
           created_at: new Date().toISOString(),
         }
-        localStorage.setItem('gc_v2_local_credentials', JSON.stringify(parsed))
-        localStorage.setItem('gc_local_credentials', JSON.stringify(parsed))
+        await schoolStore.saveCredentials(parsed)
       } catch (storeErr) {
         console.warn('Local credential storage error:', storeErr)
       }
@@ -467,8 +465,7 @@ export function ManageUsers() {
           const cleanKey = u.admission_number.toLowerCase().replace(/[^a-z0-9]/g, '')
           delete parsed[cleanKey]
           delete parsed[u.admission_number.toLowerCase()]
-          localStorage.setItem('gc_v2_local_credentials', JSON.stringify(parsed))
-          localStorage.setItem('gc_local_credentials', JSON.stringify(parsed))
+          await schoolStore.saveCredentials(parsed)
         }
       } catch {}
 

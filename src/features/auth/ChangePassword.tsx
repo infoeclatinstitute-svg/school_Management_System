@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/Button'
 import { hashPassword } from '@/lib/crypto'
 import { sanitizeInput } from '@/lib/utils'
+import { schoolStore } from '@/lib/schoolData'
 
 export function ChangePassword() {
   const { profile, refreshProfile } = useAuth()
@@ -59,8 +60,7 @@ export function ChangePassword() {
           passwordHash: passHash,
           profile: updatedProfile,
         }
-        localStorage.setItem('gc_v2_local_credentials', JSON.stringify(creds))
-        localStorage.setItem('gc_local_credentials', JSON.stringify(creds))
+        await schoolStore.saveCredentials(creds)
       } catch {}
 
       try {

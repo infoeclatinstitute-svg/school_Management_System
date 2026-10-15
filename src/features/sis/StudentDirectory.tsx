@@ -79,8 +79,7 @@ export function StudentDirectory() {
         passwordHash: passHash,
         profile: profileObj,
       }
-      localStorage.setItem('gc_v2_local_credentials', JSON.stringify(creds))
-      localStorage.setItem('gc_local_credentials', JSON.stringify(creds))
+      await schoolStore.saveCredentials(creds)
     } catch {}
 
     // Persist custom password directly into student record for cloud cross-device sync

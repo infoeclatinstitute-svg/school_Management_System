@@ -413,14 +413,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fallback for offline / network issues
     }
 
-    // 3. Check registered credentials in local credential store
+    // 3. Check registered credentials in local credential store (with cloud sync fallback)
     try {
-      const localCredsRaw = localStorage.getItem('gc_v2_local_credentials') || localStorage.getItem('gc_local_credentials')
-      if (localCredsRaw) {
-        const parsed = JSON.parse(localCredsRaw)
-        const userEntry = parsed[cleanAlpha] || parsed[rawInput.toLowerCase()] || parsed[rawInput]
-        if (userEntry) {
-          const storedHashOrPlain = userEntry.passwordHash || userEntry.password
+      let localCredsRaw = localStorage.getItem('gc_v2_local_credentials') || localStorage.getItem('gc_local_credentials')
+      let parsed = localCredsRaw ? JSON.parse(localCredsRaw) : {}
+      let userEntry = parsed[cleanAlpha] || parsed[rawInput.toLowerCase()] || parsed[rawInput]
+
+      if (!userEntry) {
+        // Pull latest credentials from Supabase cloud in case provisioned from another desk or device
+        await schoolStore.syncWithCloud(true).catch(() => {})
+        localCredsRaw = localStorage.getItem('gc_v2_local_credentials') || localStorage.getItem('gc_local_credentials')
+        if (localCredsRaw) {
+          parsed = JSON.parse(localCredsRaw)
+          userEntry = parsed[cleanAlpha] || parsed[rawInput.toLowerCase()] || parsed[rawInput]
+        }
+      }
+
+      if (userEntry) {
+        const storedHashOrPlain = userEntry.passwordHash || userEntry.password
           if (storedHashOrPlain) {
             const isValid = await verifyPassword(password, storedHashOrPlain)
             if (!isValid) {
@@ -466,8 +476,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return { error: null, profile: updatedProfile }
           }
         }
-      }
-    } catch {}
+      } catch {}
 
     // Ensure store is synced with latest cloud database before authenticating
     try {

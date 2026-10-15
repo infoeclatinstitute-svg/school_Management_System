@@ -244,6 +244,14 @@ class SchoolDataStore {
               window.dispatchEvent(new CustomEvent('gc-courses-updated'))
             } else if (cleanKey === 'biometric_passes' && Array.isArray(row.data)) {
               this.set('biometric_passes', row.data)
+            } else if (cleanKey === 'credentials' && typeof row.data === 'object' && row.data !== null) {
+              try {
+                const existingRaw = localStorage.getItem('gc_v2_local_credentials') || localStorage.getItem('gc_local_credentials')
+                const existing = existingRaw ? JSON.parse(existingRaw) : {}
+                const merged = { ...existing, ...row.data }
+                localStorage.setItem('gc_v2_local_credentials', JSON.stringify(merged))
+                localStorage.setItem('gc_local_credentials', JSON.stringify(merged))
+              } catch {}
             }
             window.dispatchEvent(new CustomEvent('gc-data-synced'))
           }
@@ -426,6 +434,14 @@ class SchoolDataStore {
             this.set('discipline', row.data)
           } else if (cleanKey === 'biometric_passes' && Array.isArray(row.data)) {
             this.set('biometric_passes', row.data)
+          } else if (cleanKey === 'credentials' && typeof row.data === 'object' && row.data !== null) {
+            try {
+              const existingRaw = localStorage.getItem('gc_v2_local_credentials') || localStorage.getItem('gc_local_credentials')
+              const existing = existingRaw ? JSON.parse(existingRaw) : {}
+              const merged = { ...existing, ...row.data }
+              localStorage.setItem('gc_v2_local_credentials', JSON.stringify(merged))
+              localStorage.setItem('gc_local_credentials', JSON.stringify(merged))
+            } catch {}
           } else if (cleanKey === 'official_courses' && Array.isArray(row.data)) {
             try {
               localStorage.setItem('gc_v2_official_courses', JSON.stringify(row.data))
@@ -2719,11 +2735,30 @@ class SchoolDataStore {
     this.pushCollectionToCloud('device_sessions', currentSessions).catch(() => {})
   }
 
+  getCredentials(): Record<string, any> {
+    try {
+      const raw = localStorage.getItem('gc_v2_local_credentials') || localStorage.getItem('gc_local_credentials')
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  async saveCredentials(creds: Record<string, any>): Promise<void> {
+    try {
+      localStorage.setItem('gc_v2_local_credentials', JSON.stringify(creds))
+      localStorage.setItem('gc_local_credentials', JSON.stringify(creds))
+    } catch {}
+    await this.pushCollectionToCloud('credentials', creds)
+  }
+
   // --- Complete Factory Reset ---
   resetToCleanSlate() {
     this.purgeAllDataForLaunch()
     localStorage.removeItem('gc_v2_school_biometric_passes')
     localStorage.removeItem('gc_v2_school_device_sessions')
+    localStorage.removeItem('gc_v2_local_credentials')
+    localStorage.removeItem('gc_local_credentials')
   }
 }
 
