@@ -153,6 +153,33 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           </div>
         )}
 
+        {/* Install Web App Button */}
+        {!isInstalled && (
+          <button
+            type="button"
+            onClick={() => promptInstall()}
+            className="btn btn-sm"
+            style={{
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '4px 11px',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(29, 78, 216, 0.35)',
+            }}
+            title="Install Global College Web App on Phone or Computer"
+          >
+            <span>📲</span>
+            <span className="hide-on-mobile">Install App</span>
+          </button>
+        )}
+
         {!profile && (
           <Link
             to="/login"

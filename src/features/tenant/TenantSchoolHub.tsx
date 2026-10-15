@@ -52,6 +52,8 @@ import {
   StaffPayslipModal,
   FeeReceiptModal,
 } from './components/TenantPrintableDocuments'
+import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
 
 export interface TenantSchoolHubProps {
   forcedSlug?: string
@@ -59,6 +61,7 @@ export interface TenantSchoolHubProps {
 }
 
 export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubProps = {}) {
+  const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall } = usePWAInstall()
   const { schoolSlug: routeSlug, subview: routeSubview } = useParams<{ schoolSlug: string; subview?: string }>()
   const schoolSlug = forcedSlug || routeSlug
   const subview = forcedSubview || routeSubview
@@ -1020,6 +1023,38 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           )
         })()}
 
+        {/* Install Web App Action in Drawer */}
+        {!isInstalled && (
+          <div style={{ padding: '0.65rem 0.85rem', borderTop: '1px solid #f1f5f9', background: '#ffffff' }}>
+            <button
+              type="button"
+              onClick={() => {
+                closeDrawer()
+                promptInstall()
+              }}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #1d4ed8 0%, #0f172a 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '0.75rem 1rem',
+                fontSize: '0.84rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(29, 78, 216, 0.3)',
+              }}
+            >
+              <span>📲</span>
+              <span>Install Web App (Phone &amp; PC)</span>
+            </button>
+          </div>
+        )}
+
         {/* Drawer Institutional Footer */}
         <div style={{ padding: '1rem', borderTop: '1px solid #f1f5f9', background: '#f8fafc', fontSize: '0.72rem', color: '#94a3b8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#475569', marginBottom: '2px' }}>
@@ -1155,6 +1190,30 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
           {/* Right side: Session status + Profile avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
+            {!isInstalled && (
+              <button
+                type="button"
+                onClick={() => promptInstall()}
+                style={{
+                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                  color: '#ffffff',
+                  border: '1px solid #334155',
+                  padding: '5px 12px',
+                  borderRadius: '999px',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                }}
+                title="Install School Web App on Phone or Computer"
+              >
+                <span>📲</span>
+                <span className="hide-on-mobile">Install App</span>
+              </button>
+            )}
             {currentSession ? (
               <button
                 type="button"
@@ -2849,6 +2908,13 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           </div>
         </div>
       )}
+
+      {/* Cross-Platform PWA Installation Modal (Phone & Laptop/PC) */}
+      <SafariInstallModal
+        isOpen={showInstallGuide}
+        onClose={() => setShowInstallGuide(false)}
+        isIOS={isIOS}
+      />
     </div>
   )
 }

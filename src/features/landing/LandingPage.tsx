@@ -1,7 +1,10 @@
 import { useNavigate } from 'react-router-dom'
+import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
 
 export function LandingPage() {
   const navigate = useNavigate()
+  const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall } = usePWAInstall()
 
   const features = [
     { icon: '🏫', title: 'Multi-Campus Management', desc: 'Each school gets its own branded URL and isolated portal — e.g. prime.cloud.eclat.institute' },
@@ -27,6 +30,16 @@ export function LandingPage() {
           🏛️ SchoolCloud
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          {!isInstalled && (
+            <button
+              onClick={() => promptInstall()}
+              style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '0.45rem 0.85rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+              title="Install SchoolCloud Web App"
+            >
+              <span>📲</span>
+              <span>Install App</span>
+            </button>
+          )}
           <button
             onClick={() => navigate('/login')}
             style={{ background: 'transparent', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0.45rem 0.85rem', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}
@@ -62,6 +75,14 @@ export function LandingPage() {
             >
               🏫 Register Your School
             </button>
+            {!isInstalled && (
+              <button
+                onClick={() => promptInstall()}
+                style={{ background: 'rgba(255, 255, 255, 0.12)', color: '#fff', border: '1.5px solid rgba(255, 255, 255, 0.3)', borderRadius: '12px', padding: '0.9rem 1.8rem', fontWeight: 800, fontSize: '1rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
+                <span>📲</span> Install Web App
+              </button>
+            )}
           </div>
           <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '1rem' }}>
             Instant Setup · Custom Domain · Multi-Campus Portals
@@ -130,6 +151,12 @@ export function LandingPage() {
       <footer style={{ background: '#0f172a', color: '#475569', padding: '1.5rem', textAlign: 'center', fontSize: '0.78rem' }}>
         © {new Date().getFullYear()} cloud.eclat.institute · School Management Platform
       </footer>
+
+      <SafariInstallModal
+        isOpen={showInstallGuide}
+        onClose={() => setShowInstallGuide(false)}
+        isIOS={isIOS}
+      />
     </div>
   )
 }
