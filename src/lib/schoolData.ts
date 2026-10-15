@@ -288,19 +288,21 @@ class SchoolDataStore {
       'certificate_template',
     ]
 
-    for (const key of keys) {
-      try {
-        const idbVal = await idbStorage.get(`gc_v2_school_${key}`)
-        if (idbVal !== null && idbVal !== undefined) {
-          this.memCache.set(key, idbVal)
-        } else {
-          const localVal = this.get(key, null)
-          if (localVal !== null && localVal !== undefined) {
-            await idbStorage.set(`gc_v2_school_${key}`, localVal)
+    await Promise.all(
+      keys.map(async (key) => {
+        try {
+          const idbVal = await idbStorage.get(`gc_v2_school_${key}`)
+          if (idbVal !== null && idbVal !== undefined) {
+            this.memCache.set(key, idbVal)
+          } else {
+            const localVal = this.get(key, null)
+            if (localVal !== null && localVal !== undefined) {
+              idbStorage.set(`gc_v2_school_${key}`, localVal).catch(() => {})
+            }
           }
-        }
-      } catch {}
-    }
+        } catch {}
+      })
+    )
     window.dispatchEvent(new CustomEvent('gc-data-synced'))
   }
 

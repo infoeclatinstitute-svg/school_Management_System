@@ -164,12 +164,17 @@ export function App() {
     document.querySelectorAll("link[rel*='icon']").forEach((el) => {
       ;(el as HTMLLinkElement).href = blankIcon
     })
-    schoolStore.syncWithCloud().catch(() => {})
-    tenantSchoolStore.syncWithCloud().catch(() => {})
-    licensingStore.syncWithCloud().catch(() => {})
-    seedCloudDatabase().catch(() => {})
+    // Defer cloud sync tasks so initial UI renders immediately without network contention
+    const syncTimer = setTimeout(() => {
+      schoolStore.syncWithCloud().catch(() => {})
+      tenantSchoolStore.syncWithCloud().catch(() => {})
+      licensingStore.syncWithCloud().catch(() => {})
+      seedCloudDatabase().catch(() => {})
+    }, 600)
+
     const cleanupOTA = initOTAUpdater()
     return () => {
+      clearTimeout(syncTimer)
       cleanupOTA()
     }
   }, [])

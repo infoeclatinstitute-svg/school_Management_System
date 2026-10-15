@@ -1,30 +1,88 @@
 // ============================================================
 // Global College — Enterprise IndexedDB Offline Storage Engine
 // High-capacity (Gigabytes), non-blocking, offline-first client storage
+// With connection pooling, auto-reconnect & fast-timeout failover
 // ============================================================
 
 const DB_NAME = 'GlobalCollegeSIMS'
 const DB_VERSION = 1
 const STORE_NAME = 'school_store'
 
+let dbInstance: IDBDatabase | null = null
+let dbPromise: Promise<IDBDatabase> | null = null
+
 function openDatabase(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbInstance) {
+    try {
+      // Test if instance is still healthy
+      dbInstance.transaction(STORE_NAME, 'readonly')
+      return Promise.resolve(dbInstance)
+    } catch {
+      dbInstance = null
+    }
+  }
+
+  if (dbPromise) {
+    return dbPromise
+  }
+
+  dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     if (typeof window === 'undefined' || !('indexedDB' in window)) {
       return reject(new Error('IndexedDB is not available in this environment'))
     }
 
-    const request = window.indexedDB.open(DB_NAME, DB_VERSION)
+    // Fast 2.5s timeout prevents hanging on sluggish or blocked devices
+    const timeoutTimer = setTimeout(() => {
+      reject(new Error('IndexedDB connection timeout'))
+    }, 2500)
 
-    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-      const db = (event.target as IDBOpenDBRequest).result
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME)
+    try {
+      const request = window.indexedDB.open(DB_NAME, DB_VERSION)
+
+      request.onblocked = () => {
+        clearTimeout(timeoutTimer)
+        reject(new Error('IndexedDB is blocked by another tab'))
       }
-    }
 
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error)
+      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+        const db = (event.target as IDBOpenDBRequest).result
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME)
+        }
+      }
+
+      request.onsuccess = () => {
+        clearTimeout(timeoutTimer)
+        dbInstance = request.result
+
+        dbInstance.onversionchange = () => {
+          dbInstance?.close()
+          dbInstance = null
+          dbPromise = null
+        }
+
+        dbInstance.onerror = () => {
+          dbInstance = null
+          dbPromise = null
+        }
+
+        resolve(dbInstance)
+      }
+
+      request.onerror = () => {
+        clearTimeout(timeoutTimer)
+        reject(request.error)
+      }
+    } catch (err) {
+      clearTimeout(timeoutTimer)
+      reject(err)
+    }
+  }).catch((err) => {
+    dbPromise = null
+    throw err
   })
+
+  return dbPromise
 }
 
 export const idbStorage = {
