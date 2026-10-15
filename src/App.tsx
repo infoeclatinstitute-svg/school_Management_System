@@ -165,6 +165,21 @@ function TenantSubdomainWatcher() {
   return null
 }
 
+/** Smart Route Resolver: Allows students to access school portal via /schoolSlug directly without /s/ */
+function FallbackOrSchoolSlug() {
+  const location = useLocation()
+  const segments = location.pathname.split('/').filter(Boolean)
+  if (segments.length >= 1) {
+    const candidateSlug = segments[0]
+    const school = tenantSchoolStore.getSchoolBySlug(candidateSlug)
+    if (school) {
+      const subview = segments[1] || 'hub'
+      return <TenantSchoolHub forcedSlug={school.slug} forcedSubview={subview} />
+    }
+  }
+  return <Navigate to="/" replace />
+}
+
 export function App() {
   useEffect(() => {
     const blankIcon = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
@@ -525,8 +540,8 @@ export function App() {
           />
         </Route>
 
-        {/* Fallback Route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Fallback Route: Direct school slug (e.g. /my-school) or redirect */}
+        <Route path="*" element={<FallbackOrSchoolSlug />} />
       </Routes>
     </Suspense>
   )
