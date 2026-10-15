@@ -7,6 +7,7 @@ import { checkForOTAUpdates } from '@/lib/otaUpdater';
 export function PullToRefresh() {
   const queryClient = useQueryClient();
   const isNative = isNativeApp();
+  const isTouchDevice = isNative || (typeof window !== 'undefined' && ('ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [startY, setStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
@@ -31,7 +32,7 @@ export function PullToRefresh() {
   }, [queryClient]);
 
   useEffect(() => {
-    if (!isNative) return;
+    if (!isTouchDevice) return;
     const handleTouchStart = (e: TouchEvent) => {
       if (window.scrollY === 0) {
         setStartY(e.touches[0].clientY);
@@ -67,9 +68,9 @@ export function PullToRefresh() {
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isNative, startY, pullDistance, isRefreshing, handleRefresh]);
+  }, [isTouchDevice, startY, pullDistance, isRefreshing, handleRefresh]);
 
-  if (!isNative || (pullDistance === 0 && !isRefreshing)) return null;
+  if (!isTouchDevice || (pullDistance === 0 && !isRefreshing)) return null;
 
   return (
     <div

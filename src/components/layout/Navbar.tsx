@@ -10,6 +10,10 @@ import { formatDateTime } from '@/lib/utils'
 import { isNativeApp, isElectronApp } from '@/utils/platform'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
+import { schoolStore } from '@/lib/schoolData'
+import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
+import { licensingStore } from '@/lib/licensingStore'
+import { checkForOTAUpdates, clearAllWebCaches } from '@/lib/otaUpdater'
 
 export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { profile, signOut } = useAuth()
@@ -18,6 +22,29 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
 
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [showNotifs, setShowNotifs] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleManualRefresh = async () => {
+    if (isRefreshing) return
+    setIsRefreshing(true)
+    try {
+      await Promise.allSettled([
+        schoolStore.syncWithCloud(true),
+        tenantSchoolStore.syncWithCloud(),
+        licensingStore.syncWithCloud(),
+        clearAllWebCaches(),
+      ])
+      window.dispatchEvent(new CustomEvent('gc-data-synced'))
+      window.dispatchEvent(new Event('storage'))
+
+      const hasNewBuild = await checkForOTAUpdates(true)
+      if (!hasNewBuild) {
+        setTimeout(() => setIsRefreshing(false), 600)
+      }
+    } catch {
+      setIsRefreshing(false)
+    }
+  }
 
   useEffect(() => {
     if (!profile?.id) return
@@ -72,6 +99,41 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
       <div className="navbar-spacer" />
 
       <div className="navbar-actions">
+
+        {/* Instant Self-Refresh & Cloud Sync Button */}
+        <button
+          type="button"
+          onClick={handleManualRefresh}
+          disabled={isRefreshing}
+          className="btn btn-sm"
+          style={{
+            background: isRefreshing ? '#e2e8f0' : '#f8fafc',
+            color: '#1e293b',
+            border: '1px solid #cbd5e1',
+            borderRadius: '8px',
+            padding: '4px 10px',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            cursor: isRefreshing ? 'wait' : 'pointer',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            transition: 'all 0.2s ease',
+          }}
+          title="Refresh system & sync latest cloud updates"
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              transition: 'transform 0.6s ease',
+              transform: isRefreshing ? 'rotate(360deg)' : 'none',
+            }}
+          >
+            🔄
+          </span>
+          <span className="hide-on-mobile">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+        </button>
 
         {/* Live School Bell Alert Button */}
         <button

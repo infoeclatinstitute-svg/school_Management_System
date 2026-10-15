@@ -1,16 +1,20 @@
 /**
- * Over-The-Air (OTA) Live Update Engine for Global College
- * Safely checks for newer cloud builds without causing reload loops
+ * Over-The-Air (OTA) Live Update & Self-Refresh Engine for Global College
+ * Automatically detects new cloud deployments, clears stale web caches,
+ * and refreshes the application smoothly without causing reload loops
  * or unregistering the installable PWA Service Worker.
  */
 
 const LOCAL_BUILD_TIME_KEY = 'gc_ota_build_timestamp'
+const RELOAD_ATTEMPT_KEY = 'gc_ota_reload_attempt'
 let isCheckingUpdate = false
+let isReloading = false
 
 export function getCurrentRuntimeBuildTimestamp(): number {
   try {
-    if (typeof __APP_BUILD_TIMESTAMP__ !== 'undefined' && typeof __APP_BUILD_TIMESTAMP__ === 'number') {
-      return __APP_BUILD_TIMESTAMP__
+    if (typeof __APP_BUILD_TIMESTAMP__ !== 'undefined') {
+      const ts = Number(__APP_BUILD_TIMESTAMP__)
+      if (!Number.isNaN(ts) && ts > 0) return ts
     }
   } catch {}
   return 0
@@ -33,8 +37,8 @@ export async function clearAllWebCaches(): Promise<void> {
   }
 }
 
-export async function checkForOTAUpdates(_force: boolean = false): Promise<boolean> {
-  if (isCheckingUpdate || typeof window === 'undefined' || !navigator.onLine) {
+export async function checkForOTAUpdates(force: boolean = false): Promise<boolean> {
+  if (isCheckingUpdate || typeof window === 'undefined' || !navigator.onLine || isReloading) {
     return false
   }
 
@@ -71,22 +75,48 @@ export async function checkForOTAUpdates(_force: boolean = false): Promise<boole
     const remoteBuildTime = Number(remoteManifest?.buildTime) || 0
     if (!remoteBuildTime) return false
 
+    const runtimeBuildTime = getCurrentRuntimeBuildTimestamp()
     const storedBuildTime = Number(localStorage.getItem(LOCAL_BUILD_TIME_KEY)) || 0
+    const baselineTime = runtimeBuildTime > 0 ? runtimeBuildTime : storedBuildTime
 
-    // First time seeing build timestamp: record it without reloading
-    if (!storedBuildTime) {
+    // First time seeing build timestamp: record baseline
+    if (!baselineTime) {
       localStorage.setItem(LOCAL_BUILD_TIME_KEY, remoteBuildTime.toString())
       return false
     }
 
-    // Only reload ONCE if remoteBuildTime is strictly newer than storedBuildTime
-    if (remoteBuildTime > storedBuildTime) {
+    // Check if the cloud build is strictly newer than our current running build
+    const isNewer = remoteBuildTime > baselineTime
+    if (isNewer || (force && remoteBuildTime !== baselineTime)) {
+      // Loop protection: avoid re-triggering reload if this exact build was already reloaded in this session
+      const lastAttemptedBuild = sessionStorage.getItem(RELOAD_ATTEMPT_KEY)
+      if (lastAttemptedBuild === remoteBuildTime.toString()) {
+        return false
+      }
+
+      isReloading = true
+      sessionStorage.setItem(RELOAD_ATTEMPT_KEY, remoteBuildTime.toString())
       localStorage.setItem(LOCAL_BUILD_TIME_KEY, remoteBuildTime.toString())
+
+      // Notify Service Worker to skipWaiting immediately
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' })
+      }
+
       await clearAllWebCaches()
+
+      console.info(`[OTA Update] Newer build detected (${remoteBuildTime} > ${baselineTime}). Refreshing system...`)
+
+      window.dispatchEvent(new CustomEvent('gc-app-updating', { detail: { buildTime: remoteBuildTime } }))
+
+      // Execute smooth self-refresh
+      setTimeout(() => {
+        window.location.reload()
+      }, 300)
       return true
     }
   } catch (err) {
-    console.debug('[OTA Update] Silent check completed:', err)
+    console.debug('[OTA Update] Check completed:', err)
   } finally {
     isCheckingUpdate = false
   }
@@ -110,13 +140,51 @@ export function initOTAUpdater(): () => void {
     return () => {}
   }
 
-  checkForOTAUpdates().catch(() => {})
+  // 1. Initial check after 3 seconds (smooth startup)
+  const initialTimer = setTimeout(() => {
+    checkForOTAUpdates().catch(() => {})
+  }, 3000)
 
+  // 2. Periodic background check every 45 seconds
   const intervalTimer = setInterval(() => {
     checkForOTAUpdates().catch(() => {})
-  }, 60000)
+  }, 45000)
+
+  // 3. Auto-refresh check when user returns to tab / unlocks device
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      checkForOTAUpdates().catch(() => {})
+    }
+  }
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+
+  // 4. Auto-refresh check when network reconnects
+  const handleOnline = () => {
+    checkForOTAUpdates().catch(() => {})
+  }
+  window.addEventListener('online', handleOnline)
+
+  // 5. Service Worker controller change (when a newly installed SW claims clients)
+  let hadPreviousController = Boolean(navigator.serviceWorker?.controller)
+  let swRefreshing = false
+  const handleControllerChange = () => {
+    if (hadPreviousController && !swRefreshing && !isReloading) {
+      swRefreshing = true
+      window.location.reload()
+    }
+    hadPreviousController = true
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange)
+  }
 
   return () => {
+    clearTimeout(initialTimer)
     clearInterval(intervalTimer)
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    window.removeEventListener('online', handleOnline)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange)
+    }
   }
 }
