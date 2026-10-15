@@ -145,7 +145,7 @@ export function generateBiometricTemplate(admissionNumber: string, fingerName: s
 
   const hex = Math.abs(hash).toString(16).padStart(8, '0').toUpperCase()
   const randomSuffix = Math.floor(1000 + (Math.abs(hash) % 9000))
-  return `FP-EI-${cleanAdm.slice(-4) || 'STD'}-${hex.slice(0, 4)}-${cleanFinger.slice(0, 2)}-${randomSuffix}`
+  return `FP-GC-${cleanAdm.slice(-4) || 'STD'}-${hex.slice(0, 4)}-${cleanFinger.slice(0, 2)}-${randomSuffix}`
 }
 
 /**

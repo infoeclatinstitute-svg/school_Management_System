@@ -985,7 +985,7 @@ class SchoolDataStore {
         if (idx === -1) throw new IntegrityError(`Student ID "${id}" not found.`)
 
         const student = list[idx]
-        const certNo = student.certificate_number || `EI-CERT-${student.admission_number.replace(/[^a-zA-Z0-9]/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
+        const certNo = student.certificate_number || `GC-CERT-${student.admission_number.replace(/[^a-zA-Z0-9]/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
 
         list[idx] = {
           ...student,

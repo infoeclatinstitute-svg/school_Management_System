@@ -108,7 +108,7 @@ export function StudentDirectory() {
   // New Student Form State
   const [newStudent, setNewStudent] = useState<Partial<StudentRecord>>({
     full_name: '',
-    admission_number: `EI-${new Date().getFullYear()}-${String(students.length + 1).padStart(3, '0')}`,
+    admission_number: `GC-${new Date().getFullYear()}-${String(students.length + 1).padStart(3, '0')}`,
     gender: 'Not Specified',
     grade_level: '8 to 12 Weeks (Short Course Certificate)',
     stream: 'Practical Lab Trainee',
@@ -224,7 +224,7 @@ export function StudentDirectory() {
 
     const record: StudentRecord = {
       id: `std-${Date.now()}`,
-      admission_number: newStudent.admission_number || `EI-${new Date().getFullYear()}-${String(students.length + 1).padStart(3, '0')}`,
+      admission_number: newStudent.admission_number || `GC-${new Date().getFullYear()}-${String(students.length + 1).padStart(3, '0')}`,
       full_name: newStudent.full_name || '',
       portal_password: chosenPassword,
       gender: (newStudent.gender as 'Male' | 'Female' | 'Not Specified') || 'Not Specified',
@@ -545,7 +545,7 @@ export function StudentDirectory() {
             <input
               type="text"
               className="input"
-              placeholder={`e.g. Abdi Hassan or EI-${new Date().getFullYear()}...`}
+              placeholder={`e.g. Abdi Hassan or GC-${new Date().getFullYear()}...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />

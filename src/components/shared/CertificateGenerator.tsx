@@ -29,14 +29,14 @@ export interface CertificateData {
 export const SAMPLE_CERTIFICATES: Record<string, CertificateData> = {
   software_engineering: {
     student_name: 'Sophia Vance Al-Mansoor',
-    admission_number: 'EI-2026-ENG042',
+    admission_number: 'GC-2026-ENG042',
     course_title: 'Full-Stack Software Engineering & Cloud Architecture',
     faculty_name: 'School of Computing & Software Engineering',
     grade: 'Distinction (Grade A+)',
     percentage: 96.4,
     honors: 'Conferred with Highest Institutional Distinction',
     issue_date: '11 September 2026',
-    certificate_no: 'EI-CERT-2026-7892',
+    certificate_no: 'GC-CERT-2026-7892',
     duration: '12 Weeks Live Cohort & Laboratory Intensive (120 CPD Hours)',
     trainer_name: 'Eng. Beatrice Ochieng, M.Sc.',
     skills_acquired: [
@@ -50,14 +50,14 @@ export const SAMPLE_CERTIFICATES: Record<string, CertificateData> = {
   },
   data_science: {
     student_name: 'David Kimani Mwangi',
-    admission_number: 'EI-2026-DAT019',
+    admission_number: 'GC-2026-DAT019',
     course_title: 'Advanced Econometrics, R Programming & Data Science',
     faculty_name: 'School of Data Science & Quantitative Research',
     grade: 'First Class Honors (Grade A)',
     percentage: 94.8,
     honors: 'Conferred with First Class Academic Honors',
     issue_date: '11 September 2026',
-    certificate_no: 'EI-CERT-2026-4410',
+    certificate_no: 'GC-CERT-2026-4410',
     duration: '10 Weeks Quantitative Analytics Cohort (100 CPD Hours)',
     trainer_name: 'Dr. David Kiprono, Ph.D.',
     skills_acquired: [
@@ -71,14 +71,14 @@ export const SAMPLE_CERTIFICATES: Record<string, CertificateData> = {
   },
   creative_design: {
     student_name: 'Amara Chioma Okafor',
-    admission_number: 'EI-2026-DSG088',
+    admission_number: 'GC-2026-DSG088',
     course_title: 'Executive UI/UX Design, Design Systems & Figma Pro',
     faculty_name: 'School of Creative Arts & User Experience',
     grade: 'High Distinction (Grade A+)',
     percentage: 97.2,
     honors: 'Conferred with High Distinction in Creative Innovation',
     issue_date: '11 September 2026',
-    certificate_no: 'EI-CERT-2026-9051',
+    certificate_no: 'GC-CERT-2026-9051',
     duration: '8 Weeks Immersive Studio & Portfolio Lab (80 CPD Hours)',
     trainer_name: 'Clara Dubois, M.A.',
     skills_acquired: [

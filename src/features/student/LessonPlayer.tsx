@@ -645,7 +645,7 @@ export function LessonPlayer() {
                 className="btn btn-primary btn-full"
                 onClick={async () => {
                   const studentName = profile?.full_name || 'Enrolled Student'
-                  const admNo = profile?.admission_number || profile?.id || 'EI-STUDENT'
+                  const admNo = profile?.admission_number || profile?.id || 'GC-STUDENT'
                   const courseTitle = data?.course?.title || 'Course Unit'
                   const courseFee = (data?.unit as any)?.course_fee || 15000
 
@@ -661,7 +661,7 @@ export function LessonPlayer() {
                       const verifiedRef = `PAYSTACK-${reference}`
                       await schoolStore.recordPayment({
                         id: `rcpt-${Date.now()}`,
-                        receipt_number: `EI-REC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+                        receipt_number: `GC-REC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
                         student_id: profile?.id || admNo,
                         student_name: studentName,
                         admission_number: admNo,
