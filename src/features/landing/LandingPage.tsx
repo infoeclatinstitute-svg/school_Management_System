@@ -7,7 +7,7 @@ export function LandingPage() {
   const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall } = usePWAInstall()
 
   const features = [
-    { icon: '🏫', title: 'Multi-Campus Management', desc: 'Each school gets its own branded URL and isolated portal — e.g. prime.cloud.eclat.institute' },
+    { icon: '🏫', title: 'Multi-Campus Management', desc: 'Each school gets its own branded URL and dedicated portal — e.g. eg.cloud.eclat.institute or cloud.eclat.institute/s/eg' },
     { icon: '👨‍🎓', title: 'Full Student Lifecycle', desc: 'Admissions, timetables, exams, grades, transcripts, certificates — all in one place.' },
     { icon: '💳', title: 'Fee & Finance Module', desc: 'Bursar desk, M-Pesa & card payments, fee ledgers, instalment tracking.' },
     { icon: '📊', title: 'Principal Dashboard', desc: 'Real-time enrolment stats, staff management, credential provisioning and school reports.' },

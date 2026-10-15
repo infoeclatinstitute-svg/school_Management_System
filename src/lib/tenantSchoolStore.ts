@@ -27,7 +27,133 @@ const TIMETABLE_STORAGE_KEY = 'gc_v2_tenant_timetables'
 const PROGRAMS_STORAGE_KEY = 'gc_v2_tenant_programs'
 const SESSION_STORAGE_KEY_PREFIX = 'gc_v2_tenant_session_'
 
-const INITIAL_PARTNER_SCHOOLS: PartnerSchoolTenant[] = []
+const INITIAL_PARTNER_SCHOOLS: PartnerSchoolTenant[] = [
+  {
+    id: 'school-eg-001',
+    name: 'EG Institute of Science & Technology',
+    slug: 'eg',
+    institution_category: 'college',
+    registration_number: 'TVETA/PUB/2026/042',
+    currency: 'USD',
+    grading_scale: 'standard_percentage',
+    departments_list: ['Computing & IT', 'Engineering', 'Business Management'],
+    classes_list: ['Year 1', 'Year 2', 'Diploma', 'Certificate'],
+    campus_count: 1,
+    campuses_list: [{ id: 'cmp-eg-1', name: 'Main Campus', code: 'MC-01', location: 'City Center', is_main: true }],
+    motto: 'Excellence in Global Learning & Innovation',
+    logo_url: '/favicon.svg',
+    primary_color: '#1e3a8a',
+    accent_color: '#3b82f6',
+    academic_system: 'semester',
+    academic_calendar: [
+      {
+        id: 'cal-sem-1',
+        name: 'Semester 1, 2026',
+        code: 'SEM-1-2026',
+        start_date: '2026-01-15',
+        end_date: '2026-05-30',
+        status: 'Active',
+      },
+    ],
+    active_period_name: 'Semester 1, 2026',
+    curriculum_type: 'STEM & Technology Institute',
+    country: 'Kenya',
+    city: 'Nairobi',
+    address: 'Eclat Innovation Hub, Tech City',
+    contact_email: 'info@eg.cloud.eclat.institute',
+    contact_phone: '+254 700 000 000',
+    website: 'https://cloud.eclat.institute/s/eg',
+    custom_domain: '',
+    subdomain: 'eg',
+    principal_name: 'Prof. Egerton K.',
+    principal_title: 'Director & Principal',
+    principal_email: 'principal@eg.cloud.eclat.institute',
+    admin_username: 'eg.admin',
+    admin_password: 'Global@2026#!',
+    subscription_tier: 'enterprise',
+    subscription_status: 'licensed',
+    stats: {
+      students: 24,
+      teachers: 8,
+      classes: 6,
+      departments: 3,
+    },
+    features_enabled: {
+      student_portal: true,
+      teacher_portal: true,
+      bursar_portal: true,
+      principal_portal: true,
+      online_admissions: true,
+      biometric_attendance: true,
+      report_cards: true,
+      e_library: true,
+    },
+    created_at: '2026-01-01T00:00:00Z',
+    is_verified: true,
+  },
+  {
+    id: 'school-prime-001',
+    name: 'Prime International College',
+    slug: 'prime',
+    institution_category: 'college',
+    registration_number: 'REG/PRIME/2026',
+    currency: 'USD',
+    grading_scale: 'letter_gpa',
+    departments_list: ['Business', 'Technology', 'Health Sciences'],
+    classes_list: ['Grade 10', 'Grade 11', 'Diploma'],
+    campus_count: 1,
+    campuses_list: [{ id: 'cmp-prime-1', name: 'Westlands Campus', code: 'WC-01', is_main: true }],
+    motto: 'Knowledge, Integrity, Leadership',
+    logo_url: '/favicon.svg',
+    primary_color: '#0f766e',
+    accent_color: '#14b8a6',
+    academic_system: 'term',
+    academic_calendar: [
+      {
+        id: 'cal-term-1',
+        name: 'Term 1, 2026',
+        code: 'T1-2026',
+        start_date: '2026-01-10',
+        end_date: '2026-04-15',
+        status: 'Active',
+      },
+    ],
+    active_period_name: 'Term 1, 2026',
+    curriculum_type: 'General Academic & Multi-Disciplinary',
+    country: 'Kenya',
+    city: 'Nairobi',
+    address: 'Parklands Road, Nairobi',
+    contact_email: 'admin@prime.cloud.eclat.institute',
+    contact_phone: '+254 711 000 000',
+    website: 'https://cloud.eclat.institute/s/prime',
+    subdomain: 'prime',
+    principal_name: 'Dr. Arthur Vance',
+    principal_title: 'Head of Institution',
+    principal_email: 'head@prime.cloud.eclat.institute',
+    admin_username: 'prime.admin',
+    admin_password: 'Global@2026#!',
+    subscription_tier: 'growth',
+    subscription_status: 'licensed',
+    stats: {
+      students: 45,
+      teachers: 12,
+      classes: 8,
+      departments: 3,
+    },
+    features_enabled: {
+      student_portal: true,
+      teacher_portal: true,
+      bursar_portal: true,
+      principal_portal: true,
+      online_admissions: true,
+      biometric_attendance: true,
+      report_cards: true,
+      e_library: true,
+    },
+    created_at: '2026-01-01T00:00:00Z',
+    is_verified: true,
+  },
+]
 
 class TenantSchoolStore {
   private schools: PartnerSchoolTenant[] = []
@@ -765,6 +891,11 @@ class TenantSchoolStore {
     } catch {}
   }
 
+  public getAllStaff(): TenantStaffMember[] {
+    if (this.staff.length === 0) this.loadStaff()
+    return [...this.staff]
+  }
+
   public getStaffBySchool(slug: string): TenantStaffMember[] {
     if (this.staff.length === 0) this.loadStaff()
     const clean = slug.toLowerCase()
@@ -867,6 +998,11 @@ class TenantSchoolStore {
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(this.students))
       this.triggerCloudPush()
     } catch {}
+  }
+
+  public getAllStudents(): TenantStudentMember[] {
+    if (this.students.length === 0) this.loadStudents()
+    return [...this.students]
   }
 
   public getStudentsBySchool(slug: string): TenantStudentMember[] {
@@ -1460,8 +1596,96 @@ class TenantSchoolStore {
 // CLEAN BASELINE DATA STORE (ZERO SEEDED TEST DATA)
 // ============================================================
 
-const INITIAL_STAFF_MEMBERS: TenantStaffMember[] = []
-const INITIAL_STUDENTS: TenantStudentMember[] = []
+const INITIAL_STAFF_MEMBERS: TenantStaffMember[] = [
+  {
+    id: 'tstf-eg-001',
+    school_slug: 'eg',
+    full_name: 'Prof. Egerton K.',
+    role: 'principal',
+    email: 'principal@eg.cloud.eclat.institute',
+    username: 'eg.admin',
+    temp_password: 'Global@2026#!',
+    phone: '+254 700 000 000',
+    department: 'Executive Administration',
+    title: 'Director & Principal',
+    assigned_classes: ['All'],
+    assigned_subjects: ['Institutional Governance'],
+    salary_base: 180000,
+    salary_housing: 30000,
+    salary_transport: 20000,
+    salary_tax: 45000,
+    salary_pension: 10000,
+    net_salary: 175000,
+    status: 'active',
+    joined_date: '2026-01-01',
+  },
+  {
+    id: 'tstf-eg-002',
+    school_slug: 'eg',
+    full_name: 'Catherine Mwangi',
+    role: 'bursar',
+    email: 'bursar@eg.cloud.eclat.institute',
+    username: 'eg.bursar',
+    temp_password: 'EG@2026',
+    phone: '+254 700 333 444',
+    department: 'Finance & Accounts',
+    title: 'Chief Bursar',
+    assigned_classes: [],
+    assigned_subjects: [],
+    salary_base: 95000,
+    salary_housing: 15000,
+    salary_transport: 10000,
+    salary_tax: 22000,
+    salary_pension: 5000,
+    net_salary: 93000,
+    status: 'active',
+    joined_date: '2026-01-05',
+  },
+  {
+    id: 'tstf-eg-003',
+    school_slug: 'eg',
+    full_name: 'Eng. Dennis Mutua',
+    role: 'teacher',
+    email: 'dennis@eg.cloud.eclat.institute',
+    username: 'eg.teacher',
+    temp_password: 'EG@2026',
+    phone: '+254 700 555 666',
+    department: 'Computing & IT',
+    title: 'Lead Lecturer',
+    assigned_classes: ['Year 1', 'Year 2'],
+    assigned_subjects: ['Software Architecture', 'Web Technologies'],
+    salary_base: 85000,
+    salary_housing: 15000,
+    salary_transport: 10000,
+    salary_tax: 19000,
+    salary_pension: 5000,
+    net_salary: 86000,
+    status: 'active',
+    joined_date: '2026-01-10',
+  },
+]
+const INITIAL_STUDENTS: TenantStudentMember[] = [
+  {
+    id: 'tstd-eg-001',
+    school_slug: 'eg',
+    admission_number: 'EG-2026-001',
+    full_name: 'David Omondi',
+    grade_class: 'Diploma Year 2',
+    guardian_name: 'Grace Omondi',
+    guardian_phone: '+254 700 111 222',
+    guardian_email: 'grace.omondi@example.com',
+    email: 'david.omondi@eg.cloud.eclat.institute',
+    phone: '+254 700 111 223',
+    username: 'EG-2026-001',
+    temp_password: 'EG@2026',
+    fee_total: 45000,
+    fee_paid: 45000,
+    fee_balance: 0,
+    attendance_percent: 96,
+    status: 'active',
+    admission_date: '2026-01-10',
+  },
+]
 const INITIAL_PAYROLL_RECORDS: TenantPayrollRecord[] = []
 const INITIAL_GRADES: TenantGradeRecord[] = []
 const INITIAL_LESSON_NOTES: TenantLessonNote[] = []

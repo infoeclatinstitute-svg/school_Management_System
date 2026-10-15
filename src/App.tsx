@@ -68,20 +68,12 @@ function StudentNativeGuard({ children }: { children: ReactElement }) {
 
 /** Auth Guard Component */
 function RequireAuth({ children, allowedRoles }: { children: ReactElement; allowedRoles?: string[] }) {
-  // If on a tenant school subdomain, allow through so TenantSubdomainRouteOrCentral can serve the school hub
-  if (typeof window !== 'undefined') {
-    const isTenantSubdomain = Boolean(detectTenantFromHost(window.location.hostname, tenantSchoolStore.getSchools()))
-    if (isTenantSubdomain) {
-      return children
-    }
-  }
-
   const { profile, loading } = useAuth()
 
   if (loading) return <LoadingScreen message="Verifying security session..." />
   if (!profile) return <Navigate to="/login" replace />
 
-  // Role authorization check
+  // Strict role authorization check
   if (allowedRoles && !allowedRoles.includes(profile.role)) {
     if (profile.role === 'admin') return <Navigate to="/admin" replace />
     if (profile.role === 'bursar') return <Navigate to="/bursar" replace />
@@ -196,14 +188,16 @@ export function App() {
         <Route path="/schools/:schoolSlug" element={<TenantSchoolHub />} />
         <Route path="/schools/:schoolSlug/:subview" element={<TenantSchoolHub />} />
 
-        {/* Platform Owner SaaS Portal — single canonical route */}
+        {/* Platform Owner SaaS Portal — strictly restricted to Platform Admin */}
         <Route
           path="/saas-admin"
           element={
-            <TenantSubdomainRouteOrCentral
-              subview="billing"
-              centralElement={<MasterSaasPortal />}
-            />
+            <RequireAuth allowedRoles={['admin']}>
+              <TenantSubdomainRouteOrCentral
+                subview="billing"
+                centralElement={<MasterSaasPortal />}
+              />
+            </RequireAuth>
           }
         />
         {/* Open Portal Routes with App Layout */}
@@ -222,10 +216,31 @@ export function App() {
           {/* Universal College System Hub Modules */}
           <Route path="/timetable" element={<TimetableView />} />
           <Route path="/exams" element={<ExamManagement />} />
-          <Route path="/fees" element={<FeeManagement />} />
+          <Route
+            path="/fees"
+            element={
+              <RequireAuth allowedRoles={['admin', 'bursar']}>
+                <FeeManagement />
+              </RequireAuth>
+            }
+          />
           <Route path="/noticeboard" element={<SchoolNoticeboard />} />
-          <Route path="/discipline" element={<DisciplineTracker />} />
-          <Route path="/students" element={<StudentDirectory />} />
+          <Route
+            path="/discipline"
+            element={
+              <RequireAuth allowedRoles={['admin', 'teacher']}>
+                <DisciplineTracker />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/students"
+            element={
+              <RequireAuth allowedRoles={['admin', 'bursar', 'teacher']}>
+                <StudentDirectory />
+              </RequireAuth>
+            }
+          />
 
           {/* Specialized Roles & Desks - School Subdomain Aware */}
           <Route
@@ -259,7 +274,11 @@ export function App() {
             element={
               <TenantSubdomainRouteOrCentral
                 subview="bursar"
-                centralElement={<BursarDesk />}
+                centralElement={
+                  <RequireAuth allowedRoles={['bursar', 'admin']}>
+                    <BursarDesk />
+                  </RequireAuth>
+                }
               />
             }
           />
@@ -269,7 +288,11 @@ export function App() {
             element={
               <TenantSubdomainRouteOrCentral
                 subview="student"
-                centralElement={<ParentDashboard />}
+                centralElement={
+                  <RequireAuth allowedRoles={['parent', 'admin']}>
+                    <ParentDashboard />
+                  </RequireAuth>
+                }
               />
             }
           />
@@ -310,16 +333,18 @@ export function App() {
             }
           />
 
-          {/* Student Portal Routes (Protected with Native App Hardware DRM) */}
+          {/* Student Portal Routes (Protected with Native App DRM and Role Authorization) */}
           <Route
             path="/student"
             element={
               <TenantSubdomainRouteOrCentral
                 subview="student"
                 centralElement={
-                  <StudentNativeGuard>
-                    <StudentDashboard />
-                  </StudentNativeGuard>
+                  <RequireAuth allowedRoles={['student', 'admin']}>
+                    <StudentNativeGuard>
+                      <StudentDashboard />
+                    </StudentNativeGuard>
+                  </RequireAuth>
                 }
               />
             }
@@ -327,41 +352,51 @@ export function App() {
           <Route
             path="/student/courses"
             element={
-              <StudentNativeGuard>
-                <CourseList />
-              </StudentNativeGuard>
+              <RequireAuth allowedRoles={['student', 'admin']}>
+                <StudentNativeGuard>
+                  <CourseList />
+                </StudentNativeGuard>
+              </RequireAuth>
             }
           />
           <Route
             path="/student/courses/:id"
             element={
-              <StudentNativeGuard>
-                <CourseDetail />
-              </StudentNativeGuard>
+              <RequireAuth allowedRoles={['student', 'admin']}>
+                <StudentNativeGuard>
+                  <CourseDetail />
+                </StudentNativeGuard>
+              </RequireAuth>
             }
           />
           <Route
             path="/student/lesson/:lessonId"
             element={
-              <StudentNativeGuard>
-                <LessonPlayer />
-              </StudentNativeGuard>
+              <RequireAuth allowedRoles={['student', 'admin']}>
+                <StudentNativeGuard>
+                  <LessonPlayer />
+                </StudentNativeGuard>
+              </RequireAuth>
             }
           />
           <Route
             path="/student/lessons/:lessonId"
             element={
-              <StudentNativeGuard>
-                <LessonPlayer />
-              </StudentNativeGuard>
+              <RequireAuth allowedRoles={['student', 'admin']}>
+                <StudentNativeGuard>
+                  <LessonPlayer />
+                </StudentNativeGuard>
+              </RequireAuth>
             }
           />
           <Route
             path="/student/progress"
             element={
-              <StudentNativeGuard>
-                <ProgressView />
-              </StudentNativeGuard>
+              <RequireAuth allowedRoles={['student', 'admin']}>
+                <StudentNativeGuard>
+                  <ProgressView />
+                </StudentNativeGuard>
+              </RequireAuth>
             }
           />
 

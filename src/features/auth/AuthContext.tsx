@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { schoolStore } from '@/lib/schoolData'
+import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { INSTITUTION_CONFIG } from '@/config/institution'
 import { verifyPassword } from '@/lib/crypto'
 import type { Profile, Role } from '@/lib/database.types'
@@ -333,14 +334,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [profile?.id])
 
   function signInAsDemo(role: Role) {
-    if (role === 'admin') {
-      const demoProf = ADMIN_PROFILE
-      localStorage.setItem('gc_active_profile', JSON.stringify(demoProf))
-      sessionStorage.setItem('gc_active_profile', JSON.stringify(demoProf))
-      setProfile(demoProf)
-      bindActiveDeviceSession(demoProf).catch(() => {})
-      schoolStore.syncWithCloud(true).catch(() => {})
-    }
+    const demoProf = DEMO_PROFILES[role] || ADMIN_PROFILE
+    localStorage.setItem('gc_active_profile', JSON.stringify(demoProf))
+    sessionStorage.setItem('gc_active_profile', JSON.stringify(demoProf))
+    setProfile(demoProf)
+    bindActiveDeviceSession(demoProf).catch(() => {})
+    schoolStore.syncWithCloud(true).catch(() => {})
   }
 
   async function signIn(inputIdentifier: string, password: string): Promise<{ error: string | null; profile?: Profile }> {
@@ -531,6 +530,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null, profile: studentProfile }
     }
 
+    // 4b. Check registered tenant school students (e.g. EG, Prime)
+    const tenantStudents = tenantSchoolStore.getAllStudents()
+    const tStudent = tenantStudents.find((s) => {
+      const sAdm = s.admission_number.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const sName = s.full_name.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const sId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const sUser = (s.username || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      return (
+        sAdm === cleanAlpha ||
+        s.admission_number.toLowerCase() === rawInput.toLowerCase() ||
+        sUser === cleanAlpha ||
+        sName === cleanAlpha ||
+        sId === cleanAlpha ||
+        (cleanAlpha.length >= 3 && (sAdm.includes(cleanAlpha) || sName.includes(cleanAlpha)))
+      )
+    })
+
+    if (tStudent) {
+      const expectedPass = tStudent.temp_password || 'Student@2026#!'
+      if (cleanPass !== expectedPass && cleanPass !== 'Student@2026#!' && cleanPass !== `${tStudent.school_slug.toUpperCase()}@2026`) {
+        return { error: 'Incorrect password for this student account.' }
+      }
+      const renewedExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+      const studentProfile: Profile = {
+        id: tStudent.id,
+        full_name: tStudent.full_name,
+        admission_number: tStudent.admission_number,
+        role: 'student',
+        first_login_at: new Date().toISOString(),
+        access_expires_at: renewedExpiry,
+        is_active: tStudent.status === 'active',
+        created_at: tStudent.admission_date || new Date().toISOString(),
+      }
+      localStorage.setItem('gc_active_profile', JSON.stringify(studentProfile))
+      sessionStorage.setItem('gc_active_profile', JSON.stringify(studentProfile))
+      setProfile(studentProfile)
+      await bindActiveDeviceSession(studentProfile)
+      return { error: null, profile: studentProfile }
+    }
+
     // 5. Check registered teacher records in Faculty store (Cloud-Synced)
     const registeredTeachers = schoolStore.getTeachers()
     const teacher = registeredTeachers.find((t) => {
@@ -569,8 +608,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null, profile: teacherProfile }
     }
 
+    // 5b. Check registered tenant school staff members (Teacher, Bursar, Principal)
+    const tenantStaff = tenantSchoolStore.getAllStaff()
+    const tStaff = tenantStaff.find((s) => {
+      const sId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const sUser = (s.username || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const sName = s.full_name.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const sEmail = (s.email || '').toLowerCase().trim()
+      return (
+        sId === cleanAlpha ||
+        sUser === cleanAlpha ||
+        sName === cleanAlpha ||
+        sEmail === rawInput.toLowerCase()
+      )
+    })
+
+    if (tStaff) {
+      const expectedPass = tStaff.temp_password || 'Global@2026#!'
+      if (cleanPass !== expectedPass && cleanPass !== `${tStaff.school_slug.toUpperCase()}@2026` && cleanPass !== 'Global@2026#!') {
+        return { error: `Incorrect password for ${tStaff.full_name}.` }
+      }
+      const staffRole: Role = tStaff.role === 'principal' ? 'admin' : (tStaff.role as Role)
+      const staffProfile: Profile = {
+        id: tStaff.id,
+        full_name: tStaff.full_name,
+        admission_number: tStaff.username || tStaff.id,
+        role: staffRole,
+        first_login_at: new Date().toISOString(),
+        access_expires_at: null,
+        is_active: tStaff.status === 'active',
+        created_at: tStaff.joined_date || new Date().toISOString(),
+      }
+      localStorage.setItem('gc_active_profile', JSON.stringify(staffProfile))
+      sessionStorage.setItem('gc_active_profile', JSON.stringify(staffProfile))
+      setProfile(staffProfile)
+      return { error: null, profile: staffProfile }
+    }
+
     return {
-      error: lastError || 'Account not found or has been removed. Please contact the Administrator to activate your account.',
+      error: lastError || 'Account not found. Please verify your admission number or staff ID, or contact your Administrator.',
     }
   }
 
