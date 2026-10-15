@@ -517,125 +517,411 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
       {/* ── Hamburger Drawer Backdrop ── */}
       {drawerOpen && (
         <div
           onClick={closeDrawer}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 50, backdropFilter: 'blur(2px)' }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.6)',
+            zIndex: 50,
+            backdropFilter: 'blur(6px)',
+            transition: 'opacity 0.2s',
+          }}
         />
       )}
 
-      {/* ── Slide-out Navigation Drawer ── */}
+      {/* ── Slide-out Executive Navigation Drawer ── */}
       <nav
         aria-label="Site navigation"
         style={{
-          position: 'fixed', top: 0, left: 0, height: '100dvh', zIndex: 60,
-          width: 'min(280px, 85vw)', background: '#ffffff',
-          boxShadow: '4px 0 24px rgba(0,0,0,0.12)',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '100dvh',
+          zIndex: 60,
+          width: 'min(310px, 86vw)',
+          background: '#ffffff',
+          boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
           transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.24s cubic-bezier(0.4,0,0.2,1)',
-          display: 'flex', flexDirection: 'column', overflowY: 'auto',
+          transition: 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
+          borderRight: '1px solid #e2e8f0',
         }}
       >
-        {/* Drawer header */}
-        <div style={{ padding: '1rem', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
-            background: school.logo_url && school.logo_url !== '/logo.png?v=2' ? '#ffffff' : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
-            border: `2px solid ${accentColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden',
-          }}>
-            {school.logo_url && school.logo_url !== '/logo.png?v=2'
-              ? <img src={school.logo_url} alt={school.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              : <span style={{ color: '#fff', fontWeight: 900, fontSize: '1.1rem' }}>{school.name.charAt(0)}</span>
-            }
+        {/* Drawer Institutional Header Banner */}
+        <div
+          style={{
+            padding: '1.25rem 1.1rem',
+            background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+            color: '#ffffff',
+            position: 'relative',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span
+              style={{
+                fontSize: '0.65rem',
+                fontWeight: 900,
+                color: accentColor,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <span>🏛️</span>
+              <span>Accredited Portal</span>
+            </span>
+            <button
+              type="button"
+              onClick={closeDrawer}
+              aria-label="Close navigation"
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: 'none',
+                color: '#ffffff',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.9rem',
+              }}
+            >
+              ✕
+            </button>
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{school.name}</div>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{school.motto}</div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
+                flexShrink: 0,
+                background: school.logo_url && school.logo_url !== '/logo.png?v=2' ? '#ffffff' : `linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)`,
+                border: `2px solid ${accentColor}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+              }}
+            >
+              {school.logo_url && school.logo_url !== '/logo.png?v=2' ? (
+                <img src={school.logo_url} alt={school.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                <span style={{ color: primaryColor, fontWeight: 900, fontSize: '1.3rem' }}>{school.name.charAt(0)}</span>
+              )}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {school.name}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '1px' }}>
+                {school.curriculum_type} • {school.city}
+              </div>
+            </div>
           </div>
-          <button type="button" onClick={closeDrawer} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b', flexShrink: 0, minWidth: '36px', minHeight: '36px' }}>✕</button>
         </div>
 
-        {/* Active term + license status */}
-        <div style={{ padding: '0.65rem 1rem', background: `${primaryColor}0d`, borderBottom: '1px solid #f1f5f9', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: primaryColor }}>
+        {/* User Session Pill in Drawer */}
+        {currentSession ? (
+          <div
+            style={{
+              padding: '0.85rem 1.1rem',
+              background: '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: primaryColor,
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {currentSession.name.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {currentSession.name}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>●</span>
+                  <span style={{ textTransform: 'uppercase' }}>{currentSession.role} Desk</span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('profile')
+                navigate(getDeskRoute('profile'))
+                closeDrawer()
+              }}
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                color: primaryColor,
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              Profile ➔
+            </button>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: '0.75rem 1.1rem',
+              background: '#f8fafc',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>Guest Visitor Session</span>
+            <button
+              type="button"
+              onClick={() => {
+                setShowLoginModal(true)
+                closeDrawer()
+              }}
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                color: '#ffffff',
+                background: primaryColor,
+                border: 'none',
+                padding: '4px 10px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              Sign In ➔
+            </button>
+          </div>
+        )}
+
+        {/* Academic Period & License Pill */}
+        <div style={{ padding: '0.65rem 1.1rem', background: '#ffffff', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#334155' }}>
             📅 {systemTermLabel}: {school.active_period_name}
           </span>
-          <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 7px', borderRadius: '6px', background: isLicenseActive ? '#dcfce7' : '#fef3c7', color: isLicenseActive ? '#16a34a' : '#b45309' }}>
-            {isLicenseActive ? '🔑 Licensed' : '⚠ Key Required'}
+          <span
+            style={{
+              fontSize: '0.66rem',
+              fontWeight: 800,
+              padding: '2px 7px',
+              borderRadius: '6px',
+              background: isLicenseActive ? '#dcfce7' : '#fef3c7',
+              color: isLicenseActive ? '#15803d' : '#b45309',
+            }}
+          >
+            {isLicenseActive ? '✓ Licensed' : '⚠️ Key Req.'}
           </span>
         </div>
 
         {/* Nav sections */}
         {(() => {
-          const navGo = (tab: typeof activeTab) => { setActiveTab(tab); navigate(getDeskRoute(tab)); closeDrawer() }
-          const item = (tab: typeof activeTab, icon: string, label: string, badge?: React.ReactNode) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => navGo(tab)}
+          const navGo = (tab: typeof activeTab) => {
+            setActiveTab(tab)
+            navigate(getDeskRoute(tab))
+            closeDrawer()
+          }
+
+          const item = (tab: typeof activeTab, icon: string, label: string, badge?: React.ReactNode) => {
+            const isActive = activeTab === tab
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => navGo(tab)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  width: 'calc(100% - 1.2rem)',
+                  margin: '2px 0.6rem',
+                  padding: '0.65rem 0.85rem',
+                  background: isActive ? `${primaryColor}14` : 'transparent',
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  color: isActive ? primaryColor : '#334155',
+                  fontWeight: isActive ? 800 : 600,
+                  fontSize: '0.88rem',
+                  textAlign: 'left',
+                  borderLeft: isActive ? `3.5px solid ${primaryColor}` : '3.5px solid transparent',
+                  transition: 'all 0.15s ease',
+                  minHeight: '44px',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '1.05rem',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '8px',
+                    background: isActive ? '#ffffff' : '#f1f5f9',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                  }}
+                >
+                  {icon}
+                </span>
+                <span style={{ flex: 1 }}>{label}</span>
+                {badge}
+                {isActive && <span style={{ color: primaryColor, fontWeight: 900, fontSize: '0.9rem' }}>›</span>}
+              </button>
+            )
+          }
+
+          const sectionLabel = (text: string) => (
+            <div
+              key={text}
               style={{
-                display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '0.7rem 1rem',
-                background: activeTab === tab ? `${primaryColor}15` : 'none', border: 'none', cursor: 'pointer',
-                color: activeTab === tab ? primaryColor : '#374151', fontWeight: activeTab === tab ? 800 : 500,
-                fontSize: '0.9rem', textAlign: 'left', borderLeft: activeTab === tab ? `3px solid ${primaryColor}` : '3px solid transparent',
-                transition: 'background 0.15s', minHeight: '44px',
+                padding: '0.9rem 1.1rem 0.35rem',
+                fontSize: '0.66rem',
+                fontWeight: 900,
+                color: '#94a3b8',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
               }}
             >
-              <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center' }}>{icon}</span>
-              <span style={{ flex: 1 }}>{label}</span>
-              {badge}
-            </button>
+              {text}
+            </div>
           )
-          const sectionLabel = (text: string) => (
-            <div key={text} style={{ padding: '0.6rem 1rem 0.2rem', fontSize: '0.68rem', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{text}</div>
-          )
-          const divider = (key: string) => <div key={key} style={{ height: '1px', background: '#f1f5f9', margin: '0.25rem 0' }} />
+
+          const divider = (key: string) => <div key={key} style={{ height: '1px', background: '#f1f5f9', margin: '0.5rem 0.8rem' }} />
 
           return (
-            <div style={{ flex: 1, paddingBottom: '1rem' }}>
-              {sectionLabel('Campus')}
+            <div style={{ flex: 1, paddingBottom: '1.5rem' }}>
+              {sectionLabel('Campus Overview')}
               {item('hub', '🏫', 'School Campus Hub')}
               {item('programs', '📚', 'Programs & Courses')}
               {item('calendar', '📅', 'Academic Calendar')}
 
               {divider('d1')}
-              {sectionLabel('My Desk')}
-              {(activeRole === 'admin') && item('principal', '🛡️', 'Principal Office')}
+              {sectionLabel('Role Workspaces')}
+              {activeRole === 'admin' && item('principal', '🛡️', 'Principal Office')}
               {(activeRole === 'admin' || activeRole === 'bursar') && item('bursar', '💳', 'Bursar Desk')}
               {(activeRole === 'admin' || activeRole === 'teacher') && item('teacher', '📖', 'Teacher Portal')}
               {(activeRole === 'admin' || activeRole === 'student') && item('student', '🎓', 'Student Portal')}
               {activeRole === 'public' && (
                 <button
                   type="button"
-                  onClick={() => { setShowLoginModal(true); closeDrawer() }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '0.7rem 1rem', background: 'none', border: 'none', cursor: 'pointer', color: primaryColor, fontWeight: 700, fontSize: '0.9rem', textAlign: 'left', minHeight: '44px', borderLeft: '3px solid transparent' }}
+                  onClick={() => {
+                    setShowLoginModal(true)
+                    closeDrawer()
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: 'calc(100% - 1.2rem)',
+                    margin: '2px 0.6rem',
+                    padding: '0.65rem 0.85rem',
+                    background: '#f8fafc',
+                    border: `1.5px dashed ${primaryColor}40`,
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    color: primaryColor,
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    textAlign: 'left',
+                    minHeight: '44px',
+                  }}
                 >
-                  <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center' }}>🔑</span>
+                  <span style={{ fontSize: '1rem', width: '28px', textAlign: 'center' }}>🔑</span>
                   <span>Sign In to Your Desk</span>
                 </button>
               )}
 
               {divider('d2')}
-              {sectionLabel('Account')}
+              {sectionLabel('My Account')}
               {item('profile', '👤', 'My Profile')}
               <button
                 type="button"
-                onClick={() => { setShowLoginModal(true); closeDrawer() }}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '0.7rem 1rem', background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontWeight: 500, fontSize: '0.9rem', textAlign: 'left', borderLeft: '3px solid transparent', minHeight: '44px' }}
+                onClick={() => {
+                  setShowLoginModal(true)
+                  closeDrawer()
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  width: 'calc(100% - 1.2rem)',
+                  margin: '2px 0.6rem',
+                  padding: '0.65rem 0.85rem',
+                  background: 'none',
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  color: '#475569',
+                  fontWeight: 600,
+                  fontSize: '0.88rem',
+                  textAlign: 'left',
+                  minHeight: '44px',
+                }}
               >
-                <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center' }}>🔄</span>
-                <span>Switch / Sign In</span>
+                <span style={{ fontSize: '1.05rem', width: '28px', height: '28px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔄</span>
+                <span>Switch Portal Desk</span>
               </button>
               {currentSession && (
                 <button
                   type="button"
-                  onClick={() => { handleSignOut(); closeDrawer() }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '0.7rem 1rem', background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontWeight: 700, fontSize: '0.9rem', textAlign: 'left', borderLeft: '3px solid transparent', minHeight: '44px' }}
+                  onClick={() => {
+                    handleSignOut()
+                    closeDrawer()
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: 'calc(100% - 1.2rem)',
+                    margin: '2px 0.6rem',
+                    padding: '0.65rem 0.85rem',
+                    background: '#fef2f2',
+                    border: '1px solid #fee2e2',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    color: '#dc2626',
+                    fontWeight: 800,
+                    fontSize: '0.88rem',
+                    textAlign: 'left',
+                    minHeight: '44px',
+                  }}
                 >
-                  <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center' }}>🚪</span>
+                  <span style={{ fontSize: '1.05rem', width: '28px', height: '28px', borderRadius: '8px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🚪</span>
                   <span>Sign Out ({currentSession.name})</span>
                 </button>
               )}
@@ -643,147 +929,385 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               {activeRole === 'admin' && (
                 <>
                   {divider('d3')}
-                  {sectionLabel('Institution')}
-                  {item('billing', '💳', 'Billing & Subscription', !isLicenseActive ? <span style={{ fontSize: '0.65rem', background: '#fef3c7', color: '#b45309', padding: '2px 5px', borderRadius: '4px', fontWeight: 800 }}>Key Req.</span> : undefined)}
+                  {sectionLabel('Institutional Governance')}
+                  {item(
+                    'billing',
+                    '💳',
+                    'Billing & Subscription',
+                    !isLicenseActive ? (
+                      <span style={{ fontSize: '0.65rem', background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                        Key Req.
+                      </span>
+                    ) : undefined
+                  )}
                   <button
                     type="button"
-                    onClick={() => { setLicenseFeedback(null); setShowLicenseModal(true); closeDrawer() }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '0.7rem 1rem', background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontWeight: 500, fontSize: '0.9rem', textAlign: 'left', borderLeft: '3px solid transparent', minHeight: '44px' }}
+                    onClick={() => {
+                      setLicenseFeedback(null)
+                      setShowLicenseModal(true)
+                      closeDrawer()
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      width: 'calc(100% - 1.2rem)',
+                      margin: '2px 0.6rem',
+                      padding: '0.65rem 0.85rem',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      color: '#475569',
+                      fontWeight: 600,
+                      fontSize: '0.88rem',
+                      textAlign: 'left',
+                      minHeight: '44px',
+                    }}
                   >
-                    <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center' }}>🔑</span>
-                    <span>{isLicenseActive ? 'Product Key (Active)' : 'Enter Product Key'}</span>
+                    <span style={{ fontSize: '1.05rem', width: '28px', height: '28px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔑</span>
+                    <span>{isLicenseActive ? 'Product Key (Verified)' : 'Enter Product Key'}</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setShowDomainModal(true); closeDrawer() }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '0.7rem 1rem', background: 'none', border: 'none', cursor: 'pointer', color: '#374151', fontWeight: 500, fontSize: '0.9rem', textAlign: 'left', borderLeft: '3px solid transparent', minHeight: '44px' }}
+                    onClick={() => {
+                      setShowDomainModal(true)
+                      closeDrawer()
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      width: 'calc(100% - 1.2rem)',
+                      margin: '2px 0.6rem',
+                      padding: '0.65rem 0.85rem',
+                      background: 'none',
+                      border: 'none',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      color: '#475569',
+                      fontWeight: 600,
+                      fontSize: '0.88rem',
+                      textAlign: 'left',
+                      minHeight: '44px',
+                    }}
                   >
-                    <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center' }}>🌐</span>
-                    <span>Domain & DNS Setup</span>
+                    <span style={{ fontSize: '1.05rem', width: '28px', height: '28px', borderRadius: '8px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🌐</span>
+                    <span>Domain &amp; DNS Setup</span>
                   </button>
                 </>
               )}
             </div>
           )
         })()}
+
+        {/* Drawer Institutional Footer */}
+        <div style={{ padding: '1rem', borderTop: '1px solid #f1f5f9', background: '#f8fafc', fontSize: '0.72rem', color: '#94a3b8' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#475569', marginBottom: '2px' }}>
+            <span>🔒</span>
+            <span>Enterprise Encrypted SIS v2.6</span>
+          </div>
+          <div>Institutional Cloud Instance • {school.slug}.cloud.eclat.institute</div>
+        </div>
       </nav>
 
-      {/* ── Sticky Top Header (hamburger + school name + user avatar) ── */}
-      <header style={{ background: '#ffffff', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 40, boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1rem', height: '56px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-
+      {/* ── Executive Top Header ── */}
+      <header
+        style={{
+          background: 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: '1px solid #e2e8f0',
+          position: 'sticky',
+          top: 0,
+          zIndex: 40,
+          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '1320px',
+            margin: '0 auto',
+            padding: '0 1rem',
+            height: '60px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.85rem',
+          }}
+        >
           {/* Hamburger button */}
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open navigation menu"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.4rem', borderRadius: '8px', color: '#374151', display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0, minWidth: '40px', minHeight: '40px', justifyContent: 'center', alignItems: 'center' }}
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              cursor: 'pointer',
+              padding: '0.45rem',
+              borderRadius: '10px',
+              color: '#334155',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              flexShrink: 0,
+              minWidth: '42px',
+              minHeight: '42px',
+              justifyContent: 'center',
+              alignItems: 'center',
+              transition: 'background 0.15s',
+            }}
           >
-            <span style={{ display: 'block', width: '22px', height: '2px', background: 'currentColor', borderRadius: '2px' }} />
-            <span style={{ display: 'block', width: '22px', height: '2px', background: 'currentColor', borderRadius: '2px' }} />
-            <span style={{ display: 'block', width: '22px', height: '2px', background: 'currentColor', borderRadius: '2px' }} />
+            <span style={{ display: 'block', width: '20px', height: '2.5px', background: 'currentColor', borderRadius: '2px' }} />
+            <span style={{ display: 'block', width: '20px', height: '2.5px', background: 'currentColor', borderRadius: '2px' }} />
+            <span style={{ display: 'block', width: '20px', height: '2.5px', background: 'currentColor', borderRadius: '2px' }} />
           </button>
 
-          {/* School monogram */}
-          <Link to={getDeskRoute('hub')} onClick={() => setActiveTab('hub')} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none', color: 'inherit', minWidth: 0, flex: 1 }}>
-            <div style={{
-              width: '36px', height: '36px', borderRadius: '9px', flexShrink: 0,
-              background: school.logo_url && school.logo_url !== '/logo.png?v=2' ? '#ffffff' : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
-              border: `2px solid ${accentColor}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden',
-            }}>
-              {school.logo_url && school.logo_url !== '/logo.png?v=2'
-                ? <img src={school.logo_url} alt={school.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                : <span style={{ color: '#fff', fontWeight: 900, fontSize: '1rem' }}>{school.name.charAt(0)}</span>
-              }
+          {/* School Emblem & Name */}
+          <Link
+            to={getDeskRoute('hub')}
+            onClick={() => setActiveTab('hub')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              textDecoration: 'none',
+              color: 'inherit',
+              minWidth: 0,
+              flex: 1,
+            }}
+          >
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '11px',
+                flexShrink: 0,
+                background: school.logo_url && school.logo_url !== '/logo.png?v=2' ? '#ffffff' : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+                border: `2px solid ${accentColor}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                boxShadow: `0 4px 10px ${primaryColor}20`,
+              }}
+            >
+              {school.logo_url && school.logo_url !== '/logo.png?v=2' ? (
+                <img src={school.logo_url} alt={school.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              ) : (
+                <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '1.15rem' }}>{school.name.charAt(0)}</span>
+              )}
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '0.92rem', fontWeight: 900, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{school.name}</div>
-              <div style={{ fontSize: '0.68rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{school.curriculum_type}</div>
+              <div
+                style={{
+                  fontSize: '0.98rem',
+                  fontWeight: 900,
+                  color: '#0f172a',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {school.name}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px' }}>
+                <span
+                  style={{
+                    fontSize: '0.66rem',
+                    fontWeight: 800,
+                    color: primaryColor,
+                    background: `${primaryColor}14`,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {school.curriculum_type}
+                </span>
+                <span style={{ fontSize: '0.66rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {school.city}
+                </span>
+              </div>
             </div>
           </Link>
 
-          {/* Right side: current tab label + user avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-            {/* Active session user avatar / sign-in */}
-            <button
-              type="button"
-              onClick={() => currentSession ? (setActiveTab('profile'), navigate(getDeskRoute('profile'))) : setShowLoginModal(true)}
-              title={currentSession ? `${currentSession.name} — My Profile` : 'Sign In'}
-              style={{
-                width: '36px', height: '36px', borderRadius: '50%', border: `2px solid ${primaryColor}`,
-                background: currentSession ? `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)` : '#f8fafc',
-                color: currentSession ? '#fff' : primaryColor, fontWeight: 900, fontSize: '0.95rem',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}
-            >
-              {currentSession ? currentSession.name.charAt(0).toUpperCase() : '?'}
-            </button>
+          {/* Right side: Session status + Profile avatar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
+            {currentSession ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('profile')
+                  navigate(getDeskRoute('profile'))
+                }}
+                title={`${currentSession.name} (${currentSession.role}) — Open Profile`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: '999px',
+                  padding: '3px 10px 3px 4px',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s',
+                }}
+              >
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+                    color: '#ffffff',
+                    fontWeight: 900,
+                    fontSize: '0.88rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 2px 6px ${primaryColor}30`,
+                  }}
+                >
+                  {currentSession.name.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ textAlign: 'left', display: 'none' /* shown via media query or default */ }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>{currentSession.name.split(' ')[0]}</div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 800, color: primaryColor, textTransform: 'uppercase' }}>{currentSession.role}</div>
+                </div>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(true)}
+                style={{
+                  background: primaryColor,
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  padding: '0.55rem 1.15rem',
+                  borderRadius: '10px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: `0 4px 12px ${primaryColor}35`,
+                }}
+              >
+                <LockIcon size={14} color="#ffffff" />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Horizontal scrolling active-tab indicator (thin strip below header) */}
-        <div style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', padding: '0 1rem', display: 'flex', gap: '0.15rem', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {([
-            { tab: 'hub', icon: '🏫', label: 'Hub' },
-            { tab: 'programs', icon: '📚', label: 'Programs' },
-            { tab: 'calendar', icon: '📅', label: 'Calendar' },
-            ...(activeRole === 'admin' ? [{ tab: 'principal', icon: '🛡️', label: 'Principal' }] : []),
-            ...(activeRole === 'admin' || activeRole === 'bursar' ? [{ tab: 'bursar', icon: '💳', label: 'Bursar' }] : []),
-            ...(activeRole === 'admin' || activeRole === 'teacher' ? [{ tab: 'teacher', icon: '📖', label: 'Teacher' }] : []),
-            ...(activeRole === 'admin' || activeRole === 'student' ? [{ tab: 'student', icon: '🎓', label: 'Student' }] : []),
-            ...(activeRole === 'admin' ? [{ tab: 'billing', icon: '💳', label: 'Billing' }] : []),
-            ...(currentSession ? [{ tab: 'profile', icon: '👤', label: 'Profile' }] : []),
-          ] as { tab: typeof activeTab; icon: string; label: string }[]).map(({ tab, icon, label }) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => { setActiveTab(tab); navigate(getDeskRoute(tab)) }}
-              style={{
-                background: 'none', border: 'none', padding: '0.5rem 0.75rem',
-                fontSize: '0.78rem', fontWeight: activeTab === tab ? 800 : 500,
-                color: activeTab === tab ? primaryColor : '#64748b',
-                borderBottom: activeTab === tab ? `2.5px solid ${primaryColor}` : '2.5px solid transparent',
-                cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '4px',
-              }}
-            >
-              <span>{icon}</span><span>{label}</span>
-            </button>
-          ))}
+        {/* Executive Tab Strip */}
+        <div
+          style={{
+            background: '#ffffff',
+            borderTop: '1px solid #f1f5f9',
+            padding: '0.35rem 1rem',
+            display: 'flex',
+            gap: '0.35rem',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+          }}
+        >
+          {(
+            [
+              { tab: 'hub', icon: '🏫', label: 'Campus Hub' },
+              { tab: 'programs', icon: '📚', label: 'Programs' },
+              { tab: 'calendar', icon: '📅', label: 'Calendar' },
+              ...(activeRole === 'admin' ? [{ tab: 'principal', icon: '🛡️', label: 'Principal Office' }] : []),
+              ...(activeRole === 'admin' || activeRole === 'bursar' ? [{ tab: 'bursar', icon: '💳', label: 'Bursar Desk' }] : []),
+              ...(activeRole === 'admin' || activeRole === 'teacher' ? [{ tab: 'teacher', icon: '📖', label: 'Teacher Portal' }] : []),
+              ...(activeRole === 'admin' || activeRole === 'student' ? [{ tab: 'student', icon: '🎓', label: 'Student Portal' }] : []),
+              ...(activeRole === 'admin' ? [{ tab: 'billing', icon: '💳', label: 'Billing & License' }] : []),
+              ...(currentSession ? [{ tab: 'profile', icon: '👤', label: 'My Profile' }] : []),
+            ] as { tab: typeof activeTab; icon: string; label: string }[]
+          ).map(({ tab, icon, label }) => {
+            const isActive = activeTab === tab
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab)
+                  navigate(getDeskRoute(tab))
+                }}
+                style={{
+                  background: isActive ? primaryColor : '#f8fafc',
+                  border: isActive ? `1px solid ${primaryColor}` : '1px solid #e2e8f0',
+                  padding: '0.45rem 0.95rem',
+                  fontSize: '0.8rem',
+                  fontWeight: isActive ? 800 : 600,
+                  color: isActive ? '#ffffff' : '#475569',
+                  borderRadius: '999px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: isActive ? `0 2px 8px ${primaryColor}40` : 'none',
+                  transition: 'all 0.15s ease',
+                  minHeight: '34px',
+                }}
+              >
+                <span>{icon}</span>
+                <span>{label}</span>
+              </button>
+            )
+          })}
         </div>
       </header>
 
-
       {/* Main Page Body */}
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1rem 4rem' }}>
-        {/* VIEW 1: MAIN HUB */}
+      <main style={{ maxWidth: '1320px', margin: '0 auto', padding: '1.75rem 1rem 4rem' }}>
+        {/* VIEW 1: MAIN CAMPUS HUB */}
         {activeTab === 'hub' && (
           <div>
             {/* License Activation Required Banner */}
             {!isLicenseActive && (
               <div
                 style={{
-                  background: '#fffbeb',
+                  background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
                   border: '1.5px solid #fde68a',
-                  borderRadius: '16px',
-                  padding: '1.25rem 1.5rem',
-                  marginBottom: '1.5rem',
+                  borderRadius: '20px',
+                  padding: '1.25rem 1.6rem',
+                  marginBottom: '1.75rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
                   gap: '1rem',
-                  boxShadow: '0 4px 14px rgba(245, 158, 11, 0.08)',
+                  boxShadow: '0 6px 20px rgba(245, 158, 11, 0.1)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
-                  <div style={{ fontSize: '1.9rem' }}>🔑</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '12px',
+                      background: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.5rem',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    🔑
+                  </div>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#92400e' }}>
-                      Institutional Product Key License Required
+                    <div style={{ fontSize: '0.96rem', fontWeight: 900, color: '#92400e' }}>
+                      Institutional Product Key Activation Required
                     </div>
                     <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
-                      This digital campus is awaiting activation. Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Enter your official 19-character Product Key to unlock portal desks.
+                      This institutional campus is awaiting license activation. Standard Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Enter your 19-character key to unlock full SIS/LMS capability.
                     </div>
                   </div>
                 </div>
@@ -795,10 +1319,10 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                       setShowLicenseModal(true)
                     }}
                     style={{
-                      background: '#b45309',
+                      background: '#92400e',
                       color: '#ffffff',
                       fontWeight: 800,
-                      padding: '0.65rem 1.25rem',
+                      padding: '0.65rem 1.35rem',
                       borderRadius: '10px',
                       border: 'none',
                       cursor: 'pointer',
@@ -806,6 +1330,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
+                      boxShadow: '0 4px 12px rgba(146, 64, 14, 0.3)',
                     }}
                   >
                     <span>🔑 Enter Product Key ➔</span>
@@ -818,55 +1343,57 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                     }}
                     style={{
                       background: '#ffffff',
-                      color: '#0f172a',
+                      color: '#92400e',
                       fontWeight: 800,
-                      padding: '0.65rem 1rem',
+                      padding: '0.65rem 1.1rem',
                       borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
+                      border: '1.5px solid #fde68a',
                       cursor: 'pointer',
                       fontSize: '0.84rem',
                     }}
                   >
-                    Billing &amp; License &rarr;
+                    Billing &amp; License ➔
                   </button>
                 </div>
               </div>
             )}
-            {/* School Hero Banner */}
+
+            {/* Executive Campus Hero Presentation Banner */}
             <div
               style={{
                 background: '#ffffff',
                 borderRadius: '24px',
-                border: '1.5px solid #e2e8f0',
+                border: '1px solid #e2e8f0',
                 padding: 'clamp(1.5rem, 3.5vw, 2.5rem)',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+                boxShadow: '0 10px 30px -10px rgba(15, 23, 42, 0.06)',
                 marginBottom: '2rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: '1.5rem',
+                gap: '1.75rem',
                 position: 'relative',
                 overflow: 'hidden',
               }}
             >
+              {/* Top ambient brand ribbon */}
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '5px', background: `linear-gradient(90deg, ${primaryColor}, ${accentColor})` }} />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap', flex: 1, minWidth: '280px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', flex: 1, minWidth: '280px' }}>
                 <div
                   style={{
-                    width: '68px',
-                    height: '68px',
-                    borderRadius: '18px',
+                    width: '76px',
+                    height: '76px',
+                    borderRadius: '20px',
                     background: school.logo_url && school.logo_url !== '/logo.png?v=2' ? '#ffffff' : `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2rem',
+                    fontSize: '2.4rem',
                     fontWeight: 900,
-                    boxShadow: `0 8px 20px ${primaryColor}30`,
-                    border: `2px solid ${accentColor}`,
+                    boxShadow: `0 12px 28px ${primaryColor}35`,
+                    border: `2.5px solid ${accentColor}`,
                     flexShrink: 0,
                     overflow: 'hidden',
                   }}
@@ -879,21 +1406,70 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '0.35rem' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: primaryColor, background: `${primaryColor}14`, padding: '2px 8px', borderRadius: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      {school.curriculum_type}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '0.45rem' }}>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 900,
+                        color: primaryColor,
+                        background: `${primaryColor}14`,
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <span>🏛️</span>
+                      <span>Verified Digital Campus</span>
                     </span>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: '6px' }}>
-                      ● {systemTermLabel} Active: {school.active_period_name}
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        color: '#15803d',
+                        background: '#dcfce7',
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <span style={{ fontSize: '0.6rem' }}>●</span>
+                      <span>{systemTermLabel} Active: {school.active_period_name}</span>
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        color: '#475569',
+                        background: '#f1f5f9',
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      {school.campus_count || 1} Campus{(school.campus_count || 1) > 1 ? 'es' : ''}
                     </span>
                   </div>
 
-                  <h1 style={{ fontSize: 'clamp(1.6rem, 3.2vw, 2.2rem)', fontWeight: 900, color: '#0f172a', margin: '0 0 0.35rem', lineHeight: 1.2 }}>
+                  <h1
+                    style={{
+                      fontSize: 'clamp(1.7rem, 3.4vw, 2.35rem)',
+                      fontWeight: 900,
+                      color: '#0f172a',
+                      margin: '0 0 0.4rem',
+                      lineHeight: 1.2,
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
                     {school.name}
                   </h1>
 
-                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', lineHeight: 1.5, maxWidth: '640px' }}>
-                    {school.motto} • Official Online Campus &amp; Student Information System.
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.92rem', lineHeight: 1.5, maxWidth: '680px' }}>
+                    <em>"{school.motto}"</em> • Official Integrated Student Information System, Continuous Assessment &amp; Learning Portal.
                   </p>
                 </div>
               </div>
@@ -903,174 +1479,361 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   type="button"
                   onClick={() => setShowLoginModal(true)}
                   style={{
-                    background: primaryColor,
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
                     color: '#ffffff',
                     fontWeight: 800,
-                    padding: '0.7rem 1.25rem',
+                    padding: '0.8rem 1.6rem',
                     borderRadius: '12px',
-                    border: 'none',
+                    border: `1px solid ${accentColor}60`,
                     cursor: 'pointer',
-                    fontSize: '0.85rem',
+                    fontSize: '0.9rem',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '7px',
-                    boxShadow: `0 4px 14px ${primaryColor}40`,
+                    gap: '8px',
+                    boxShadow: `0 8px 24px ${primaryColor}40`,
+                    transition: 'transform 0.15s, box-shadow 0.15s',
                   }}
                 >
-                  <LockIcon size={15} color="#ffffff" />
-                  <span>Authenticate / Switch Portal Desk</span>
+                  <LockIcon size={16} color="#ffffff" />
+                  <span>Authenticate Portal Desk ➔</span>
                 </button>
               </div>
             </div>
 
-            {/* Quick Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
-              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Academic Structure</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: primaryColor, marginTop: '4px' }}>
-                  {school.academic_system === 'semester' ? '2 Semesters' : '3 Terms'} / Year
+            {/* Quick Key Performance Indicators (KPIs) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '1.1rem', marginBottom: '2.5rem' }}>
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  padding: '1.35rem',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '14px',
+                    background: `${primaryColor}14`,
+                    color: primaryColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.4rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  📅
                 </div>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>{school.curriculum_type}</div>
+                <div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Academic Cycle</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                    {school.academic_system === 'semester' ? '2 Semesters' : '3 Terms'}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#16a34a', fontWeight: 700, marginTop: '2px' }}>● Active Period Cycle</div>
+                </div>
               </div>
 
-              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Enrolled Students</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-                  {studentList.length > 0 ? studentList.length : school.stats.students} Active
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  padding: '1.35rem',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '14px',
+                    background: '#eff6ff',
+                    color: '#2563eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.4rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  🎓
                 </div>
-                <div style={{ fontSize: '0.76rem', color: '#16a34a', marginTop: '2px', fontWeight: 700 }}>✓ Live Biometric Attendance</div>
+                <div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Enrolled Scholars</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                    {studentList.length > 0 ? studentList.length : school.stats.students} Active
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#2563eb', fontWeight: 700, marginTop: '2px' }}>✓ Biometric Records</div>
+                </div>
               </div>
 
-              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Faculty &amp; Teachers</div>
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-                  {staffList.length > 0 ? staffList.length : school.stats.teachers} Certified Staff
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  padding: '1.35rem',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '14px',
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.4rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  👨‍🏫
                 </div>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>Across {school.stats.departments} Departments</div>
+                <div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Certified Faculty</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                    {staffList.length > 0 ? staffList.length : school.stats.teachers} Staff
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
+                    {school.stats.departments || 1} Departments
+                  </div>
+                </div>
               </div>
 
-              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Head of Institution</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
-                  {school.principal_name}
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '18px',
+                  padding: '1.35rem',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '14px',
+                    background: '#fefce8',
+                    color: '#b45309',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.4rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  🛡️
                 </div>
-                <div style={{ fontSize: '0.76rem', color: primaryColor, marginTop: '2px', fontWeight: 700 }}>{school.principal_title}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Executive Directorate</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {school.principal_name}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: primaryColor, fontWeight: 700, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {school.principal_title}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Campus Noticeboard */}
+            {/* Campus Noticeboard & Official Announcements */}
             <div
               style={{
                 background: '#ffffff',
-                borderRadius: '20px',
-                border: '1.5px solid #e2e8f0',
-                padding: '1.5rem 1.75rem',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
-                marginBottom: '2.5rem',
+                borderRadius: '22px',
+                border: '1px solid #e2e8f0',
+                padding: '1.75rem',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                marginBottom: '2.75rem',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '1.25rem' }}>📢</span>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                    Campus Noticeboard &amp; Official Announcements
-                  </h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.9rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '1.35rem' }}>📢</span>
+                  <div>
+                    <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
+                      Campus Noticeboard &amp; Senate Announcements
+                    </h3>
+                    <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
+                      Official circulars published by the Executive Office, Examinations Registry &amp; Bursar
+                    </div>
+                  </div>
                 </div>
-                <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#64748b' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: primaryColor, background: `${primaryColor}14`, padding: '3px 10px', borderRadius: '6px' }}>
                   Session: {school.active_period_name}
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '1.1rem', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#d97706', textTransform: 'uppercase', marginBottom: '4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.1rem' }}>
+                <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', borderTop: '3.5px solid #d97706' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#d97706', textTransform: 'uppercase', marginBottom: '5px' }}>
                     Examination Registry
                   </div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
                     {systemTermLabel} Continuous Assessment Schedule
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
+                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5 }}>
                     Mid-term CAT examination timetables and practical assessment rosters have been published in the Student and Teacher portals.
                   </p>
                 </div>
 
-                <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '1.1rem', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', marginBottom: '4px' }}>
-                    Bursar's Office
+                <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', borderTop: '3.5px solid #16a34a' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', marginBottom: '5px' }}>
+                    Bursar's Treasury
                   </div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
                     Tuition Fee Statements &amp; Clearance
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
+                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5 }}>
                     Fee payment receipts and official bank deposit slips are validated at the Bursar Desk. Students can verify clearances online.
                   </p>
                 </div>
 
-                <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '1.1rem', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase', marginBottom: '4px' }}>
+                <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', borderTop: '3.5px solid #2563eb' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase', marginBottom: '5px' }}>
                     Academic Faculty
                   </div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
                     Study Guides &amp; Digital Lesson Materials
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', lineHeight: 1.5 }}>
+                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5 }}>
                     Subject instructors have uploaded downloadable lesson notes and past papers. Log in to the Student Portal to download.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* The 4 Dedicated Portal Desks Cards */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.25rem' }}>
-                School Portals &amp; Role Workspaces
-              </h2>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '0.86rem' }}>
-                Select your assigned desk to access your personalized learning or administrative workspace:
-              </p>
+            {/* The 4 Dedicated Portal Workspaces */}
+            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.25rem', letterSpacing: '-0.01em' }}>
+                  School Portals &amp; Specialized Desks
+                </h2>
+                <p style={{ margin: 0, color: '#64748b', fontSize: '0.88rem' }}>
+                  Role-governed workspaces equipped with real-time SIS &amp; LMS continuous management modules:
+                </p>
+              </div>
+              <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>
+                4 Authorized Desks Configured
+              </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.5rem', marginBottom: '3.5rem' }}>
               {/* 1. Student Portal Card */}
-              <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.75rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '22px',
+                  padding: '1.85rem',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.04)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#2563eb' }} />
                 <div>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
-                    <GraduationCapIcon size={24} color="#1d4ed8" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '14px',
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)',
+                      }}
+                    >
+                      <GraduationCapIcon size={26} color="#2563eb" />
+                    </div>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#2563eb', background: '#eff6ff', padding: '3px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>
+                      Learner Portal
+                    </span>
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.75rem' }}>
+
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem' }}>
                     Student Learning Portal
                   </h3>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1.25rem' }}>
-                    Enrolled candidates log in to access virtual lectures, class timetables, continuous assessments, submitted homework, and stamped report cards.
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.55, margin: '0 0 1.25rem' }}>
+                    Access personalized academic report cards, continuous assessment test (CAT) results, class timetables, fee clearance balance, and study guides.
                   </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '1.5rem', fontSize: '0.78rem', color: '#475569' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Continuous Assessment &amp; CAT Records</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Downloadable Report Cards with QR Seal</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Class Lecture Timetables &amp; Study Notes</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.1rem', display: 'flex', gap: '0.6rem' }}>
                   <button
                     type="button"
-                    onClick={() => { setActiveTab('student'); navigate(getDeskRoute('student')) }}
+                    onClick={() => {
+                      setActiveTab('student')
+                      navigate(getDeskRoute('student'))
+                    }}
                     style={{
                       flex: 1,
-                      background: '#1d4ed8',
+                      background: '#2563eb',
                       color: '#ffffff',
-                      fontWeight: 700,
-                      padding: '0.65rem',
-                      borderRadius: '10px',
+                      fontWeight: 800,
+                      padding: '0.75rem',
+                      borderRadius: '12px',
                       border: 'none',
                       cursor: 'pointer',
-                      fontSize: '0.84rem',
+                      fontSize: '0.88rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
                     }}
                   >
                     <span>Enter Student Portal</span>
-                    <ArrowRightIcon size={14} />
+                    <ArrowRightIcon size={15} />
                   </button>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(domainLinks.portals.student.subdomain, 'Student Portal Link')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '12px',
+                      padding: '0.75rem 0.85rem',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
                     title="Copy Student Portal Link"
                   >
                     📋
@@ -1079,45 +1842,101 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               </div>
 
               {/* 2. Teacher Portal Card */}
-              <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.75rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '22px',
+                  padding: '1.85rem',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.04)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#059669' }} />
                 <div>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
-                    <UserIcon size={24} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '14px',
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(5, 150, 105, 0.15)',
+                      }}
+                    >
+                      <UserIcon size={26} />
+                    </div>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>
+                      Faculty Desk
+                    </span>
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.75rem' }}>
+
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem' }}>
                     Teacher &amp; Faculty Desk
                   </h3>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1.25rem' }}>
-                    Subject tutors and class teachers take morning/afternoon attendance, enter CAT and exam marks into continuous gradebooks, and upload lesson study materials.
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.55, margin: '0 0 1.25rem' }}>
+                    Dedicated instructor workstation to record daily roll-call attendance, submit marks to continuous gradebooks, and distribute lesson materials.
                   </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '1.5rem', fontSize: '0.78rem', color: '#475569' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Instant Attendance Register</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>CAT 1, CAT 2 &amp; Exam Gradebook</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Upload Subject Handouts &amp; Study Notes</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.1rem', display: 'flex', gap: '0.6rem' }}>
                   <button
                     type="button"
-                    onClick={() => { setActiveTab('teacher'); navigate(getDeskRoute('teacher')) }}
+                    onClick={() => {
+                      setActiveTab('teacher')
+                      navigate(getDeskRoute('teacher'))
+                    }}
                     style={{
                       flex: 1,
                       background: '#059669',
                       color: '#ffffff',
-                      fontWeight: 700,
-                      padding: '0.65rem',
-                      borderRadius: '10px',
+                      fontWeight: 800,
+                      padding: '0.75rem',
+                      borderRadius: '12px',
                       border: 'none',
                       cursor: 'pointer',
-                      fontSize: '0.84rem',
+                      fontSize: '0.88rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(5, 150, 105, 0.3)',
                     }}
                   >
                     <span>Enter Teacher Desk</span>
-                    <ArrowRightIcon size={14} />
+                    <ArrowRightIcon size={15} />
                   </button>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(domainLinks.portals.teacher.subdomain, 'Teacher Desk Link')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '12px',
+                      padding: '0.75rem 0.85rem',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
                     title="Copy Teacher Portal Link"
                   >
                     📋
@@ -1126,45 +1945,101 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               </div>
 
               {/* 3. Bursar Desk Card */}
-              <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.75rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '22px',
+                  padding: '1.85rem',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.04)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#b45309' }} />
                 <div>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fefce8', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
-                    <CreditCardIcon size={24} color="#b45309" />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '14px',
+                        background: '#fefce8',
+                        color: '#b45309',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(180, 83, 9, 0.15)',
+                      }}
+                    >
+                      <CreditCardIcon size={26} color="#b45309" />
+                    </div>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: '#b45309', background: '#fefce8', padding: '3px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>
+                      Treasury Office
+                    </span>
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.75rem' }}>
+
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem' }}>
                     Bursar &amp; Finance Office
                   </h3>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1.25rem' }}>
-                    Finance staff track tuition payments, reconcile bank wire deposits, manage student arrears, and process monthly staff salary payroll registers.
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.55, margin: '0 0 1.25rem' }}>
+                    Financial reconciliation desk for student tuition collection, verifiable digital receipts, fee invoices, balance clearance tracking, and monthly payroll registers.
                   </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '1.5rem', fontSize: '0.78rem', color: '#475569' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Verifiable Receipting with QR Code</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Automatic Student Fee Balance Clearance</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Staff Compensation &amp; Payroll Register</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.1rem', display: 'flex', gap: '0.6rem' }}>
                   <button
                     type="button"
-                    onClick={() => { setActiveTab('bursar'); navigate(getDeskRoute('bursar')) }}
+                    onClick={() => {
+                      setActiveTab('bursar')
+                      navigate(getDeskRoute('bursar'))
+                    }}
                     style={{
                       flex: 1,
                       background: '#b45309',
                       color: '#ffffff',
-                      fontWeight: 700,
-                      padding: '0.65rem',
-                      borderRadius: '10px',
+                      fontWeight: 800,
+                      padding: '0.75rem',
+                      borderRadius: '12px',
                       border: 'none',
                       cursor: 'pointer',
-                      fontSize: '0.84rem',
+                      fontSize: '0.88rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(180, 83, 9, 0.3)',
                     }}
                   >
                     <span>Enter Bursar Desk</span>
-                    <ArrowRightIcon size={14} />
+                    <ArrowRightIcon size={15} />
                   </button>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(domainLinks.portals.bursar.subdomain, 'Bursar Desk Link')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '12px',
+                      padding: '0.75rem 0.85rem',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
                     title="Copy Bursar Desk Link"
                   >
                     📋
@@ -1173,45 +2048,101 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               </div>
 
               {/* 4. Principal Office Card */}
-              <div style={{ background: '#ffffff', borderRadius: '20px', padding: '1.75rem', border: '1px solid #e2e8f0', boxShadow: '0 4px 16px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: '22px',
+                  padding: '1.85rem',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.04)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: primaryColor }} />
                 <div>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${primaryColor}14`, color: primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
-                    <ShieldCheckIcon size={24} color={primaryColor} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+                    <div
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '14px',
+                        background: `${primaryColor}14`,
+                        color: primaryColor,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: `0 4px 12px ${primaryColor}20`,
+                      }}
+                    >
+                      <ShieldCheckIcon size={26} color={primaryColor} />
+                    </div>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 900, color: primaryColor, background: `${primaryColor}14`, padding: '3px 8px', borderRadius: '6px', textTransform: 'uppercase' }}>
+                      Executive Office
+                    </span>
                   </div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.75rem' }}>
+
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem' }}>
                     Principal &amp; Executive Office
                   </h3>
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.5, margin: '0 0 1.25rem' }}>
-                    Executive leadership desk to hire faculty, admit students, issue credentials, manage timetables, authorize payroll disbursements, and manage cloud subscription.
+                  <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.55, margin: '0 0 1.25rem' }}>
+                    Executive governance suite to onboard faculty, admit candidates, issue credentials &amp; admission letters, manage schedules, and disburse payroll.
                   </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '1.5rem', fontSize: '0.78rem', color: '#475569' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Admissions &amp; Official Letter Generation</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Staff HR, Credential Slips &amp; Payroll Approval</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: '#16a34a' }}>✓</span> <span>Master Period Timetable Scheduling</span>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.1rem', display: 'flex', gap: '0.6rem' }}>
                   <button
                     type="button"
-                    onClick={() => { setActiveTab('principal'); navigate(getDeskRoute('principal')) }}
+                    onClick={() => {
+                      setActiveTab('principal')
+                      navigate(getDeskRoute('principal'))
+                    }}
                     style={{
                       flex: 1,
                       background: primaryColor,
                       color: '#ffffff',
-                      fontWeight: 700,
-                      padding: '0.65rem',
-                      borderRadius: '10px',
+                      fontWeight: 800,
+                      padding: '0.75rem',
+                      borderRadius: '12px',
                       border: 'none',
                       cursor: 'pointer',
-                      fontSize: '0.84rem',
+                      fontSize: '0.88rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
+                      gap: '8px',
+                      boxShadow: `0 4px 14px ${primaryColor}35`,
                     }}
                   >
                     <span>Enter Principal Office</span>
-                    <ArrowRightIcon size={14} />
+                    <ArrowRightIcon size={15} />
                   </button>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(domainLinks.portals.admin.subdomain, 'Principal Office Link')}
-                    style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.65rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '12px',
+                      padding: '0.75rem 0.85rem',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                    }}
                     title="Copy Principal Desk Link"
                   >
                     📋

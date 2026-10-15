@@ -94,15 +94,15 @@ export function TenantTeacherDesk({
 
   return (
     <div style={{ maxWidth: '1120px', margin: '0 auto' }}>
-      {/* Header Banner */}
+      {/* Top Banner & Executive Title */}
       <div
         style={{
-          background: '#ffffff',
-          borderRadius: '20px',
-          padding: '1.75rem 2rem',
-          border: '1px solid #e2e8f0',
-          marginBottom: '1.5rem',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+          background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+          borderRadius: '24px',
+          padding: '2rem 2.25rem',
+          border: '1px solid rgba(226, 232, 240, 0.9)',
+          marginBottom: '1.75rem',
+          boxShadow: '0 10px 30px -5px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.03)',
         }}
       >
         <div
@@ -111,21 +111,56 @@ export function TenantTeacherDesk({
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '1rem',
+            gap: '1.25rem',
             borderBottom: '1px solid #f1f5f9',
-            paddingBottom: '1.25rem',
-            marginBottom: '1.25rem',
+            paddingBottom: '1.5rem',
+            marginBottom: '1.5rem',
           }}
         >
-          <div>
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {school.name} FACULTY DESK
-            </span>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: '4px 0 0', color: '#0f172a' }}>
-              Teacher &amp; Academic Records Desk
-            </h2>
-            <div style={{ fontSize: '0.84rem', color: '#64748b', marginTop: '3px' }}>
-              Active Teaching Period: <strong>{school.active_period_name}</strong> • Enrolled Students: <strong>{studentList.length}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #059669 0%, #0f172a 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.65rem',
+                boxShadow: '0 8px 20px -4px rgba(5, 150, 105, 0.35)',
+                border: '2px solid rgba(255, 255, 255, 0.2)',
+                flexShrink: 0,
+              }}
+            >
+              🎓
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {school.name} ACADEMIC FACULTY
+                </span>
+                <span
+                  style={{
+                    background: '#d1fae5',
+                    color: '#065f46',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    border: '1px solid #a7f3d0',
+                  }}
+                >
+                  TEACHER DESK
+                </span>
+              </div>
+              <h2 style={{ fontSize: '1.65rem', fontWeight: 900, margin: '4px 0 0', color: '#0f172a', letterSpacing: '-0.02em' }}>
+                Teacher &amp; Academic Records Terminal
+              </h2>
+              <div style={{ fontSize: '0.86rem', color: '#64748b', marginTop: '4px' }}>
+                Active Teaching Period: <strong style={{ color: '#0f172a' }}>{school.active_period_name}</strong> • Enrolled Candidates: <strong style={{ color: '#0f172a' }}>{studentList.length}</strong>
+              </div>
             </div>
           </div>
           <div>
@@ -133,86 +168,121 @@ export function TenantTeacherDesk({
               type="button"
               onClick={() => setShowUploadNoteModal(true)}
               style={{
-                background: '#059669',
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                 color: '#ffffff',
                 fontWeight: 800,
-                padding: '0.55rem 1.15rem',
-                borderRadius: '10px',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '12px',
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: '0.82rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 16px -2px rgba(5, 150, 105, 0.4)',
+                transition: 'all 0.15s ease',
               }}
             >
-              + Upload Study Note
+              <span>📁</span> + Upload Study Note
             </button>
           </div>
         </div>
 
-        {/* Sub-tab Navigation */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {/* Sub-tab Navigation Pills */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.35rem',
+            flexWrap: 'wrap',
+            background: '#f8fafc',
+            padding: '6px',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+          }}
+        >
           <button
             type="button"
             onClick={() => setTeacherSubTab('attendance')}
             style={{
-              background: teacherSubTab === 'attendance' ? '#059669' : '#f1f5f9',
+              background: teacherSubTab === 'attendance' ? '#059669' : 'transparent',
               color: teacherSubTab === 'attendance' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: teacherSubTab === 'attendance' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: teacherSubTab === 'attendance' ? '0 4px 12px rgba(5, 150, 105, 0.3)' : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            📋 Live Class Attendance Register
+            <span>📋</span> Live Attendance Register
           </button>
           <button
             type="button"
             onClick={() => setTeacherSubTab('gradebook')}
             style={{
-              background: teacherSubTab === 'gradebook' ? '#059669' : '#f1f5f9',
+              background: teacherSubTab === 'gradebook' ? '#059669' : 'transparent',
               color: teacherSubTab === 'gradebook' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: teacherSubTab === 'gradebook' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: teacherSubTab === 'gradebook' ? '0 4px 12px rgba(5, 150, 105, 0.3)' : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            📊 Continuous Assessment Gradebook (CAT 1, CAT 2, Exam)
+            <span>📊</span> Assessment Gradebook (CAT 1, 2, Exam)
           </button>
           <button
             type="button"
             onClick={() => setTeacherSubTab('notes')}
             style={{
-              background: teacherSubTab === 'notes' ? '#059669' : '#f1f5f9',
+              background: teacherSubTab === 'notes' ? '#059669' : 'transparent',
               color: teacherSubTab === 'notes' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: teacherSubTab === 'notes' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: teacherSubTab === 'notes' ? '0 4px 12px rgba(5, 150, 105, 0.3)' : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            📁 Class Study Materials ({lessonNotesList.length})
+            <span>📁</span> Study Materials ({lessonNotesList.length})
           </button>
           <button
             type="button"
             onClick={() => setTeacherSubTab('timetable')}
             style={{
-              background: teacherSubTab === 'timetable' ? '#059669' : '#f1f5f9',
+              background: teacherSubTab === 'timetable' ? '#059669' : 'transparent',
               color: teacherSubTab === 'timetable' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: teacherSubTab === 'timetable' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: teacherSubTab === 'timetable' ? '0 4px 12px rgba(5, 150, 105, 0.3)' : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            🗓️ Teaching Lecture Timetable
+            <span>🗓️</span> Teaching Timetable
           </button>
         </div>
       </div>

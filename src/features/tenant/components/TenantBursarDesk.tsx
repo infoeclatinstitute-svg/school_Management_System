@@ -82,14 +82,15 @@ export function TenantBursarDesk({
   return (
     <div style={{ maxWidth: '1120px', margin: '0 auto' }}>
       {/* Header Banner */}
+      {/* Top Banner & Executive Title */}
       <div
         style={{
-          background: '#ffffff',
-          borderRadius: '20px',
-          padding: '1.75rem 2rem',
-          border: '1px solid #e2e8f0',
-          marginBottom: '1.5rem',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+          background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+          borderRadius: '24px',
+          padding: '2rem 2.25rem',
+          border: '1px solid rgba(226, 232, 240, 0.9)',
+          marginBottom: '1.75rem',
+          boxShadow: '0 10px 30px -5px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.03)',
         }}
       >
         <div
@@ -98,21 +99,56 @@ export function TenantBursarDesk({
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '1rem',
+            gap: '1.25rem',
             borderBottom: '1px solid #f1f5f9',
-            paddingBottom: '1.25rem',
-            marginBottom: '1.25rem',
+            paddingBottom: '1.5rem',
+            marginBottom: '1.5rem',
           }}
         >
-          <div>
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {school.name} FINANCE &amp; BURSAR DESK
-            </span>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: '4px 0 0', color: '#0f172a' }}>
-              Bursar Accounts, Payroll &amp; Tuition Terminal
-            </h2>
-            <div style={{ fontSize: '0.84rem', color: '#64748b', marginTop: '3px' }}>
-              Active Accounting Period: <strong>{school.active_period_name}</strong> • Bank Account: <strong>{school.name} School Trust</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #b45309 0%, #0f172a 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.65rem',
+                boxShadow: '0 8px 20px -4px rgba(180, 83, 9, 0.35)',
+                border: '2px solid rgba(255, 255, 255, 0.2)',
+                flexShrink: 0,
+              }}
+            >
+              🏛️
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {school.name} FINANCE &amp; TREASURY
+                </span>
+                <span
+                  style={{
+                    background: '#fef3c7',
+                    color: '#92400e',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    border: '1px solid #fde68a',
+                  }}
+                >
+                  OFFICE OF THE BURSAR
+                </span>
+              </div>
+              <h2 style={{ fontSize: '1.65rem', fontWeight: 900, margin: '4px 0 0', color: '#0f172a', letterSpacing: '-0.02em' }}>
+                Bursar Accounts, Payroll &amp; Tuition Terminal
+              </h2>
+              <div style={{ fontSize: '0.86rem', color: '#64748b', marginTop: '4px' }}>
+                Active Accounting Period: <strong style={{ color: '#0f172a' }}>{school.active_period_name}</strong> • Bank Account: <strong style={{ color: '#0f172a' }}>{school.name} School Trust</strong>
+              </div>
             </div>
           </div>
           <div>
@@ -120,115 +156,229 @@ export function TenantBursarDesk({
               type="button"
               onClick={() => setShowRecordPaymentModal(true)}
               style={{
-                background: '#b45309',
+                background: 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
                 color: '#ffffff',
                 fontWeight: 800,
-                padding: '0.55rem 1.15rem',
-                borderRadius: '10px',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '12px',
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: '0.82rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 16px -2px rgba(180, 83, 9, 0.4)',
+                transition: 'all 0.15s ease',
               }}
             >
-              + Record Fee Payment
+              <span>💳</span> + Record Fee Payment
             </button>
           </div>
         </div>
 
-        {/* Sub-tab Navigation */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {/* Sub-tab Navigation Pills */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.35rem',
+            flexWrap: 'wrap',
+            background: '#f8fafc',
+            padding: '6px',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+          }}
+        >
           <button
             type="button"
             onClick={() => setBursarSubTab('payroll')}
             style={{
-              background: bursarSubTab === 'payroll' ? '#b45309' : '#f1f5f9',
+              background: bursarSubTab === 'payroll' ? '#b45309' : 'transparent',
               color: bursarSubTab === 'payroll' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: bursarSubTab === 'payroll' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: bursarSubTab === 'payroll' ? '0 4px 12px rgba(180, 83, 9, 0.3)' : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            💼 Staff Payroll Register ({payrollList.length})
+            <span>💼</span> Staff Payroll Register ({payrollList.length})
           </button>
           <button
             type="button"
             onClick={() => setBursarSubTab('payments')}
             style={{
-              background: bursarSubTab === 'payments' ? '#b45309' : '#f1f5f9',
+              background: bursarSubTab === 'payments' ? '#b45309' : 'transparent',
               color: bursarSubTab === 'payments' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: bursarSubTab === 'payments' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: bursarSubTab === 'payments' ? '0 4px 12px rgba(180, 83, 9, 0.3)' : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            🧾 Tuition Payments &amp; Receipts ({feePaymentsList.length})
+            <span>🧾</span> Tuition Payments &amp; Receipts ({feePaymentsList.length})
           </button>
           <button
             type="button"
             onClick={() => setBursarSubTab('arrears')}
             style={{
-              background: bursarSubTab === 'arrears' ? '#b45309' : '#f1f5f9',
+              background: bursarSubTab === 'arrears' ? '#b45309' : 'transparent',
               color: bursarSubTab === 'arrears' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: bursarSubTab === 'arrears' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: bursarSubTab === 'arrears' ? '0 4px 12px rgba(180, 83, 9, 0.3)' : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            ⚠️ Fee Arrears &amp; Defaulters ({defaultersList.length})
+            <span>⚠️</span> Fee Arrears &amp; Defaulters ({defaultersList.length})
           </button>
           <button
             type="button"
             onClick={() => setBursarSubTab('structure')}
             style={{
-              background: bursarSubTab === 'structure' ? '#b45309' : '#f1f5f9',
+              background: bursarSubTab === 'structure' ? '#b45309' : 'transparent',
               color: bursarSubTab === 'structure' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: bursarSubTab === 'structure' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: bursarSubTab === 'structure' ? '0 4px 12px rgba(180, 83, 9, 0.3)' : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            📋 Official Term Fee Structure
+            <span>📋</span> Official Term Fee Structure
           </button>
         </div>
       </div>
 
-      {/* Financial Metrics Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TOTAL BILLED TUITION</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{school.currency || 'KES'} {totalBilled.toLocaleString()}</div>
-          <div style={{ fontSize: '0.76rem', color: '#64748b' }}>{studentList.length} Invoiced Students</div>
-        </div>
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>COLLECTED REVENUE</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>{school.currency || 'KES'} {totalCollected.toLocaleString()}</div>
-          <div style={{ fontSize: '0.76rem', color: '#16a34a', fontWeight: 700 }}>
-            {totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 100}% Recovery Rate
+      {/* Financial Metrics Intelligence Strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+            borderRadius: '18px',
+            padding: '1.35rem 1.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#0f172a' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              TOTAL BILLED TUITION
+            </span>
+            <span style={{ fontSize: '1rem' }}>🏛️</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
+            {school.currency || 'KES'} {totalBilled.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+            {studentList.length} Invoiced Students
           </div>
         </div>
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>OUTSTANDING ARREARS</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: totalArrears > 0 ? '#dc2626' : '#16a34a', marginTop: '2px' }}>
+
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+            borderRadius: '18px',
+            padding: '1.35rem 1.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#16a34a' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              COLLECTED REVENUE
+            </span>
+            <span style={{ fontSize: '1rem' }}>📈</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#16a34a', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
+            {school.currency || 'KES'} {totalCollected.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>●</span> {totalBilled > 0 ? Math.round((totalCollected / totalBilled) * 100) : 100}% Recovery Rate
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+            borderRadius: '18px',
+            padding: '1.35rem 1.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: totalArrears > 0 ? '#dc2626' : '#16a34a' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              OUTSTANDING ARREARS
+            </span>
+            <span style={{ fontSize: '1rem' }}>⚠️</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: totalArrears > 0 ? '#dc2626' : '#16a34a', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
             {school.currency || 'KES'} {totalArrears.toLocaleString()}
           </div>
-          <div style={{ fontSize: '0.76rem', color: '#dc2626' }}>{defaultersList.length} Pending Balances</div>
+          <div style={{ fontSize: '0.78rem', color: totalArrears > 0 ? '#dc2626' : '#16a34a', fontWeight: 700 }}>
+            {defaultersList.length} Pending Balances
+          </div>
         </div>
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>NET DISBURSED PAYROLL</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{school.currency || 'KES'} {totalNetPayroll.toLocaleString()}</div>
-          <div style={{ fontSize: '0.76rem', color: '#b45309', fontWeight: 700 }}>{payrollList.length} Active Staff Slips</div>
+
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+            borderRadius: '18px',
+            padding: '1.35rem 1.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#b45309' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              DISBURSED PAYROLL
+            </span>
+            <span style={{ fontSize: '1rem' }}>💼</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
+            {school.currency || 'KES'} {totalNetPayroll.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: 700 }}>
+            {payrollList.length} Active Staff Slips
+          </div>
         </div>
       </div>
 

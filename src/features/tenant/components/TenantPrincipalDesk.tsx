@@ -320,15 +320,15 @@ export function TenantPrincipalDesk({
 
   return (
     <div style={{ maxWidth: '1120px', margin: '0 auto' }}>
-      {/* Top Banner & Title */}
+      {/* Top Banner & Executive Title */}
       <div
         style={{
-          background: '#ffffff',
-          borderRadius: '20px',
-          padding: '1.75rem 2rem',
-          border: '1px solid #e2e8f0',
-          marginBottom: '1.5rem',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+          background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+          borderRadius: '24px',
+          padding: '2rem 2.25rem',
+          border: '1px solid rgba(226, 232, 240, 0.9)',
+          marginBottom: '1.75rem',
+          boxShadow: '0 10px 30px -5px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.03)',
         }}
       >
         <div
@@ -337,24 +337,59 @@ export function TenantPrincipalDesk({
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '1rem',
+            gap: '1.25rem',
             borderBottom: '1px solid #f1f5f9',
-            paddingBottom: '1.25rem',
-            marginBottom: '1.25rem',
+            paddingBottom: '1.5rem',
+            marginBottom: '1.5rem',
           }}
         >
-          <div>
-            <span style={{ fontSize: '0.74rem', fontWeight: 800, color: primaryColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {school.name} EXECUTIVE LEADERSHIP
-            </span>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: '4px 0 0', color: '#0f172a' }}>
-              {school.principal_name} — {school.principal_title} Office
-            </h2>
-            <div style={{ fontSize: '0.84rem', color: '#64748b', marginTop: '3px' }}>
-              Institutional Governance, Staff HR, Student Admissions &amp; Academic Scheduling
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.65rem',
+                boxShadow: `0 8px 20px -4px ${primaryColor}40`,
+                border: '2px solid rgba(255, 255, 255, 0.2)',
+                flexShrink: 0,
+              }}
+            >
+              🏛️
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: primaryColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {school.name} EXECUTIVE LEADERSHIP
+                </span>
+                <span
+                  style={{
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  OFFICE OF THE PRINCIPAL
+                </span>
+              </div>
+              <h2 style={{ fontSize: '1.65rem', fontWeight: 900, margin: '4px 0 0', color: '#0f172a', letterSpacing: '-0.02em' }}>
+                {school.principal_name} — {school.principal_title} Office
+              </h2>
+              <div style={{ fontSize: '0.86rem', color: '#64748b', marginTop: '4px' }}>
+                Institutional Governance, Faculty HR, Student Admissions &amp; Academic Scheduling
+              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => setShowAddStaffModal(true)}
@@ -362,140 +397,268 @@ export function TenantPrincipalDesk({
                 background: '#0f172a',
                 color: '#ffffff',
                 fontWeight: 800,
-                padding: '0.55rem 1.15rem',
-                borderRadius: '10px',
-                border: 'none',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
                 cursor: 'pointer',
                 fontSize: '0.82rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+                transition: 'all 0.15s ease',
               }}
             >
-              + Hire / Register Staff
+              <span>👤</span> + Hire / Register Staff
             </button>
             <button
               type="button"
               onClick={() => setShowAdmitStudentModal(true)}
               style={{
-                background: primaryColor,
+                background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 120%)`,
                 color: '#ffffff',
                 fontWeight: 800,
-                padding: '0.55rem 1.15rem',
-                borderRadius: '10px',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '12px',
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: '0.82rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: `0 4px 16px -2px ${primaryColor}40`,
+                transition: 'all 0.15s ease',
               }}
             >
-              + Admit New Student
+              <span>🎓</span> + Admit New Student
             </button>
           </div>
         </div>
 
-        {/* Sub-tab Navigation */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {/* Sub-tab Navigation Pills */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.35rem',
+            flexWrap: 'wrap',
+            background: '#f8fafc',
+            padding: '6px',
+            borderRadius: '16px',
+            border: '1px solid #e2e8f0',
+          }}
+        >
           <button
             type="button"
             onClick={() => setPrincipalSubTab('staff')}
             style={{
-              background: principalSubTab === 'staff' ? primaryColor : '#f1f5f9',
+              background: principalSubTab === 'staff' ? primaryColor : 'transparent',
               color: principalSubTab === 'staff' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: principalSubTab === 'staff' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: principalSubTab === 'staff' ? `0 4px 12px ${primaryColor}33` : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            👥 Staff Directory &amp; HR ({staffList.length})
+            <span>👥</span> Staff Directory &amp; HR ({staffList.length})
           </button>
           <button
             type="button"
             onClick={() => setPrincipalSubTab('admissions')}
             style={{
-              background: principalSubTab === 'admissions' ? primaryColor : '#f1f5f9',
+              background: principalSubTab === 'admissions' ? primaryColor : 'transparent',
               color: principalSubTab === 'admissions' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: principalSubTab === 'admissions' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: principalSubTab === 'admissions' ? `0 4px 12px ${primaryColor}33` : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            🎓 Student Admissions ({studentList.length})
+            <span>🎓</span> Student Admissions ({studentList.length})
           </button>
           <button
             type="button"
             onClick={() => setPrincipalSubTab('timetable')}
             style={{
-              background: principalSubTab === 'timetable' ? primaryColor : '#f1f5f9',
+              background: principalSubTab === 'timetable' ? primaryColor : 'transparent',
               color: principalSubTab === 'timetable' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: principalSubTab === 'timetable' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: principalSubTab === 'timetable' ? `0 4px 12px ${primaryColor}33` : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            🗓️ Master Class Timetable
+            <span>🗓️</span> Master Class Timetable
           </button>
           <button
             type="button"
             onClick={() => setPrincipalSubTab('payroll')}
             style={{
-              background: principalSubTab === 'payroll' ? primaryColor : '#f1f5f9',
+              background: principalSubTab === 'payroll' ? primaryColor : 'transparent',
               color: principalSubTab === 'payroll' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: principalSubTab === 'payroll' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: principalSubTab === 'payroll' ? `0 4px 12px ${primaryColor}33` : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            💼 Executive Payroll Oversight
+            <span>💼</span> Executive Payroll Oversight
           </button>
           <button
             type="button"
             onClick={() => setPrincipalSubTab('governance')}
             style={{
-              background: principalSubTab === 'governance' ? primaryColor : '#f1f5f9',
+              background: principalSubTab === 'governance' ? primaryColor : 'transparent',
               color: principalSubTab === 'governance' ? '#ffffff' : '#475569',
               border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
+              padding: '0.55rem 1.15rem',
+              borderRadius: '10px',
               fontSize: '0.82rem',
-              fontWeight: 800,
+              fontWeight: principalSubTab === 'governance' ? 800 : 600,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: principalSubTab === 'governance' ? `0 4px 12px ${primaryColor}33` : 'none',
+              transition: 'all 0.15s ease',
             }}
           >
-            ⚙️ Cloud Subscription &amp; DNS
+            <span>⚙️</span> Cloud Subscription &amp; DNS
           </button>
         </div>
       </div>
 
       {/* KPI Overview Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>ENROLLED CANDIDATES</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{totalStudents} Active</div>
-          <div style={{ fontSize: '0.76rem', color: '#16a34a', fontWeight: 700 }}>100% In Good Standing</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+            borderRadius: '18px',
+            padding: '1.35rem 1.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: primaryColor }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              ENROLLED CANDIDATES
+            </span>
+            <span style={{ fontSize: '1rem' }}>🎓</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
+            {totalStudents} <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#64748b' }}>Active</span>
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>●</span> 100% In Good Standing
+          </div>
         </div>
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>CERTIFIED FACULTY</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{totalStaff} Appointed</div>
-          <div style={{ fontSize: '0.76rem', color: '#64748b' }}>Across {school.stats.departments} Faculties</div>
+
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+            borderRadius: '18px',
+            padding: '1.35rem 1.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#0f172a' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              CERTIFIED FACULTY
+            </span>
+            <span style={{ fontSize: '1rem' }}>👥</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
+            {totalStaff} <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#64748b' }}>Appointed</span>
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+            Across {school.stats.departments} Academic Faculties
+          </div>
         </div>
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TUITION REVENUE RECOVERY</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: primaryColor, marginTop: '2px' }}>{collectionRate}%</div>
-          <div style={{ fontSize: '0.76rem', color: '#64748b' }}>{school.currency || 'KES'} {totalTuitionCollected.toLocaleString()} of {school.currency || 'KES'} {totalTuitionBilled.toLocaleString()}</div>
+
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+            borderRadius: '18px',
+            padding: '1.35rem 1.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#16a34a' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              TUITION RECOVERY
+            </span>
+            <span style={{ fontSize: '1rem' }}>📈</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: primaryColor, margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
+            {collectionRate}%
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
+            {school.currency || 'KES'} {totalTuitionCollected.toLocaleString()} of {school.currency || 'KES'} {totalTuitionBilled.toLocaleString()}
+          </div>
         </div>
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>MONTHLY PAYROLL BUDGET</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>{school.currency || 'KES'} {totalGrossPayroll.toLocaleString()}</div>
-          <div style={{ fontSize: '0.76rem', color: '#15803d', fontWeight: 700 }}>Electronic Bank Wire</div>
+
+        <div
+          style={{
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+            borderRadius: '18px',
+            padding: '1.35rem 1.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#d97706' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              MONTHLY PAYROLL
+            </span>
+            <span style={{ fontSize: '1rem' }}>💼</span>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
+            {school.currency || 'KES'} {totalGrossPayroll.toLocaleString()}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>●</span> Electronic Wire Disbursal
+          </div>
         </div>
       </div>
 
