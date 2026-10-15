@@ -10,7 +10,6 @@ import '@/styles/index.css'
 import '@/styles/components.css'
 import '@/styles/pages.css'
 
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

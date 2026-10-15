@@ -32,21 +32,25 @@ const INITIAL_PARTNER_SCHOOLS: PartnerSchoolTenant[] = []
 class TenantSchoolStore {
   private schools: PartnerSchoolTenant[] = []
   private programs: InstitutionProgram[] = []
+  private isPushing = false
+  private pushTimer: any = null
 
   constructor() {
     this.loadSchools()
     if (typeof window !== 'undefined') {
-      this.syncWithCloud()
-      supabase
-        .channel('gc_tenant_schools_realtime')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'app_cloud_sync', filter: `key=eq.${CLOUD_SYNC_KEY}` },
-          () => {
-            this.syncWithCloud()
-          }
-        )
-        .subscribe()
+      setTimeout(() => {
+        this.syncWithCloud().catch(() => {})
+        supabase
+          .channel('gc_tenant_schools_realtime')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'app_cloud_sync', filter: `key=eq.${CLOUD_SYNC_KEY}` },
+            () => {
+              this.syncWithCloud().catch(() => {})
+            }
+          )
+          .subscribe()
+      }, 1000)
     }
   }
 
@@ -219,7 +223,7 @@ class TenantSchoolStore {
       }
 
       if (hadLocalChanges) {
-        this.pushToCloud()
+        this.triggerCloudPush()
       }
     } catch {
       // Offline fallback
@@ -227,17 +231,9 @@ class TenantSchoolStore {
   }
 
   public async pushToCloud(): Promise<void> {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || this.isPushing) return
+    this.isPushing = true
     try {
-      if (this.staff.length === 0) this.loadStaff()
-      if (this.students.length === 0) this.loadStudents()
-      if (this.programs.length === 0) this.loadPrograms()
-      if (this.payroll.length === 0) this.loadPayroll()
-      if (this.grades.length === 0) this.loadGrades()
-      if (this.lessonNotes.length === 0) this.loadLessonNotes()
-      if (this.payments.length === 0) this.loadPayments()
-      if (this.timetables.length === 0) this.loadTimetables()
-
       await supabase.from('app_cloud_sync').upsert(
         {
           key: CLOUD_SYNC_KEY,
@@ -259,7 +255,17 @@ class TenantSchoolStore {
       )
     } catch {
       // Ignore offline errors
+    } finally {
+      this.isPushing = false
     }
+  }
+
+  private triggerCloudPush() {
+    if (typeof window === 'undefined') return
+    if (this.pushTimer) clearTimeout(this.pushTimer)
+    this.pushTimer = setTimeout(() => {
+      this.pushToCloud().catch(() => {})
+    }, 1000)
   }
 
   private loadSchools() {
@@ -289,7 +295,6 @@ class TenantSchoolStore {
     }
 
     this.schools = [...INITIAL_PARTNER_SCHOOLS]
-    this.saveSchools()
   }
 
   private saveSchools() {
@@ -297,7 +302,7 @@ class TenantSchoolStore {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.schools))
       window.dispatchEvent(new CustomEvent('gc-tenant-schools-updated', { detail: this.schools }))
-      this.pushToCloud()
+      this.triggerCloudPush()
     } catch {
       // ignore
     }
@@ -750,14 +755,13 @@ class TenantSchoolStore {
       // fallback
     }
     this.staff = [...INITIAL_STAFF_MEMBERS]
-    this.saveStaff()
   }
 
   private saveStaff() {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(this.staff))
-      this.pushToCloud()
+      this.triggerCloudPush()
     } catch {}
   }
 
@@ -855,14 +859,13 @@ class TenantSchoolStore {
       // fallback
     }
     this.students = [...INITIAL_STUDENTS]
-    this.saveStudents()
   }
 
   private saveStudents() {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(this.students))
-      this.pushToCloud()
+      this.triggerCloudPush()
     } catch {}
   }
 
@@ -995,14 +998,13 @@ class TenantSchoolStore {
       // fallback
     }
     this.payroll = [...INITIAL_PAYROLL_RECORDS]
-    this.savePayroll()
   }
 
   private savePayroll() {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(this.payroll))
-      this.pushToCloud()
+      this.triggerCloudPush()
     } catch {}
   }
 
@@ -1102,14 +1104,13 @@ class TenantSchoolStore {
       // fallback
     }
     this.grades = [...INITIAL_GRADES]
-    this.saveGrades()
   }
 
   private saveGrades() {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(GRADES_STORAGE_KEY, JSON.stringify(this.grades))
-      this.pushToCloud()
+      this.triggerCloudPush()
     } catch {}
   }
 
@@ -1187,14 +1188,13 @@ class TenantSchoolStore {
       // fallback
     }
     this.lessonNotes = [...INITIAL_LESSON_NOTES]
-    this.saveLessonNotes()
   }
 
   private saveLessonNotes() {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(this.lessonNotes))
-      this.pushToCloud()
+      this.triggerCloudPush()
     } catch {}
   }
 
@@ -1243,14 +1243,13 @@ class TenantSchoolStore {
       // fallback
     }
     this.payments = [...INITIAL_PAYMENTS]
-    this.savePayments()
   }
 
   private savePayments() {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(PAYMENTS_STORAGE_KEY, JSON.stringify(this.payments))
-      this.pushToCloud()
+      this.triggerCloudPush()
     } catch {}
   }
 
@@ -1306,14 +1305,13 @@ class TenantSchoolStore {
       }
     } catch {}
     this.timetables = [...INITIAL_TIMETABLES]
-    this.saveTimetables()
   }
 
   private saveTimetables() {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(TIMETABLE_STORAGE_KEY, JSON.stringify(this.timetables))
-      this.pushToCloud()
+      this.triggerCloudPush()
     } catch {}
   }
 
@@ -1378,7 +1376,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(PROGRAMS_STORAGE_KEY, JSON.stringify(this.programs))
-      this.pushToCloud()
+      this.triggerCloudPush()
       window.dispatchEvent(new CustomEvent('gc-tenant-programs-updated', { detail: this.programs }))
     } catch {}
   }

@@ -13,13 +13,14 @@ import { LoadingScreen } from '@/components/ui/Spinner'
 import { PullToRefresh } from '@/components/shared/PullToRefresh'
 import { ConcurrentSessionAlertModal } from '@/components/shared/ConcurrentSessionAlertModal'
 
+import { LandingPage } from '@/features/landing/LandingPage'
+import { Login } from '@/features/auth/Login'
+
 const TutorPublishCoursePage = lazy(() => import('@/features/teacher/TutorPublishCoursePage').then((m) => ({ default: m.TutorPublishCoursePage })))
-const Login = lazy(() => import('@/features/auth/Login').then((m) => ({ default: m.Login })))
 const ChangePassword = lazy(() => import('@/features/auth/ChangePassword').then((m) => ({ default: m.ChangePassword })))
 const TenantSchoolHub = lazy(() => import('@/features/tenant/TenantSchoolHub').then((m) => ({ default: m.TenantSchoolHub })))
 const SchoolRegistrationPage = lazy(() => import('@/features/tenant/SchoolRegistrationPage').then((m) => ({ default: m.SchoolRegistrationPage })))
 const MasterSaasPortal = lazy(() => import('@/features/saas/MasterSaasPortal').then((m) => ({ default: m.MasterSaasPortal })))
-const LandingPage = lazy(() => import('@/features/landing/LandingPage').then((m) => ({ default: m.LandingPage })))
 
 // Lazy-loaded Student Pages
 const StudentDashboard = lazy(() => import('@/features/student/StudentDashboard').then((m) => ({ default: m.StudentDashboard })))
@@ -58,7 +59,7 @@ const ResourceLibrary = lazy(() => import('@/features/library/ResourceLibrary').
 const DisciplineTracker = lazy(() => import('@/features/discipline/DisciplineTracker').then((m) => ({ default: m.DisciplineTracker })))
 const ParentDashboard = lazy(() => import('@/features/parent/ParentDashboard').then((m) => ({ default: m.ParentDashboard })))
 const SchoolNoticeboard = lazy(() => import('@/features/announcements/SchoolNoticeboard').then((m) => ({ default: m.SchoolNoticeboard })))
-import { BursarDesk } from '@/features/bursar/BursarDesk'
+const BursarDesk = lazy(() => import('@/features/bursar/BursarDesk').then((m) => ({ default: m.BursarDesk })))
 
 /** Student Portal Direct Access Guard */
 function StudentNativeGuard({ children }: { children: ReactElement }) {
