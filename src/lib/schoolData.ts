@@ -154,6 +154,38 @@ class SchoolDataStore {
             this.set('unit_registrations', eventData)
             schoolEventBus.publish('UNIT_REGISTRATION_COMPLETED' as any)
             window.dispatchEvent(new CustomEvent('gc-data-synced'))
+          } else if (eventType === 'COLLECTION_UPDATED_TIMETABLE' && Array.isArray(eventData)) {
+            this.set('timetable', eventData)
+            schoolEventBus.publish('TIMETABLE_UPDATED')
+            window.dispatchEvent(new CustomEvent('gc-data-synced'))
+          } else if (eventType === 'COLLECTION_UPDATED_SUBJECTS' && Array.isArray(eventData)) {
+            this.set('subjects', eventData)
+            window.dispatchEvent(new CustomEvent('gc-courses-updated'))
+            window.dispatchEvent(new CustomEvent('gc-data-synced'))
+          } else if (eventType === 'COLLECTION_UPDATED_DEPARTMENTS' && Array.isArray(eventData)) {
+            this.set('departments', eventData)
+            window.dispatchEvent(new CustomEvent('gc-data-synced'))
+          } else if (eventType === 'COLLECTION_UPDATED_NOTICES' && Array.isArray(eventData)) {
+            this.set('notices', eventData)
+            schoolEventBus.publish('NOTICE_UPDATED' as any)
+            window.dispatchEvent(new CustomEvent('gc-data-synced'))
+          } else if (eventType === 'COLLECTION_UPDATED_EXAMS' && Array.isArray(eventData)) {
+            this.set('exams', eventData)
+            window.dispatchEvent(new CustomEvent('gc-data-synced'))
+          } else if (eventType === 'COLLECTION_UPDATED_REPORT_CARDS' && Array.isArray(eventData)) {
+            this.set('report_cards', eventData)
+            window.dispatchEvent(new CustomEvent('gc-data-synced'))
+          } else if (eventType === 'COLLECTION_UPDATED_DISCIPLINE' && Array.isArray(eventData)) {
+            this.set('discipline', eventData)
+            window.dispatchEvent(new CustomEvent('gc-data-synced'))
+          } else if (eventType === 'COLLECTION_UPDATED_FACULTY_TEACHERS' && Array.isArray(eventData)) {
+            this.set('faculty_teachers', eventData)
+            schoolEventBus.publish('TEACHER_UPDATED' as any)
+            window.dispatchEvent(new CustomEvent('gc-data-synced'))
+          } else if (eventType === 'COLLECTION_UPDATED_COURSE_UNITS' && Array.isArray(eventData)) {
+            this.set('course_units', eventData)
+            schoolEventBus.publish('COURSE_UNIT_CREATED' as any)
+            window.dispatchEvent(new CustomEvent('gc-data-synced'))
           } else if (eventType === 'STUDENT_LESSONS_UNLOCKED' || eventType === 'STUDENT_UPDATED' || eventType === 'PAYMENT_RECORDED') {
             this.syncWithCloud(true).catch(() => {})
             schoolEventBus.publish('STUDENT_UPDATED')
@@ -168,6 +200,9 @@ class SchoolDataStore {
             const cleanKey = row.key.replace(/^gc_v2_/, '')
             if (cleanKey === 'resources' && Array.isArray(row.data)) {
               this.set('resources', row.data)
+              schoolEventBus.publish('LIBRARY_UPDATED' as any)
+            } else if (cleanKey === 'custom_categories' && Array.isArray(row.data)) {
+              this.set('custom_categories', row.data)
               schoolEventBus.publish('LIBRARY_UPDATED' as any)
             } else if (cleanKey === 'students' && Array.isArray(row.data)) {
               this.mergeCloudStudents(row.data)
@@ -187,6 +222,28 @@ class SchoolDataStore {
             } else if (cleanKey === 'faculty_teachers' && Array.isArray(row.data)) {
               this.set('faculty_teachers', row.data)
               schoolEventBus.publish('TEACHER_UPDATED' as any)
+            } else if (cleanKey === 'timetable' && Array.isArray(row.data)) {
+              this.set('timetable', row.data)
+              schoolEventBus.publish('TIMETABLE_UPDATED')
+            } else if (cleanKey === 'subjects' && Array.isArray(row.data)) {
+              this.set('subjects', row.data)
+              window.dispatchEvent(new CustomEvent('gc-courses-updated'))
+            } else if (cleanKey === 'departments' && Array.isArray(row.data)) {
+              this.set('departments', row.data)
+            } else if (cleanKey === 'notices' && Array.isArray(row.data)) {
+              this.set('notices', row.data)
+              schoolEventBus.publish('NOTICE_UPDATED' as any)
+            } else if (cleanKey === 'exams' && Array.isArray(row.data)) {
+              this.set('exams', row.data)
+            } else if (cleanKey === 'report_cards' && Array.isArray(row.data)) {
+              this.set('report_cards', row.data)
+            } else if (cleanKey === 'discipline' && Array.isArray(row.data)) {
+              this.set('discipline', row.data)
+            } else if ((cleanKey === 'fee_structures' || cleanKey === 'custom_course_fees') && typeof row.data === 'object' && row.data !== null) {
+              this.set('custom_course_fees', row.data)
+              window.dispatchEvent(new CustomEvent('gc-courses-updated'))
+            } else if (cleanKey === 'biometric_passes' && Array.isArray(row.data)) {
+              this.set('biometric_passes', row.data)
             }
             window.dispatchEvent(new CustomEvent('gc-data-synced'))
           }
@@ -358,6 +415,17 @@ class SchoolDataStore {
             this.set('receipts', row.data)
           } else if (cleanKey === 'unit_registrations' && Array.isArray(row.data)) {
             this.set('unit_registrations', row.data)
+          } else if (cleanKey === 'timetable' && Array.isArray(row.data)) {
+            this.set('timetable', row.data)
+            schoolEventBus.publish('TIMETABLE_UPDATED')
+          } else if (cleanKey === 'exams' && Array.isArray(row.data)) {
+            this.set('exams', row.data)
+          } else if (cleanKey === 'report_cards' && Array.isArray(row.data)) {
+            this.set('report_cards', row.data)
+          } else if (cleanKey === 'discipline' && Array.isArray(row.data)) {
+            this.set('discipline', row.data)
+          } else if (cleanKey === 'biometric_passes' && Array.isArray(row.data)) {
+            this.set('biometric_passes', row.data)
           } else if (cleanKey === 'official_courses' && Array.isArray(row.data)) {
             try {
               localStorage.setItem('gc_v2_official_courses', JSON.stringify(row.data))
@@ -461,6 +529,19 @@ class SchoolDataStore {
   private set<T>(key: string, value: T): void {
     this.memCache.set(key, value)
     try {
+      if (key === 'resources' && Array.isArray(value)) {
+        const sanitized = (value as AcademicResource[]).map((r) => {
+          if (r.file_url && r.file_url.startsWith('data:') && r.file_url.length > 262144) {
+            return {
+              ...r,
+              file_url: `https://globalcollege.internal/docs/${encodeURIComponent(r.title)}`,
+            }
+          }
+          return r
+        })
+        localStorage.setItem(`gc_v2_school_${key}`, JSON.stringify(sanitized))
+        return
+      }
       localStorage.setItem(`gc_v2_school_${key}`, JSON.stringify(value))
     } catch (e) {
       console.warn('LocalStorage error:', e)
@@ -566,6 +647,7 @@ class SchoolDataStore {
     schoolEventBus.publish('STUDENT_UPDATED')
     this.broadcastChange('STUDENT_ADDED', student)
     await this.pushCollectionToCloud('students', this.getStudents())
+    await this.pushCollectionToCloud('invoices', this.getInvoices())
 
     try {
       const renewed = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
@@ -875,6 +957,8 @@ class SchoolDataStore {
   saveTimetable(periods: TimetablePeriod[]) {
     this.set('timetable', periods)
     schoolEventBus.publish('TIMETABLE_UPDATED')
+    this.broadcastChange('COLLECTION_UPDATED_TIMETABLE', periods)
+    this.pushCollectionToCloud('timetable', periods).catch(() => {})
   }
 
   async addPeriod(period: TimetablePeriod): Promise<void> {
@@ -888,6 +972,8 @@ class SchoolDataStore {
       }
     )
     schoolEventBus.publish('TIMETABLE_UPDATED')
+    this.broadcastChange('COLLECTION_UPDATED_TIMETABLE', this.getTimetable())
+    await this.pushCollectionToCloud('timetable', this.getTimetable())
   }
 
   async updatePeriod(id: string, updated: Partial<TimetablePeriod>): Promise<void> {
@@ -904,6 +990,8 @@ class SchoolDataStore {
       }
     )
     schoolEventBus.publish('TIMETABLE_UPDATED')
+    this.broadcastChange('COLLECTION_UPDATED_TIMETABLE', this.getTimetable())
+    await this.pushCollectionToCloud('timetable', this.getTimetable())
   }
 
   async deletePeriod(id: string): Promise<void> {
@@ -916,6 +1004,8 @@ class SchoolDataStore {
       }
     )
     schoolEventBus.publish('TIMETABLE_UPDATED')
+    this.broadcastChange('COLLECTION_UPDATED_TIMETABLE', this.getTimetable())
+    await this.pushCollectionToCloud('timetable', this.getTimetable())
   }
 
   // --- Invoices & Fees (ACID Protected) ---
@@ -1065,6 +1155,9 @@ class SchoolDataStore {
     )
     schoolEventBus.publish('INVOICE_CREATED', updated)
     schoolEventBus.publish('STUDENT_UPDATED')
+    this.broadcastChange('COLLECTION_UPDATED_INVOICES', this.getInvoices())
+    await this.pushCollectionToCloud('invoices', this.getInvoices())
+    await this.pushCollectionToCloud('students', this.getStudents())
   }
 
   async deleteInvoice(invoiceId: string): Promise<void> {
@@ -1077,6 +1170,8 @@ class SchoolDataStore {
       }
     )
     schoolEventBus.publish('INVOICE_CREATED', invoiceId)
+    this.broadcastChange('COLLECTION_UPDATED_INVOICES', this.getInvoices())
+    await this.pushCollectionToCloud('invoices', this.getInvoices())
   }
 
   async clearAllInvoices(): Promise<void> {
@@ -1088,6 +1183,8 @@ class SchoolDataStore {
       }
     )
     schoolEventBus.publish('INVOICE_CREATED')
+    this.broadcastChange('COLLECTION_UPDATED_INVOICES', [])
+    await this.pushCollectionToCloud('invoices', [])
   }
 
   getReceipts(): FeePaymentReceipt[] {
@@ -1266,6 +1363,8 @@ class SchoolDataStore {
     )
     schoolEventBus.publish('PAYMENT_RECORDED')
     schoolEventBus.publish('STUDENT_UPDATED')
+    this.broadcastChange('COLLECTION_UPDATED_RECEIPTS', [])
+    await this.pushCollectionToCloud('receipts', [])
   }
 
   // --- Payment Reminders ---
@@ -1711,6 +1810,8 @@ class SchoolDataStore {
     )
     schoolEventBus.publish('UNIT_REGISTRATION_COMPLETED' as any)
     this.broadcastChange('UNIT_REGISTRATION_DELETED', { identifier })
+    this.broadcastChange('COLLECTION_UPDATED_UNIT_REGISTRATIONS', this.getUnitRegistrations())
+    await this.pushCollectionToCloud('unit_registrations', this.getUnitRegistrations())
   }
 
   async clearAllUnitRegistrations(): Promise<void> {
@@ -1723,6 +1824,8 @@ class SchoolDataStore {
     )
     schoolEventBus.publish('UNIT_REGISTRATION_COMPLETED' as any)
     this.broadcastChange('UNIT_REGISTRATIONS_CLEARED')
+    this.broadcastChange('COLLECTION_UPDATED_UNIT_REGISTRATIONS', [])
+    await this.pushCollectionToCloud('unit_registrations', [])
   }
 
   async registerStudentUnits(receipt: UnitRegistrationReceipt): Promise<void> {
@@ -1743,6 +1846,8 @@ class SchoolDataStore {
     )
     schoolEventBus.publish('UNIT_REGISTRATION_COMPLETED' as any, receipt)
     this.broadcastChange('UNIT_REGISTRATION_CREATED', receipt)
+    this.broadcastChange('COLLECTION_UPDATED_UNIT_REGISTRATIONS', this.getUnitRegistrations())
+    await this.pushCollectionToCloud('unit_registrations', this.getUnitRegistrations())
   }
 
   getRegistrationForStudent(identifier: string): UnitRegistrationReceipt | null {
@@ -2199,6 +2304,8 @@ class SchoolDataStore {
       }
     )
     schoolEventBus.publish('DEPARTMENT_CREATED' as any, dept)
+    this.broadcastChange('COLLECTION_UPDATED_DEPARTMENTS', this.getDepartments())
+    await this.pushCollectionToCloud('departments', this.getDepartments())
   }
 
   async updateDepartment(id: string, updated: Partial<CollegeDepartment>): Promise<void> {
@@ -2214,6 +2321,8 @@ class SchoolDataStore {
         }
       }
     )
+    this.broadcastChange('COLLECTION_UPDATED_DEPARTMENTS', this.getDepartments())
+    await this.pushCollectionToCloud('departments', this.getDepartments())
   }
 
   async deleteDepartment(id: string): Promise<void> {
@@ -2225,6 +2334,8 @@ class SchoolDataStore {
         this.set('departments', list)
       }
     )
+    this.broadcastChange('COLLECTION_UPDATED_DEPARTMENTS', this.getDepartments())
+    await this.pushCollectionToCloud('departments', this.getDepartments())
   }
 
   // --- Admin Subjects / Disciplines Management (ACID Protected) ---
@@ -2433,6 +2544,8 @@ class SchoolDataStore {
         this.set('biometric_passes', list)
       }
     )
+    this.broadcastChange('COLLECTION_UPDATED_BIOMETRIC_PASSES', this.getBiometricClearanceLogs())
+    await this.pushCollectionToCloud('biometric_passes', this.getBiometricClearanceLogs())
   }
 
   // --- Custom Course Fee Schedule (ACID Protected & Cloud Synced) ---

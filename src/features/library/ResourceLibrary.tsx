@@ -759,35 +759,45 @@ export function ResourceLibrary() {
         else if (['MP4', 'WEBM', 'MP3', 'WAV'].includes(rawExt)) fileExt = 'MEDIA'
         else fileExt = rawExt
 
-        // Read file as Base64 Data URL so it is self-contained and immediately viewable everywhere
-        const base64DataUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader()
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.readAsDataURL(selectedFile)
-        })
-        fileBlobUrl = base64DataUrl
-
-        // Also attempt upload to Supabase storage bucket 'library-resources'
+        // 1. Direct Cloud Upload to Supabase Storage bucket 'library-resources'
+        let uploadedCloudUrl: string | null = null
         try {
           const safeName = `${Date.now()}_${selectedFile.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`
           const filePath = `documents/${safeName}`
-          const { error: storageErr } = await supabase.storage
+          const { data: uploadData, error: storageErr } = await supabase.storage
             .from('library-resources')
             .upload(filePath, selectedFile, {
               contentType: selectedFile.type || 'application/octet-stream',
               upsert: true,
             })
 
-          if (!storageErr) {
+          if (!storageErr && uploadData?.path) {
             const { data: publicUrlData } = supabase.storage
               .from('library-resources')
               .getPublicUrl(filePath)
             if (publicUrlData?.publicUrl) {
-              fileBlobUrl = publicUrlData.publicUrl
+              uploadedCloudUrl = publicUrlData.publicUrl
             }
+          } else if (storageErr) {
+            console.warn('Supabase storage upload notice:', storageErr.message)
           }
         } catch (uploadErr) {
           console.warn('Storage bucket upload notice:', uploadErr)
+        }
+
+        if (uploadedCloudUrl) {
+          fileBlobUrl = uploadedCloudUrl
+        } else if (selectedFile.size <= 256 * 1024) {
+          // Safe small file fallback (< 256 KB) without risking localStorage QuotaExceededError
+          const base64DataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve((reader.result as string) || '')
+            reader.readAsDataURL(selectedFile)
+          })
+          fileBlobUrl = base64DataUrl
+        } else {
+          // Offline / bucket unavailable fallback for large files: session Object URL
+          fileBlobUrl = URL.createObjectURL(selectedFile)
         }
       } else {
         fileBlobUrl = 'https://globalcollege.internal/docs/' + encodeURIComponent(newTitle)
