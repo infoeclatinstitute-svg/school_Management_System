@@ -90,44 +90,6 @@
           window.dispatchEvent(new CustomEvent('pwa-install-available', { detail: e }));
         });
 
-        // Self-healing watchdog: detects stale Service Workers, chunk load failures, or blank screen hangs
-        function purgeStaleCacheAndRecover(reason) {
-          console.warn('[Global College Auto-Recovery] Triggered due to:', reason);
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              for (var i = 0; i < regs.length; i++) regs[i].unregister();
-            }).catch(function() {});
-          }
-          if ('caches' in window) {
-            caches.keys().then(function(keys) {
-              for (var i = 0; i < keys.length; i++) caches.delete(keys[i]);
-            }).catch(function() {});
-          }
-          var attemptKey = 'gc_recovery_done_' + reason;
-          if (!sessionStorage.getItem(attemptKey)) {
-            sessionStorage.setItem(attemptKey, Date.now().toString());
-            setTimeout(function() {
-              window.location.reload();
-            }, 300);
-          }
-        }
-
-        // Catch asset loading / module MIME type errors
-        window.addEventListener('error', function(event) {
-          var target = event.target;
-          if (target && (target.tagName === 'SCRIPT' || target.tagName === 'LINK')) {
-            purgeStaleCacheAndRecover('asset_load_failed');
-          }
-        }, true);
-
-        // Mount watchdog: if React app does not mount within 3s, auto-purge and refresh
-        setTimeout(function() {
-          var root = document.getElementById('root');
-          if (root && (!root.firstElementChild || root.children.length === 0)) {
-            purgeStaleCacheAndRecover('blank_screen_timeout');
-          }
-        }, 3000);
-
         if ('serviceWorker' in navigator) {
           window.addEventListener('load', function() {
             navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});

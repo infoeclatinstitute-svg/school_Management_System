@@ -39,6 +39,10 @@ function otaVersionPlugin(): Plugin {
 }
 
 export default defineConfig({
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+  },
   define: {
     __APP_BUILD_TIMESTAMP__: JSON.stringify(currentBuildTimestamp),
   },

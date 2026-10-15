@@ -87,15 +87,15 @@ export async function checkForOTAUpdates(force: boolean = false): Promise<boolea
 
     // Check if the cloud build is strictly newer than our current running build
     const isNewer = remoteBuildTime > baselineTime
-    if (isNewer || (force && remoteBuildTime !== baselineTime)) {
-      // Loop protection: avoid re-triggering reload if this exact build was already reloaded in this session
-      const lastAttemptedBuild = sessionStorage.getItem(RELOAD_ATTEMPT_KEY)
-      if (lastAttemptedBuild === remoteBuildTime.toString()) {
-        return false
-      }
 
+    if (isNewer) {
+      localStorage.setItem(LOCAL_BUILD_TIME_KEY, remoteBuildTime.toString())
+      window.dispatchEvent(new CustomEvent('gc-update-available', { detail: { buildTime: remoteBuildTime } }))
+    }
+
+    // Only perform hard reload if user explicitly clicked manual refresh (force === true)
+    if (force && (isNewer || remoteBuildTime !== baselineTime)) {
       isReloading = true
-      sessionStorage.setItem(RELOAD_ATTEMPT_KEY, remoteBuildTime.toString())
       localStorage.setItem(LOCAL_BUILD_TIME_KEY, remoteBuildTime.toString())
 
       // Notify Service Worker to skipWaiting immediately
@@ -104,12 +104,8 @@ export async function checkForOTAUpdates(force: boolean = false): Promise<boolea
       }
 
       await clearAllWebCaches()
-
-      console.info(`[OTA Update] Newer build detected (${remoteBuildTime} > ${baselineTime}). Refreshing system...`)
-
       window.dispatchEvent(new CustomEvent('gc-app-updating', { detail: { buildTime: remoteBuildTime } }))
 
-      // Execute smooth self-refresh
       setTimeout(() => {
         window.location.reload()
       }, 300)
