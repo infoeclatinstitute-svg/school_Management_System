@@ -274,6 +274,25 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
     setTimeout(() => setCopiedLink(null), 2500)
   }
 
+  // Dynamic Document Title for Browser Tab & SEO Search visibility
+  useEffect(() => {
+    if (school) {
+      const tabNameMap: Record<string, string> = {
+        hub: 'Campus Portal',
+        programs: 'Academic Programs & Courses',
+        calendar: 'Academic Calendar',
+        principal: 'Principal Executive Office',
+        bursar: 'Bursar & Finance Desk',
+        teacher: 'Faculty Academic Desk',
+        student: 'Student Learning Workspace',
+        billing: 'Subscription & Cloud Licensing',
+        profile: 'Account Profile',
+      }
+      const titleLabel = tabNameMap[activeTab] || 'Campus Portal'
+      document.title = `${school.name} — ${titleLabel} | Global College Cloud`
+    }
+  }, [school, activeTab])
+
   // Handle Sign Out
   const handleSignOut = () => {
     if (school) {
