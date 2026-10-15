@@ -28,6 +28,7 @@ import { schoolEventBus } from './eventBus'
 export { schoolEventBus }
 import { generateBiometricTemplate } from './biometricEngine'
 import { supabase } from './supabase'
+import { idbStorage } from './indexedDb'
 import { INSTITUTIONAL_SCHOOLS } from '@/config/institution'
 import { OFFICIAL_COURSES, type CourseProgram } from '@/config/officialCourses'
 import { sanitizeInput } from './utils'
@@ -84,6 +85,7 @@ class SchoolDataStore {
   constructor() {
     this.cleanLegacyMockData()
     this.setupRealtimeSync()
+    this.hydrateFromIndexedDb().catch(() => {})
     this.syncWithCloud().catch(() => {})
 
     // Sync automatically on window focus, device wake, or network reconnect across Desktop and Mobile
@@ -258,6 +260,44 @@ class SchoolDataStore {
         })
         .subscribe()
     } catch {}
+  }
+
+  private async hydrateFromIndexedDb(): Promise<void> {
+    if (typeof window === 'undefined') return
+    const keys = [
+      'students',
+      'invoices',
+      'receipts',
+      'resources',
+      'timetable',
+      'exams',
+      'report_cards',
+      'discipline',
+      'notices',
+      'course_units',
+      'subjects',
+      'departments',
+      'custom_categories',
+      'custom_course_fees',
+      'unit_registrations',
+      'biometric_passes',
+      'credentials',
+    ]
+
+    for (const key of keys) {
+      try {
+        const idbVal = await idbStorage.get(`gc_v2_school_${key}`)
+        if (idbVal !== null && idbVal !== undefined) {
+          this.memCache.set(key, idbVal)
+        } else {
+          const localVal = this.get(key, null)
+          if (localVal !== null && localVal !== undefined) {
+            await idbStorage.set(`gc_v2_school_${key}`, localVal)
+          }
+        }
+      } catch {}
+    }
+    window.dispatchEvent(new CustomEvent('gc-data-synced'))
   }
 
   broadcastChange(type: string, data?: any) {
@@ -520,6 +560,7 @@ class SchoolDataStore {
       'faculty_teachers',
     ]
     keys.forEach((k) => {
+      idbStorage.delete(`gc_v2_school_${k}`).catch(() => {})
       localStorage.removeItem(`gc_v2_school_${k}`)
       localStorage.removeItem(`gc_school_${k}`)
     })
@@ -544,6 +585,7 @@ class SchoolDataStore {
 
   private set<T>(key: string, value: T): void {
     this.memCache.set(key, value)
+    idbStorage.set(`gc_v2_school_${key}`, value).catch(() => {})
     try {
       if (key === 'resources' && Array.isArray(value)) {
         const sanitized = (value as AcademicResource[]).map((r) => {
@@ -2749,12 +2791,14 @@ class SchoolDataStore {
       localStorage.setItem('gc_v2_local_credentials', JSON.stringify(creds))
       localStorage.setItem('gc_local_credentials', JSON.stringify(creds))
     } catch {}
+    idbStorage.set('gc_v2_local_credentials', creds).catch(() => {})
     await this.pushCollectionToCloud('credentials', creds)
   }
 
   // --- Complete Factory Reset ---
   resetToCleanSlate() {
     this.purgeAllDataForLaunch()
+    idbStorage.clear().catch(() => {})
     localStorage.removeItem('gc_v2_school_biometric_passes')
     localStorage.removeItem('gc_v2_school_device_sessions')
     localStorage.removeItem('gc_v2_local_credentials')
