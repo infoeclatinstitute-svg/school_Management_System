@@ -4,10 +4,8 @@
 // Strategy: High-speed Stale-While-Revalidate & Cache-First for Hashed Chunks
 // ============================================================================
 
-const CACHE_NAME = 'global-college-pwa-v3';
+const CACHE_NAME = 'global-college-pwa-v4';
 const PRECACHE_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/logo.png',
   '/favicon.ico',
@@ -61,8 +59,12 @@ self.addEventListener('fetch', (event) => {
         }
         return fetch(request).then((networkResponse) => {
           if (networkResponse && networkResponse.ok && networkResponse.status === 200) {
-            const copy = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+            const contentType = networkResponse.headers.get('content-type') || '';
+            // Only cache valid asset MIME types, never cache SPA index.html fallback as JS/CSS
+            if (!contentType.includes('text/html')) {
+              const copy = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
+            }
           }
           return networkResponse;
         });
@@ -71,33 +73,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. HTML Navigation requests: Fast Network-first with 2-second timeout fallback to cached index.html
+  // 2. HTML Navigation requests: Always live network first (ensures fresh hashed chunk script tags)
   if (request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html')) {
     event.respondWith(
-      (async () => {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-          const networkResponse = await fetch(request, { signal: controller.signal });
-          clearTimeout(timeoutId);
-
-          if (networkResponse && networkResponse.ok) {
-            const copy = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy)).catch(() => {});
-            return networkResponse;
-          }
-        } catch {}
-
-        // Fallback to cached index.html instantly if network is sluggish or offline
-        const cachedIndex = await caches.match('/index.html');
-        if (cachedIndex) return cachedIndex;
-
-        const fallback = await caches.match('/');
-        if (fallback) return fallback;
-
-        return fetch(request);
-      })()
+      fetch(request).catch(async () => {
+        // Only if device is totally offline, fallback to cached shell
+        const cached = await caches.match('/index.html') || await caches.match('/');
+        if (cached) return cached;
+        throw new Error('Offline and no cached shell available');
+      })
     );
     return;
   }
