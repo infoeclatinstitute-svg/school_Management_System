@@ -54,10 +54,10 @@ export function isIOSDevice(): boolean {
   return /iphone|ipad|ipod/i.test(navigator.userAgent)
 }
 
-export const OFFICIAL_APK_URL = 'https://github.com/Smart-009/brent1_college/releases/latest/download/global-college.apk'
-export const OFFICIAL_APKPURE_URL = 'https://apkpure.com/p/com.globalcollege.lms'
+export const OFFICIAL_APK_URL = 'https://github.com/infoeclatinstitute-svg/school_Management_System/releases/latest/download/global-college.apk'
+export const OFFICIAL_APKPURE_URL = 'https://apkpure.com/p/com.globalcollege.sms'
 export const LOCAL_APK_URL = '/downloads/global-college.apk'
-export const OFFICIAL_DESKTOP_URL = '/downloads/global-college-setup.exe'
+export const OFFICIAL_DESKTOP_URL = 'https://github.com/infoeclatinstitute-svg/school_Management_System/releases/latest/download/global-college-setup.exe'
 export const LOCAL_DESKTOP_URL = '/global-college-setup.exe'
 
 export function getFriendlyDeviceName(): string {

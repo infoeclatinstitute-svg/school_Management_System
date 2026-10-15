@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { OFFICIAL_DESKTOP_URL, OFFICIAL_APK_URL } from '@/utils/platform'
 
 interface SafariInstallModalProps {
   isOpen: boolean
@@ -209,8 +210,9 @@ export function SafariInstallModal({ isOpen, onClose, isIOS }: SafariInstallModa
                 <strong>Windows Desktop Installer (.exe):</strong> Prefer a direct Windows setup package?
               </div>
               <a
-                href="/downloads/global-college-setup.exe"
-                download
+                href={OFFICIAL_DESKTOP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
                   background: '#10b981',
                   color: '#052e16',
@@ -313,8 +315,9 @@ export function SafariInstallModal({ isOpen, onClose, isIOS }: SafariInstallModa
                 <strong>Android Native Package (.apk):</strong> Direct APK install for Android phones:
               </div>
               <a
-                href="/downloads/global-college.apk"
-                download
+                href={OFFICIAL_APK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
                   background: '#10b981',
                   color: '#052e16',

@@ -562,10 +562,11 @@ test('Zero Eclat or Éclat references remain in src/ and public/', () => {
   const offending = []
   for (const file of files) {
     const content = fs.readFileSync(file, 'utf8')
-    // Strip authorised domain and contact email before checking for brand-name usage
+    // Strip authorised domain, contact email, and github org before checking for brand-name usage
     const stripped = content
       .replace(/cloud\.eclat\.institute/gi, '')
       .replace(/info\.eclatinstitute@gmail\.com/gi, '')
+      .replace(/infoeclatinstitute-svg/gi, '')
     if (/[eé]clat/i.test(stripped)) {
       offending.push(path.relative(ROOT_DIR, file))
     }
