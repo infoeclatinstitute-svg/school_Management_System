@@ -164,27 +164,10 @@ export function initOTAUpdater(): () => void {
   }
   window.addEventListener('online', handleOnline)
 
-  // 5. Service Worker controller change (when a newly installed SW claims clients)
-  let hadPreviousController = Boolean(navigator.serviceWorker?.controller)
-  let swRefreshing = false
-  const handleControllerChange = () => {
-    if (hadPreviousController && !swRefreshing && !isReloading) {
-      swRefreshing = true
-      window.location.reload()
-    }
-    hadPreviousController = true
-  }
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange)
-  }
-
   return () => {
     clearTimeout(initialTimer)
     clearInterval(intervalTimer)
     document.removeEventListener('visibilitychange', handleVisibilityChange)
     window.removeEventListener('online', handleOnline)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange)
-    }
   }
 }
