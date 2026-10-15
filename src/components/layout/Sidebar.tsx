@@ -1,4 +1,4 @@
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { RoleBadge } from '@/components/ui/Badge'
 import {
@@ -19,8 +19,6 @@ import {
   LogOutIcon,
   ShieldCheckIcon,
   AwardIcon,
-  ChartBarIcon,
-  HeartHandshakeIcon,
 } from '@/components/icons/AppIcons'
 
 interface NavItem {
@@ -32,7 +30,6 @@ interface NavItem {
 export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
 
   // Streamlined Role-Specific Navigation Definitions
   const guestNav: NavItem[] = [

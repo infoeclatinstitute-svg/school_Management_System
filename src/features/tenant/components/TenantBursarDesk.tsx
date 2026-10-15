@@ -7,7 +7,6 @@ import type {
   TenantFeePayment,
 } from '@/types/tenantSchool'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
-import { CreditCardIcon, FileTextIcon, UsersIcon, ShieldCheckIcon } from '@/components/icons/AppIcons'
 
 interface TenantBursarDeskProps {
   school: PartnerSchoolTenant
@@ -22,7 +21,7 @@ interface TenantBursarDeskProps {
 
 export function TenantBursarDesk({
   school,
-  staffList,
+  staffList: _staffList,
   studentList,
   payrollList,
   feePaymentsList,
@@ -31,12 +30,10 @@ export function TenantBursarDesk({
   onOpenReceipt,
 }: TenantBursarDeskProps) {
   const primaryColor = school.primary_color || '#881337'
-  const accentColor = school.accent_color || '#d4af37'
 
   const [bursarSubTab, setBursarSubTab] = useState<'payroll' | 'payments' | 'arrears' | 'structure'>('payroll')
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false)
   const [paymentSearchQuery, setPaymentSearchQuery] = useState('')
-  const [arrearsClassFilter, setArrearsClassFilter] = useState('All')
 
   // New Payment Form Input
   const [newPaymentInput, setNewPaymentInput] = useState({
@@ -52,7 +49,6 @@ export function TenantBursarDesk({
   const totalBilled = studentList.reduce((acc, s) => acc + s.fee_total, 0)
   const totalCollected = studentList.reduce((acc, s) => acc + s.fee_paid, 0)
   const totalArrears = studentList.reduce((acc, s) => acc + s.fee_balance, 0)
-  const totalGrossPayroll = payrollList.reduce((acc, p) => acc + p.gross_salary, 0)
   const totalNetPayroll = payrollList.reduce((acc, p) => acc + p.net_salary, 0)
 
   // Students with Arrears

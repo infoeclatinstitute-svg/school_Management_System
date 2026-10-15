@@ -1,5 +1,5 @@
 import { useState, useEffect, useId } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { getTenantDomainLinks } from '@/lib/tenantDomain'
@@ -198,12 +198,8 @@ const MODULE_OPTIONS: {
 ]
 
 export function SchoolRegistrationPage() {
-  const navigate = useNavigate()
   const formId = useId()
-  const { profile } = useAuth()
-
-  // Only a logged-in admin on the root domain (not a school subdomain) can see the directory or delete schools
-  const isSaasAdmin = profile?.role === 'admin'
+  const { profile: _profile } = useAuth()
 
   // Mode: Dedicated 5-step registration wizard
   const [existingSchools, setExistingSchools] = useState<PartnerSchoolTenant[]>(() =>

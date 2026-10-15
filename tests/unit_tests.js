@@ -449,6 +449,7 @@ test('Electron desktop entry point (electron/main.cjs) and PWA install UI compon
   const navbar = fs.readFileSync(path.join(ROOT_DIR, 'src', 'components', 'layout', 'Navbar.tsx'), 'utf8')
 
   assert.ok(pwaHook.includes('promptInstall'), 'usePWAInstall.ts must expose promptInstall()')
+  assert.ok(navbar.includes('usePWAInstall'), 'Navbar must integrate PWA install capability')
   assert.ok(installModal.includes('Laptop &amp; Computer') && installModal.includes('Phone (Android / iOS)'), 'Install modal must guide both Laptop/Desktop and Phone users')
 })
 

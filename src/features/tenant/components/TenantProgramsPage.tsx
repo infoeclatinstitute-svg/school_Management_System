@@ -1,17 +1,12 @@
 import React, { useState, useEffect, useId } from 'react'
-import { Link } from 'react-router-dom'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import type { PartnerSchoolTenant, InstitutionProgram } from '@/types/tenantSchool'
 import {
-  GraduationCapIcon,
   SearchIcon,
-  BookOpenIcon,
   ArrowRightIcon,
-  CheckCircleIcon,
   CalendarIcon,
   CreditCardIcon,
   ClockIcon,
-  AwardIcon,
 } from '@/components/icons/AppIcons'
 
 interface TenantProgramsPageProps {

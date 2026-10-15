@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import type { ReactElement } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { schoolStore } from '@/lib/schoolData'
@@ -92,29 +92,7 @@ function RequireAuth({ children, allowedRoles }: { children: ReactElement; allow
   return children
 }
 
-/** SaaS Platform Admin Guard — only platform owner on root domain can access */
-function RequireSaasAdmin({ children }: { children: ReactElement }) {
-  const { profile, loading } = useAuth()
 
-  // Must be on root domain (not a school subdomain)
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname
-    const schools = tenantSchoolStore.getSchools()
-    const detected = detectTenantFromHost(hostname, schools)
-    if (detected) {
-      // On a school subdomain — redirect to that school's hub
-      return <Navigate to="/" replace />
-    }
-  }
-
-  if (loading) return <LoadingScreen message="Verifying platform access..." />
-
-  // Must be logged in as admin
-  if (!profile) return <Navigate to="/login?next=/register-school" replace />
-  if (profile.role !== 'admin') return <Navigate to="/" replace />
-
-  return children
-}
 
 /** Portals-Only Entry Router with Subdomain & Custom Domain Auto-Detection */
 function RootEntryRouter() {

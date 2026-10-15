@@ -5,7 +5,6 @@ import type {
   TenantStudentMember,
   TenantPayrollRecord,
   TenantFeePayment,
-  TenantGradeRecord,
 } from '@/types/tenantSchool'
 
 interface PrintableModalProps {
@@ -602,7 +601,6 @@ export function StaffPayslipModal({
   onClose,
 }: PrintableModalProps & { payslip: TenantPayrollRecord }) {
   const primaryColor = school.primary_color || '#881337'
-  const accentColor = school.accent_color || '#d4af37'
 
   return (
     <div
@@ -859,7 +857,6 @@ export function FeeReceiptModal({
   onClose,
 }: PrintableModalProps & { receipt: TenantFeePayment }) {
   const primaryColor = school.primary_color || '#881337'
-  const accentColor = school.accent_color || '#d4af37'
 
   return (
     <div

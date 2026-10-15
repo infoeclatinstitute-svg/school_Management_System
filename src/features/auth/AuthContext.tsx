@@ -363,13 +363,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cleanAlpha === 'principal'
 
     if (isAdminIdentifier) {
-      const isCorrectPassword =
-        cleanPass === 'Global@2026#!' ||
-        cleanPass === 'Global@2026#' ||
-        cleanPass === 'Global@2026#!' ||
-        cleanPass === 'Admin@2026' ||
-        cleanPass === 'Brent@2026#!' ||
-        cleanPass === INSTITUTION_CONFIG.auth.adminDefaultPassword
+      const expectedAdminPassword = INSTITUTION_CONFIG.auth.adminDefaultPassword || 'Global@2026#!'
+      const isCorrectPassword = cleanPass === expectedAdminPassword
 
       if (isCorrectPassword) {
         const adminProfile: Profile = {

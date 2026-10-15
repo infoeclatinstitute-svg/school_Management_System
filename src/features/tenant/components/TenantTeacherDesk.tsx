@@ -6,7 +6,6 @@ import type {
   TenantLessonNote,
 } from '@/types/tenantSchool'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
-import { FileTextIcon, UsersIcon, CheckCircleIcon, CalendarIcon } from '@/components/icons/AppIcons'
 
 interface TenantTeacherDeskProps {
   school: PartnerSchoolTenant
@@ -24,7 +23,6 @@ export function TenantTeacherDesk({
   onReloadData,
 }: TenantTeacherDeskProps) {
   const primaryColor = school.primary_color || '#881337'
-  const accentColor = school.accent_color || '#d4af37'
 
   const [teacherSubTab, setTeacherSubTab] = useState<'attendance' | 'gradebook' | 'notes' | 'timetable'>('attendance')
 

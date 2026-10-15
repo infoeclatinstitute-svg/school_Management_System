@@ -152,7 +152,7 @@ export function deepClone<T>(obj: T): T {
 export function sanitizeInput(str: string): string {
   if (!str || typeof str !== 'string') return ''
   return str
-    .replace(/\0/g, '')
+    .replaceAll('\0', '')
     .replace(/[<>]/g, '')
     .replace(/javascript:/gi, '')
     .replace(/vbscript:/gi, '')

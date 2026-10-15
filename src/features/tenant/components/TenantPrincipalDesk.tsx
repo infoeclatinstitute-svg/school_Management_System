@@ -7,7 +7,6 @@ import type {
   TenantTimetableEntry,
 } from '@/types/tenantSchool'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
-import { UsersIcon, GraduationCapIcon, CalendarIcon, ShieldCheckIcon, CreditCardIcon } from '@/components/icons/AppIcons'
 
 interface TenantPrincipalDeskProps {
   school: PartnerSchoolTenant
@@ -31,7 +30,6 @@ export function TenantPrincipalDesk({
   onOpenDomainSettings,
 }: TenantPrincipalDeskProps) {
   const primaryColor = school.primary_color || '#881337'
-  const accentColor = school.accent_color || '#d4af37'
 
   const [principalSubTab, setPrincipalSubTab] = useState<'staff' | 'admissions' | 'timetable' | 'payroll' | 'governance'>('staff')
 
@@ -42,7 +40,6 @@ export function TenantPrincipalDesk({
 
   // Filters & Search
   const [staffSearchQuery, setStaffSearchQuery] = useState('')
-  const [staffDeptFilter, setStaffDeptFilter] = useState('All')
   const [studentSearchQuery, setStudentSearchQuery] = useState('')
   const availableClasses = school.classes_list && school.classes_list.length > 0
     ? school.classes_list

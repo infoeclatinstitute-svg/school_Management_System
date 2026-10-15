@@ -28,7 +28,7 @@ import { schoolEventBus } from './eventBus'
 export { schoolEventBus }
 import { generateBiometricTemplate } from './biometricEngine'
 import { supabase } from './supabase'
-import { INSTITUTION_CONFIG, INSTITUTIONAL_SCHOOLS } from '@/config/institution'
+import { INSTITUTIONAL_SCHOOLS } from '@/config/institution'
 import { OFFICIAL_COURSES, type CourseProgram } from '@/config/officialCourses'
 import { sanitizeInput } from './utils'
 
@@ -105,14 +105,13 @@ class SchoolDataStore {
       document.addEventListener('deviceready', () => {
         this.syncWithCloud(true).catch(() => {})
       })
-      // Periodic automatic live sync heartbeat (every 4s) for instantaneous cross-device sync
+      // Periodic automatic live sync fallback heartbeat (every 30s)
       this.autoSyncTimer = setInterval(() => {
-        this.syncWithCloud(false).catch(() => {})
-        // Re-establish realtime websocket subscription if disconnected
         if (!this.syncChannel || this.syncChannel.state === 'closed' || this.syncChannel.state === 'errored') {
           this.setupRealtimeSync()
         }
-      }, 4000)
+        this.syncWithCloud(false).catch(() => {})
+      }, 30000)
     }
   }
 

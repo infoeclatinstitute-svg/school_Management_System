@@ -1,22 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useIsMobile } from '@/hooks/useMediaQuery'
-import { INSTITUTION_CONFIG, getWhatsAppInquiryUrl } from '@/config/institution'
+import { getWhatsAppInquiryUrl } from '@/config/institution'
 import {
   SparklesIcon,
   VideoIcon,
-  LaptopIcon,
   CheckCircleIcon,
-  CheckIcon,
   MessageCircleIcon,
   RocketIcon,
-  ArrowRightIcon,
   CreditCardIcon,
   ShieldCheckIcon,
   FileTextIcon,
   BuildingIcon,
   GraduationCapIcon,
-  ClockIcon,
   UserIcon,
 } from '@/components/icons/AppIcons'
 import { schoolStore } from '@/lib/schoolData'
@@ -428,7 +424,7 @@ export function TutorPublishCoursePage() {
 
   const [submitting, setSubmitting] = useState(false)
   const [submittedCourse, setSubmittedCourse] = useState<SubmittedTutorCourse | null>(null)
-  const [bridgeStatus, setBridgeStatus] = useState<{ online: boolean; dir?: string }>({ online: false })
+  const [_bridgeStatus, setBridgeStatus] = useState<{ online: boolean; dir?: string }>({ online: false })
   const [downloadStatusMsg, setDownloadStatusMsg] = useState<string | null>(null)
 
   // Check if local desktop bridge is running & read existing school departments

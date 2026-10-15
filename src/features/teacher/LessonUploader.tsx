@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { YouTubeEmbed } from '@/components/shared/YouTubeEmbed'
 import { Button } from '@/components/ui/Button'
-import { extractYouTubeId } from '@/lib/utils'
 import type { Course } from '@/lib/database.types'
 
 interface QuestionItem {

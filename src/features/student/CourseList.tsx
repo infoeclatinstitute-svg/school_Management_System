@@ -18,8 +18,6 @@ export function CourseList() {
   const [, setVersion] = useState(0)
 
   // Enrollment checkout state
-  const [mpesaCode, setMpesaCode] = useState('')
-  const [paymentPhone, setPaymentPhone] = useState('')
   const [isProcessingEnrollment, setIsProcessingEnrollment] = useState(false)
   const [enrollSuccessMsg, setEnrollSuccessMsg] = useState<string | null>(null)
 

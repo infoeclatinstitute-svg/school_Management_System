@@ -2,21 +2,9 @@ import React, { useState, useEffect, useId } from 'react'
 import { Link } from 'react-router-dom'
 import { licensingStore, DEFAULT_CAMPUS_RATE_KES } from '@/lib/licensingStore'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
-import type { ProductKeyLicense, SaasCampusInvoice, LicenseDurationType } from '@/types/licensing'
+import type { ProductKeyLicense, SaasCampusInvoice, LicenseDurationType, MasterLicensingMetrics } from '@/types/licensing'
 import type { PartnerSchoolTenant } from '@/types/tenantSchool'
-import {
-  ShieldCheckIcon,
-  LockIcon,
-  KeyIcon,
-  CreditCardIcon,
-  BuildingIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ArrowRightIcon,
-  SearchIcon,
-  UsersIcon,
-  AwardIcon,
-} from '@/components/icons/AppIcons'
+import { ShieldCheckIcon, SearchIcon } from '@/components/icons/AppIcons'
 
 export function MasterSaasPortal() {
   const formId = useId()
@@ -800,19 +788,20 @@ export function MasterSaasPortal() {
 
                 <button
                   type="submit"
+                  disabled={isGeneratingKey}
                   style={{
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    background: isGeneratingKey ? '#334155' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                     color: '#ffffff',
                     fontWeight: 900,
                     fontSize: '0.95rem',
                     padding: '0.95rem',
                     borderRadius: '12px',
                     border: 'none',
-                    cursor: 'pointer',
+                    cursor: isGeneratingKey ? 'not-allowed' : 'pointer',
                     boxShadow: '0 8px 24px rgba(37, 99, 235, 0.35)',
                   }}
                 >
-                  ⚡ Generate &amp; Issue Product Key
+                  {isGeneratingKey ? '⚡ Generating Key...' : '⚡ Generate & Issue Product Key'}
                 </button>
               </form>
             </div>

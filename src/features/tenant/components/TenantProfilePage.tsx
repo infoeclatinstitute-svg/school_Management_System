@@ -159,7 +159,6 @@ export function TenantProfilePage({
     if (newPwd !== confirmPwd) { setPwdError('Passwords do not match.'); return }
 
     setPwdSaving(true)
-    const slug = school.slug
 
     if (isAdmin) {
       tenantSchoolStore.resetSchoolAdminPassword(school.slug, newPwd)

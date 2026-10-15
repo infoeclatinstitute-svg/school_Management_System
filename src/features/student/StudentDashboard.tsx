@@ -9,7 +9,6 @@ import { Spinner } from '@/components/ui/Spinner'
 import { CertificateGenerator } from '@/components/shared/CertificateGenerator'
 import { schoolStore, schoolEventBus } from '@/lib/schoolData'
 import {
-  ChartBarIcon,
   BookOpenIcon,
   CreditCardIcon,
   LibraryIcon,

@@ -97,7 +97,7 @@ export function ManageUsers() {
       const parsed = stored ? JSON.parse(stored) : {}
       const passHash = await hashPassword(cleanPass)
       parsed[cleanKey] = {
-        ...(parsed[cleanKey] || {}),
+        ...parsed[cleanKey],
         id: resettingUser.id,
         admission_number: cleanAdm,
         full_name: resettingUser.full_name,

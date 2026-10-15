@@ -622,7 +622,7 @@ class TenantSchoolStore {
       },
       features_enabled: {
         ...defaultFeatures,
-        ...(input.features_enabled || {}),
+        ...input.features_enabled,
       },
       created_at: new Date().toISOString(),
       is_verified: true,

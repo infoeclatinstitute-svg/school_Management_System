@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { getTenantDomainLinks, detectTenantFromHost } from '@/lib/tenantDomain'
 import type { TenantDomainLinks } from '@/lib/tenantDomain'
-import { INSTITUTION_CONFIG } from '@/config/institution'
 import type {
   PartnerSchoolTenant,
   TenantStaffMember,
@@ -18,23 +17,10 @@ import type {
 import {
   GraduationCapIcon,
   UserIcon,
-  BriefcaseIcon,
   ShieldCheckIcon,
-  CalendarIcon,
-  BuildingIcon,
-  GlobeIcon,
-  PhoneIcon,
-  MailIcon,
   ArrowRightIcon,
-  CheckCircleIcon,
   LockIcon,
-  ExternalLinkIcon,
-  SparklesIcon,
-  ClockIcon,
   CreditCardIcon,
-  FileTextIcon,
-  UsersIcon,
-  AwardIcon,
 } from '@/components/icons/AppIcons'
 
 // Dedicated Modular School Desks
@@ -66,7 +52,6 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   const schoolSlug = forcedSlug || routeSlug
   const subview = forcedSubview || routeSubview
   const navigate = useNavigate()
-  const location = useLocation()
   const { profile } = useAuth()
 
   const isSubdomainMode = typeof window !== 'undefined' && Boolean(detectTenantFromHost(window.location.hostname, tenantSchoolStore.getSchools()))
@@ -84,7 +69,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
   const [school, setSchool] = useState<PartnerSchoolTenant | null>(null)
   const [loading, setLoading] = useState(true)
-  const [copiedLink, setCopiedLink] = useState<string | null>(null)
+  const [_copiedLink, setCopiedLink] = useState<string | null>(null)
 
   // Domain Modal
   const [showDomainModal, setShowDomainModal] = useState(false)

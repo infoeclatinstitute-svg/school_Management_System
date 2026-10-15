@@ -7,7 +7,6 @@ import type {
   TenantFeePayment,
 } from '@/types/tenantSchool'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
-import { GraduationCapIcon, CalendarIcon, FileTextIcon, CreditCardIcon, CheckCircleIcon } from '@/components/icons/AppIcons'
 
 interface TenantStudentDeskProps {
   school: PartnerSchoolTenant

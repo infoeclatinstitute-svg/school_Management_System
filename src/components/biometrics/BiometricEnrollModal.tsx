@@ -2,11 +2,10 @@
 // Global College — Student Biometric Fingerprint Enrollment Modal
 // ============================================================
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { schoolStore } from '@/lib/schoolData'
 import {
   executeRealBiometricScan,
-  isWebAuthnAvailable,
   isMobileDevice,
   type FingerOption,
   type BiometricMode,
@@ -22,7 +21,7 @@ interface Props {
 
 export const BiometricEnrollModal: React.FC<Props> = ({ student, officerName, onClose, onEnrolled }) => {
   const isMobile = isMobileDevice()
-  const [biometricMode, setBiometricMode] = useState<BiometricMode>('webauthn')
+  const [biometricMode] = useState<BiometricMode>('webauthn')
   const [selectedFinger, setSelectedFinger] = useState<FingerOption>(
     (student.biometric_finger_name as FingerOption) || 'Right Index'
   )

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { INSTITUTION_CONFIG } from '@/config/institution'
-import { GraduationCapIcon, CheckIcon, CodeIcon, ChartBarIcon, BuildingIcon, SparklesIcon } from '@/components/icons/AppIcons'
+import { GraduationCapIcon, CheckIcon, CodeIcon, ChartBarIcon, SparklesIcon } from '@/components/icons/AppIcons'
 
 export interface CertificateData {
   student_name: string

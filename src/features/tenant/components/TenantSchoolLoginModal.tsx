@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import type { PartnerSchoolTenant, TenantStaffMember, TenantStudentMember, TenantSessionUser } from '@/types/tenantSchool'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
-import { LockIcon, UserIcon, ShieldCheckIcon, AlertTriangleIcon, CheckCircleIcon } from '@/components/icons/AppIcons'
+import { LockIcon, AlertTriangleIcon } from '@/components/icons/AppIcons'
 
 interface TenantSchoolLoginModalProps {
   school: PartnerSchoolTenant
@@ -16,7 +16,7 @@ export function TenantSchoolLoginModal({
   school,
   staffList,
   studentList,
-  currentSession,
+  currentSession: _currentSession,
   onLoginSuccess,
   onClose,
 }: TenantSchoolLoginModalProps) {
