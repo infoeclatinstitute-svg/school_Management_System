@@ -537,6 +537,7 @@ CREATE TABLE IF NOT EXISTS public.app_cloud_sync (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.school_terms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.faculty_teachers ENABLE ROW LEVEL SECURITY;
@@ -552,6 +553,10 @@ ALTER TABLE public.fee_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.library_resources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.academic_handbooks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.school_notices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.discipline_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.secretary_inquiries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.biometric_clearance_passes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.intake_schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tenant_schools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_cloud_sync ENABLE ROW LEVEL SECURITY;
@@ -561,11 +566,12 @@ DECLARE
   tbl TEXT;
 BEGIN
   FOREACH tbl IN ARRAY ARRAY[
-    'profiles', 'departments', 'subjects', 'classes', 'students',
+    'profiles', 'departments', 'subjects', 'school_terms', 'classes', 'students',
     'faculty_teachers', 'course_units', 'courses', 'lessons',
     'unit_registrations', 'timetable_periods', 'exam_sessions',
     'report_cards', 'fee_invoices', 'fee_payments', 'library_resources',
-    'academic_handbooks', 'school_notices', 'intake_schedules',
+    'academic_handbooks', 'school_notices', 'notifications', 'discipline_records',
+    'secretary_inquiries', 'biometric_clearance_passes', 'intake_schedules',
     'tenant_schools', 'app_cloud_sync'
   ]
   LOOP
@@ -573,3 +579,4 @@ BEGIN
     EXECUTE format('CREATE POLICY "Allow full access to %I" ON public.%I FOR ALL USING (true) WITH CHECK (true);', tbl, tbl);
   END LOOP;
 END $$;
+

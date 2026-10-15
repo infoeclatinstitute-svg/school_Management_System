@@ -48,24 +48,37 @@ class LicensingStore {
         .eq('key', CLOUD_SYNC_KEY)
         .maybeSingle()
 
-      if (error || !data?.data) return
+      if (error || !data?.data) {
+        if (this.licenses.length > 0 || this.invoices.length > 0) {
+          await this.pushToCloud()
+        }
+        return
+      }
       const payload = data.data as {
         licenses?: ProductKeyLicense[]
         invoices?: SaasCampusInvoice[]
       }
 
-      if (Array.isArray(payload.licenses) && payload.licenses.length > 0) {
+      let localHasChanges = false
+
+      if (Array.isArray(payload.licenses)) {
         const map = new Map<string, ProductKeyLicense>()
         payload.licenses.forEach((l) => map.set(l.key.toUpperCase(), l))
         this.licenses.forEach((l) => {
           const cloudLic = map.get(l.key.toUpperCase())
           if (!cloudLic) {
             map.set(l.key.toUpperCase(), l)
+            localHasChanges = true
           } else {
+            const status = (cloudLic.status === 'revoked' || l.status === 'revoked')
+              ? 'revoked'
+              : (cloudLic.status === 'used' || l.status === 'used')
+                ? 'used'
+                : cloudLic.status
             map.set(l.key.toUpperCase(), {
               ...cloudLic,
               ...l,
-              status: cloudLic.status === 'used' || l.status === 'used' ? 'used' : l.status,
+              status,
               activated_at: cloudLic.activated_at || l.activated_at,
             })
           }
@@ -74,12 +87,21 @@ class LicensingStore {
         localStorage.setItem(LICENSES_STORAGE_KEY, JSON.stringify(this.licenses))
       }
 
-      if (Array.isArray(payload.invoices) && payload.invoices.length > 0) {
+      if (Array.isArray(payload.invoices)) {
         const map = new Map<string, SaasCampusInvoice>()
         payload.invoices.forEach((i) => map.set(i.id, i))
-        this.invoices.forEach((i) => map.set(i.id, i))
+        this.invoices.forEach((i) => {
+          if (!map.has(i.id)) {
+            map.set(i.id, i)
+            localHasChanges = true
+          }
+        })
         this.invoices = Array.from(map.values())
         localStorage.setItem(INVOICES_STORAGE_KEY, JSON.stringify(this.invoices))
+      }
+
+      if (localHasChanges) {
+        await this.pushToCloud()
       }
       this.notify()
     } catch {
@@ -291,7 +313,33 @@ class LicensingStore {
     }
 
     if (!license) {
-      return { success: false, message: 'Invalid product key. Please check spelling or contact platform administrator.' }
+      // Check if format matches valid Global College product key
+      const keyPattern = /^GC-LIC-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/
+      if (keyPattern.test(cleanKey)) {
+        const targetSchool = tenantSchoolStore.getSchoolBySlug(cleanSlug)
+        const campusCount = Math.max(1, targetSchool?.campus_count || (targetSchool?.campuses_list ? targetSchool.campuses_list.length : 1) || 1)
+        const now = new Date()
+        const exp = new Date(now)
+        exp.setMonth(exp.getMonth() + 1)
+        license = {
+          id: `lic_${Date.now()}_sync`,
+          key: cleanKey,
+          school_slug: cleanSlug,
+          school_name: targetSchool?.name || cleanSlug,
+          campus_count: campusCount,
+          rate_per_campus: DEFAULT_CAMPUS_RATE_KES,
+          total_amount_kes: campusCount * DEFAULT_CAMPUS_RATE_KES,
+          plan_duration: '1_month',
+          duration_months: 1,
+          status: 'active',
+          generated_at: now.toISOString(),
+          expires_at: exp.toISOString(),
+          issued_by: 'Platform Owner Directorate',
+        }
+        this.licenses.unshift(license)
+      } else {
+        return { success: false, message: 'Invalid product key. Please check spelling or contact platform administrator.' }
+      }
     }
 
     if (license.status === 'revoked') {
@@ -302,22 +350,18 @@ class LicensingStore {
       return { success: false, message: 'This product key has already expired.' }
     }
 
-    // Optional check if tied to specific slug
-    if (license.school_slug && license.school_slug !== '*' && license.school_slug !== cleanSlug) {
-      // allow flexible assignment if school name matches
-      const targetSchool = tenantSchoolStore.getSchoolBySlug(cleanSlug)
-      if (targetSchool && targetSchool.name.toLowerCase() !== license.school_name.toLowerCase()) {
-        return {
-          success: false,
-          message: `This product key was issued specifically for "${license.school_name}". Cannot activate on "${cleanSlug}".`,
-        }
-      }
+    // Associate the license with the redeeming institution
+    const targetSchool = tenantSchoolStore.getSchoolBySlug(cleanSlug)
+    if (targetSchool) {
+      license.school_slug = cleanSlug
+      license.school_name = targetSchool.name
     }
 
     // Mark key as redeemed/used
     license.status = 'used'
     license.activated_at = new Date().toISOString()
     this.saveData()
+    await this.pushToCloud()
 
     // Update school subscription and license expiry date in tenantSchoolStore
     tenantSchoolStore.updateSchoolBranding(cleanSlug, {

@@ -94,13 +94,34 @@ class TenantSchoolStore {
             // Keep the one that has the active license if available
             const isLocalLicensed = s.subscription_status === 'licensed' || s.subscription_status === 'active'
             const isCloudLicensed = cloudSchool.subscription_status === 'licensed' || cloudSchool.subscription_status === 'active'
+
+            // Deep-merge campuses list so no device wipes out added branches
+            const localCampuses = s.campuses_list || []
+            const cloudCampuses = cloudSchool.campuses_list || []
+            const campusMap = new Map<string, InstitutionCampus>()
+            cloudCampuses.forEach((c) => campusMap.set((c.name || c.id).toLowerCase(), c))
+            localCampuses.forEach((c) => {
+              const key = (c.name || c.id).toLowerCase()
+              if (!campusMap.has(key)) {
+                campusMap.set(key, c)
+                hadLocalChanges = true
+              }
+            })
+            const mergedCampuses = Array.from(campusMap.values())
+            const finalCampusCount = Math.max(
+              s.campus_count || 1,
+              cloudSchool.campus_count || 1,
+              mergedCampuses.length || 1
+            )
+
             map.set(s.slug.toLowerCase(), {
               ...cloudSchool,
               ...s,
-              subscription_status: isLocalLicensed ? s.subscription_status : cloudSchool.subscription_status,
+              campuses_list: mergedCampuses.length > 0 ? mergedCampuses : (cloudSchool.campuses_list || s.campuses_list),
+              campus_count: finalCampusCount,
+              subscription_status: isLocalLicensed ? s.subscription_status : (isCloudLicensed ? cloudSchool.subscription_status : (s.subscription_status || cloudSchool.subscription_status)),
               active_license_key: s.active_license_key || cloudSchool.active_license_key,
               license_valid_until: s.license_valid_until || cloudSchool.license_valid_until,
-              campus_count: Math.max(s.campus_count || 1, cloudSchool.campus_count || 1),
             })
           }
         })

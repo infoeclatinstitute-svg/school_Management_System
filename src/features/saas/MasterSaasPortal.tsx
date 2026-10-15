@@ -65,8 +65,26 @@ export function MasterSaasPortal() {
   const [inspectedSchool, setInspectedSchool] = useState<PartnerSchoolTenant | null>(null)
   const [generatedAdminPasswordMsg, setGeneratedAdminPasswordMsg] = useState<{ schoolSlug: string; pass: string } | null>(null)
 
-  // Sync state listeners
+  const [metrics, setMetrics] = useState<MasterLicensingMetrics>(() => licensingStore.getMetrics())
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false)
+
+  // Sync state listeners & privacy guards
   useEffect(() => {
+    const prevTitle = document.title
+    document.title = 'Access Restricted | Platform Administration'
+
+    let metaTag = document.querySelector('meta[name="robots"]')
+    let createdMeta = false
+    if (!metaTag) {
+      metaTag = document.createElement('meta')
+      metaTag.setAttribute('name', 'robots')
+      metaTag.setAttribute('content', 'noindex, nofollow, noarchive')
+      document.head.appendChild(metaTag)
+      createdMeta = true
+    } else {
+      metaTag.setAttribute('content', 'noindex, nofollow, noarchive')
+    }
+
     // Proactively pull cloud data on mount
     tenantSchoolStore.syncWithCloud()
     licensingStore.syncWithCloud()
@@ -75,10 +93,15 @@ export function MasterSaasPortal() {
       setSchools(tenantSchoolStore.getSchools())
       setLicenses(licensingStore.getLicenses())
       setInvoices(licensingStore.getInvoices())
+      setMetrics(licensingStore.getMetrics())
     }
     window.addEventListener('gc-licensing-updated', handleSync)
     window.addEventListener('gc-tenant-schools-updated', handleSync)
     return () => {
+      document.title = prevTitle
+      if (createdMeta && metaTag?.parentNode) {
+        metaTag.parentNode.removeChild(metaTag)
+      }
       window.removeEventListener('gc-licensing-updated', handleSync)
       window.removeEventListener('gc-tenant-schools-updated', handleSync)
     }
@@ -96,6 +119,7 @@ export function MasterSaasPortal() {
       setSchools(tenantSchoolStore.getSchools())
       setLicenses(licensingStore.getLicenses())
       setInvoices(licensingStore.getInvoices())
+      setMetrics(licensingStore.getMetrics())
     } else {
       setAuthError('Invalid Master Access Passcode. Access denied.')
     }
@@ -114,10 +138,8 @@ export function MasterSaasPortal() {
     }
   }
 
-  const metrics = licensingStore.getMetrics()
-
   // Handle Generate Product Key
-  const handleGenerateKey = (e: React.FormEvent) => {
+  const handleGenerateKey = async (e: React.FormEvent) => {
     e.preventDefault()
     let sName = customSchoolName.trim()
     let sSlug = customSchoolSlug.trim().toLowerCase()
@@ -135,20 +157,27 @@ export function MasterSaasPortal() {
       return
     }
 
-    const newKey = licensingStore.generateProductKey({
-      school_slug: sSlug || sName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-      school_name: sName,
-      campus_count: Number(campusCount) || 1,
-      plan_duration: planDuration,
-      customer_contact: customerContact,
-      notes: generatorNotes,
-    })
+    setIsGeneratingKey(true)
+    try {
+      const newKey = licensingStore.generateProductKey({
+        school_slug: sSlug || sName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+        school_name: sName,
+        campus_count: Number(campusCount) || 1,
+        plan_duration: planDuration,
+        customer_contact: customerContact,
+        notes: generatorNotes,
+      })
 
-    setLatestGeneratedKey(newKey)
-    setLicenses(licensingStore.getLicenses())
-    setInvoices(licensingStore.getInvoices())
-    setCustomSchoolName('')
-    setCustomSchoolSlug('')
+      await licensingStore.pushToCloud()
+      setLatestGeneratedKey(newKey)
+      setLicenses(licensingStore.getLicenses())
+      setInvoices(licensingStore.getInvoices())
+      setMetrics(licensingStore.getMetrics())
+      setCustomSchoolName('')
+      setCustomSchoolSlug('')
+    } finally {
+      setIsGeneratingKey(false)
+    }
   }
 
   // Handle Record Direct Payment

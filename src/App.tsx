@@ -6,6 +6,7 @@ import { schoolStore } from '@/lib/schoolData'
 import { seedCloudDatabase } from '@/lib/databaseSeeder'
 import { initOTAUpdater } from '@/lib/otaUpdater'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
+import { licensingStore } from '@/lib/licensingStore'
 import { detectTenantFromHost } from '@/lib/tenantDomain'
 import { LayoutShell } from '@/components/layout/LayoutShell'
 import { LoadingScreen } from '@/components/ui/Spinner'
@@ -171,6 +172,8 @@ export function App() {
       ;(el as HTMLLinkElement).href = blankIcon
     })
     schoolStore.syncWithCloud().catch(() => {})
+    tenantSchoolStore.syncWithCloud().catch(() => {})
+    licensingStore.syncWithCloud().catch(() => {})
     seedCloudDatabase().catch(() => {})
     const cleanupOTA = initOTAUpdater()
     return () => {
@@ -280,7 +283,7 @@ export function App() {
             element={
               <TenantSubdomainRouteOrCentral
                 subview="billing"
-                centralElement={<Navigate to="/saas-admin" replace />}
+                centralElement={<Navigate to="/" replace />}
               />
             }
           />
