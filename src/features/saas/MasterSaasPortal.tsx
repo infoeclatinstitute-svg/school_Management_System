@@ -67,6 +67,10 @@ export function MasterSaasPortal() {
 
   // Sync state listeners
   useEffect(() => {
+    // Proactively pull cloud data on mount
+    tenantSchoolStore.syncWithCloud()
+    licensingStore.syncWithCloud()
+
     const handleSync = () => {
       setSchools(tenantSchoolStore.getSchools())
       setLicenses(licensingStore.getLicenses())
@@ -80,11 +84,18 @@ export function MasterSaasPortal() {
     }
   }, [])
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthError(null)
     if (licensingStore.verifyMasterAuth(passcode)) {
       setIsAuthenticated(true)
+      await Promise.all([
+        tenantSchoolStore.syncWithCloud(),
+        licensingStore.syncWithCloud(),
+      ])
+      setSchools(tenantSchoolStore.getSchools())
+      setLicenses(licensingStore.getLicenses())
+      setInvoices(licensingStore.getInvoices())
     } else {
       setAuthError('Invalid Master Access Passcode. Access denied.')
     }

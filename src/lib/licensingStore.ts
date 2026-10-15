@@ -24,6 +24,16 @@ class LicensingStore {
     this.loadData()
     if (typeof window !== 'undefined') {
       this.syncWithCloud()
+      supabase
+        .channel('gc_licensing_realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'app_cloud_sync', filter: `key=eq.${CLOUD_SYNC_KEY}` },
+          () => {
+            this.syncWithCloud()
+          }
+        )
+        .subscribe()
     }
   }
 
@@ -34,20 +44,32 @@ class LicensingStore {
     try {
       const { data, error } = await supabase
         .from('app_cloud_sync')
-        .select('payload')
-        .eq('id', CLOUD_SYNC_KEY)
+        .select('data')
+        .eq('key', CLOUD_SYNC_KEY)
         .maybeSingle()
 
-      if (error || !data?.payload) return
-      const payload = data.payload as {
+      if (error || !data?.data) return
+      const payload = data.data as {
         licenses?: ProductKeyLicense[]
         invoices?: SaasCampusInvoice[]
       }
 
       if (Array.isArray(payload.licenses) && payload.licenses.length > 0) {
         const map = new Map<string, ProductKeyLicense>()
-        payload.licenses.forEach((l) => map.set(l.key, l))
-        this.licenses.forEach((l) => map.set(l.key, l))
+        payload.licenses.forEach((l) => map.set(l.key.toUpperCase(), l))
+        this.licenses.forEach((l) => {
+          const cloudLic = map.get(l.key.toUpperCase())
+          if (!cloudLic) {
+            map.set(l.key.toUpperCase(), l)
+          } else {
+            map.set(l.key.toUpperCase(), {
+              ...cloudLic,
+              ...l,
+              status: cloudLic.status === 'used' || l.status === 'used' ? 'used' : l.status,
+              activated_at: cloudLic.activated_at || l.activated_at,
+            })
+          }
+        })
         this.licenses = Array.from(map.values())
         localStorage.setItem(LICENSES_STORAGE_KEY, JSON.stringify(this.licenses))
       }
@@ -65,19 +87,20 @@ class LicensingStore {
     }
   }
 
-  private async pushToCloud(): Promise<void> {
+  public async pushToCloud(): Promise<void> {
     if (typeof window === 'undefined') return
     try {
       await supabase.from('app_cloud_sync').upsert(
         {
-          id: CLOUD_SYNC_KEY,
-          payload: {
+          key: CLOUD_SYNC_KEY,
+          data: {
             licenses: this.licenses,
             invoices: this.invoices,
           },
           updated_at: new Date().toISOString(),
+          updated_by: 'LicensingStore',
         },
-        { onConflict: 'id' }
+        { onConflict: 'key' }
       )
     } catch {
       // offline fallback
@@ -254,11 +277,19 @@ class LicensingStore {
   // -------------------------------------------------------------
   // Key Redemption (Called by School Portals to activate access)
   // -------------------------------------------------------------
-  public redeemLicenseKey(rawKey: string, schoolSlug: string): { success: boolean; message: string; license?: ProductKeyLicense } {
+  public async redeemLicenseKey(rawKey: string, schoolSlug: string): Promise<{ success: boolean; message: string; license?: ProductKeyLicense }> {
     const cleanKey = rawKey.trim().toUpperCase()
     const cleanSlug = schoolSlug.trim().toLowerCase()
 
-    const license = this.licenses.find((l) => l.key.toUpperCase() === cleanKey)
+    let license = this.licenses.find((l) => l.key.toUpperCase() === cleanKey)
+    if (!license) {
+      // Key may have been generated on another device (e.g. phone) — pull fresh from cloud
+      try {
+        await this.syncWithCloud()
+      } catch {}
+      license = this.licenses.find((l) => l.key.toUpperCase() === cleanKey)
+    }
+
     if (!license) {
       return { success: false, message: 'Invalid product key. Please check spelling or contact platform administrator.' }
     }
@@ -304,7 +335,7 @@ class LicensingStore {
     }
   }
 
-  public redeemProductKey(rawKey: string, schoolSlug: string) {
+  public async redeemProductKey(rawKey: string, schoolSlug: string) {
     return this.redeemLicenseKey(rawKey, schoolSlug)
   }
 

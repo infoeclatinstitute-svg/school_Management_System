@@ -37,6 +37,16 @@ class TenantSchoolStore {
     this.loadSchools()
     if (typeof window !== 'undefined') {
       this.syncWithCloud()
+      supabase
+        .channel('gc_tenant_schools_realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'app_cloud_sync', filter: `key=eq.${CLOUD_SYNC_KEY}` },
+          () => {
+            this.syncWithCloud()
+          }
+        )
+        .subscribe()
     }
   }
 
@@ -44,73 +54,187 @@ class TenantSchoolStore {
     try {
       const { data, error } = await supabase
         .from('app_cloud_sync')
-        .select('payload')
-        .eq('id', CLOUD_SYNC_KEY)
+        .select('data')
+        .eq('key', CLOUD_SYNC_KEY)
         .maybeSingle()
 
-      if (error || !data?.payload) return
-      const cloudState = data.payload as {
+      if (error || !data?.data) {
+        // If cloud is empty or no row yet, but local device has schools, immediately seed cloud!
+        if (this.schools.length > 0) {
+          this.pushToCloud()
+        }
+        return
+      }
+
+      const cloudState = data.data as {
         schools?: PartnerSchoolTenant[]
         staff?: TenantStaffMember[]
         students?: TenantStudentMember[]
         programs?: InstitutionProgram[]
+        payroll?: TenantPayrollRecord[]
+        grades?: TenantGradeRecord[]
+        lessonNotes?: TenantLessonNote[]
+        payments?: TenantFeePayment[]
+        timetables?: TenantTimetableEntry[]
       }
 
-      if (Array.isArray(cloudState.schools) && cloudState.schools.length > 0) {
+      let hadLocalChanges = false
+
+      if (Array.isArray(cloudState.schools)) {
         const map = new Map<string, PartnerSchoolTenant>()
+        // 1. Put cloud schools in map
         cloudState.schools.forEach((s) => map.set(s.slug.toLowerCase(), s))
-        this.schools.forEach((s) => map.set(s.slug.toLowerCase(), s))
+        // 2. Merge local schools
+        this.schools.forEach((s) => {
+          const cloudSchool = map.get(s.slug.toLowerCase())
+          if (!cloudSchool) {
+            map.set(s.slug.toLowerCase(), s)
+            hadLocalChanges = true
+          } else {
+            // Keep the one that has the active license if available
+            const isLocalLicensed = s.subscription_status === 'licensed' || s.subscription_status === 'active'
+            const isCloudLicensed = cloudSchool.subscription_status === 'licensed' || cloudSchool.subscription_status === 'active'
+            map.set(s.slug.toLowerCase(), {
+              ...cloudSchool,
+              ...s,
+              subscription_status: isLocalLicensed ? s.subscription_status : cloudSchool.subscription_status,
+              active_license_key: s.active_license_key || cloudSchool.active_license_key,
+              license_valid_until: s.license_valid_until || cloudSchool.license_valid_until,
+              campus_count: Math.max(s.campus_count || 1, cloudSchool.campus_count || 1),
+            })
+          }
+        })
         this.schools = Array.from(map.values())
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.schools))
         window.dispatchEvent(new CustomEvent('gc-tenant-schools-updated', { detail: this.schools }))
       }
+
       if (Array.isArray(cloudState.programs) && cloudState.programs.length > 0) {
         this.loadPrograms()
         const map = new Map<string, InstitutionProgram>()
         cloudState.programs.forEach((pr) => map.set(pr.id, pr))
-        this.programs.forEach((pr) => map.set(pr.id, pr))
+        this.programs.forEach((pr) => {
+          if (!map.has(pr.id)) { map.set(pr.id, pr); hadLocalChanges = true }
+        })
         this.programs = Array.from(map.values())
         localStorage.setItem(PROGRAMS_STORAGE_KEY, JSON.stringify(this.programs))
       }
+
       if (Array.isArray(cloudState.staff) && cloudState.staff.length > 0) {
         this.loadStaff()
         const map = new Map<string, TenantStaffMember>()
         cloudState.staff.forEach((st) => map.set(st.id, st))
-        this.staff.forEach((st) => map.set(st.id, st))
+        this.staff.forEach((st) => {
+          if (!map.has(st.id)) { map.set(st.id, st); hadLocalChanges = true }
+        })
         this.staff = Array.from(map.values())
         localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(this.staff))
       }
+
       if (Array.isArray(cloudState.students) && cloudState.students.length > 0) {
         this.loadStudents()
         const map = new Map<string, TenantStudentMember>()
         cloudState.students.forEach((std) => map.set(std.id, std))
-        this.students.forEach((std) => map.set(std.id, std))
+        this.students.forEach((std) => {
+          if (!map.has(std.id)) { map.set(std.id, std); hadLocalChanges = true }
+        })
         this.students = Array.from(map.values())
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(this.students))
+      }
+
+      if (Array.isArray(cloudState.payroll) && cloudState.payroll.length > 0) {
+        this.loadPayroll()
+        const map = new Map<string, TenantPayrollRecord>()
+        cloudState.payroll.forEach((p) => map.set(p.id, p))
+        this.payroll.forEach((p) => {
+          if (!map.has(p.id)) { map.set(p.id, p); hadLocalChanges = true }
+        })
+        this.payroll = Array.from(map.values())
+        localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(this.payroll))
+      }
+
+      if (Array.isArray(cloudState.grades) && cloudState.grades.length > 0) {
+        this.loadGrades()
+        const map = new Map<string, TenantGradeRecord>()
+        cloudState.grades.forEach((g) => map.set(g.id, g))
+        this.grades.forEach((g) => {
+          if (!map.has(g.id)) { map.set(g.id, g); hadLocalChanges = true }
+        })
+        this.grades = Array.from(map.values())
+        localStorage.setItem(GRADES_STORAGE_KEY, JSON.stringify(this.grades))
+      }
+
+      if (Array.isArray(cloudState.lessonNotes) && cloudState.lessonNotes.length > 0) {
+        this.loadLessonNotes()
+        const map = new Map<string, TenantLessonNote>()
+        cloudState.lessonNotes.forEach((n) => map.set(n.id, n))
+        this.lessonNotes.forEach((n) => {
+          if (!map.has(n.id)) { map.set(n.id, n); hadLocalChanges = true }
+        })
+        this.lessonNotes = Array.from(map.values())
+        localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(this.lessonNotes))
+      }
+
+      if (Array.isArray(cloudState.payments) && cloudState.payments.length > 0) {
+        this.loadPayments()
+        const map = new Map<string, TenantFeePayment>()
+        cloudState.payments.forEach((pm) => map.set(pm.id, pm))
+        this.payments.forEach((pm) => {
+          if (!map.has(pm.id)) { map.set(pm.id, pm); hadLocalChanges = true }
+        })
+        this.payments = Array.from(map.values())
+        localStorage.setItem(PAYMENTS_STORAGE_KEY, JSON.stringify(this.payments))
+      }
+
+      if (Array.isArray(cloudState.timetables) && cloudState.timetables.length > 0) {
+        this.loadTimetables()
+        const map = new Map<string, TenantTimetableEntry>()
+        cloudState.timetables.forEach((t) => map.set(t.id, t))
+        this.timetables.forEach((t) => {
+          if (!map.has(t.id)) { map.set(t.id, t); hadLocalChanges = true }
+        })
+        this.timetables = Array.from(map.values())
+        localStorage.setItem(TIMETABLE_STORAGE_KEY, JSON.stringify(this.timetables))
+      }
+
+      if (hadLocalChanges) {
+        this.pushToCloud()
       }
     } catch {
       // Offline fallback
     }
   }
 
-  private async pushToCloud(): Promise<void> {
+  public async pushToCloud(): Promise<void> {
     if (typeof window === 'undefined') return
     try {
       if (this.staff.length === 0) this.loadStaff()
       if (this.students.length === 0) this.loadStudents()
       if (this.programs.length === 0) this.loadPrograms()
+      if (this.payroll.length === 0) this.loadPayroll()
+      if (this.grades.length === 0) this.loadGrades()
+      if (this.lessonNotes.length === 0) this.loadLessonNotes()
+      if (this.payments.length === 0) this.loadPayments()
+      if (this.timetables.length === 0) this.loadTimetables()
+
       await supabase.from('app_cloud_sync').upsert(
         {
-          id: CLOUD_SYNC_KEY,
-          payload: {
+          key: CLOUD_SYNC_KEY,
+          data: {
             schools: this.schools,
             staff: this.staff,
             students: this.students,
             programs: this.programs,
+            payroll: this.payroll,
+            grades: this.grades,
+            lessonNotes: this.lessonNotes,
+            payments: this.payments,
+            timetables: this.timetables,
           },
           updated_at: new Date().toISOString(),
+          updated_by: 'TenantSchoolStore',
         },
-        { onConflict: 'id' }
+        { onConflict: 'key' }
       )
     } catch {
       // Ignore offline errors
@@ -612,6 +736,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(this.staff))
+      this.pushToCloud()
     } catch {}
   }
 
@@ -716,6 +841,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(this.students))
+      this.pushToCloud()
     } catch {}
   }
 
@@ -855,6 +981,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(this.payroll))
+      this.pushToCloud()
     } catch {}
   }
 
@@ -961,6 +1088,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(GRADES_STORAGE_KEY, JSON.stringify(this.grades))
+      this.pushToCloud()
     } catch {}
   }
 
@@ -1045,6 +1173,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(this.lessonNotes))
+      this.pushToCloud()
     } catch {}
   }
 
@@ -1100,6 +1229,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(PAYMENTS_STORAGE_KEY, JSON.stringify(this.payments))
+      this.pushToCloud()
     } catch {}
   }
 
@@ -1162,6 +1292,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     try {
       localStorage.setItem(TIMETABLE_STORAGE_KEY, JSON.stringify(this.timetables))
+      this.pushToCloud()
     } catch {}
   }
 

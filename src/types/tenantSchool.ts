@@ -190,6 +190,8 @@ export interface TenantStudentMember {
   guardian_name: string
   guardian_phone: string
   guardian_email: string
+  email?: string
+  phone?: string
   username: string
   temp_password?: string
   fee_total: number
