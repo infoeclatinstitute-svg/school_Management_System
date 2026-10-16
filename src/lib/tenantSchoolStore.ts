@@ -18,6 +18,7 @@ import type {
   TenantSchoolNotice,
   TenantAdmissionApplication,
   ApplicationStatus,
+  TenantAttendanceSession,
 } from '@/types/tenantSchool'
 
 const STORAGE_KEY = 'gc_v2_partner_schools_tenants'
@@ -32,6 +33,7 @@ const TIMETABLE_STORAGE_KEY = 'gc_v2_tenant_timetables'
 const PROGRAMS_STORAGE_KEY = 'gc_v2_tenant_programs'
 const NOTICES_STORAGE_KEY = 'gc_v2_tenant_notices'
 const APPLICATIONS_STORAGE_KEY = 'gc_v2_tenant_applications'
+const ATTENDANCE_STORAGE_KEY = 'gc_v2_tenant_attendance_sessions'
 const SESSION_STORAGE_KEY_PREFIX = 'gc_v2_tenant_session_'
 
 function safeTenantStorePersist<T>(key: string, data: T): void {
@@ -97,6 +99,9 @@ class TenantSchoolStore {
         lessonNotes?: TenantLessonNote[]
         payments?: TenantFeePayment[]
         timetables?: TenantTimetableEntry[]
+        notices?: TenantSchoolNotice[]
+        applications?: TenantAdmissionApplication[]
+        attendanceSessions?: TenantAttendanceSession[]
       }
 
       let hadLocalChanges = false
@@ -261,6 +266,17 @@ class TenantSchoolStore {
         localStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(this.applications))
       }
 
+      if (Array.isArray(cloudState.attendanceSessions) && cloudState.attendanceSessions.length > 0) {
+        this.loadAttendanceSessions()
+        const map = new Map<string, TenantAttendanceSession>()
+        cloudState.attendanceSessions.forEach((s) => map.set(s.id, s))
+        this.attendanceSessions.forEach((s) => {
+          if (!map.has(s.id)) { map.set(s.id, s); hadLocalChanges = true }
+        })
+        this.attendanceSessions = Array.from(map.values())
+        localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(this.attendanceSessions))
+      }
+
       if (hadLocalChanges) {
         this.triggerCloudPush()
       }
@@ -288,6 +304,7 @@ class TenantSchoolStore {
             timetables: this.timetables,
             notices: this.notices,
             applications: this.applications,
+            attendanceSessions: this.attendanceSessions,
           },
           updated_at: new Date().toISOString(),
           updated_by: 'TenantSchoolStore',
@@ -1437,6 +1454,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     safeTenantStorePersist(GRADES_STORAGE_KEY, this.grades)
     this.triggerCloudPush()
+    window.dispatchEvent(new CustomEvent('gc-tenant-grades-updated'))
   }
 
   public getGradesBySchool(slug: string): TenantGradeRecord[] {
@@ -1490,6 +1508,12 @@ class TenantSchoolStore {
     return record
   }
 
+  public deleteGradeRecord(id: string): void {
+    if (this.grades.length === 0) this.loadGrades()
+    this.grades = this.grades.filter((g) => g.id !== id)
+    this.saveGrades()
+  }
+
   // ============================================================
   // 5. LESSON STUDY NOTES & MATERIALS
   // ============================================================
@@ -1519,13 +1543,14 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     safeTenantStorePersist(NOTES_STORAGE_KEY, this.lessonNotes)
     this.triggerCloudPush()
+    window.dispatchEvent(new CustomEvent('gc-tenant-notes-updated'))
   }
 
   public getLessonNotesBySchool(slug: string, className?: string): TenantLessonNote[] {
     if (this.lessonNotes.length === 0) this.loadLessonNotes()
     const clean = slug.toLowerCase()
     let filtered = this.lessonNotes.filter((n) => n.school_slug.toLowerCase() === clean)
-    if (className) {
+    if (className && className !== 'all') {
       filtered = filtered.filter((n) => n.class_name.toLowerCase() === className.toLowerCase())
     }
     return filtered
@@ -1541,6 +1566,114 @@ class TenantSchoolStore {
     this.lessonNotes.unshift(newNote)
     this.saveLessonNotes()
     return newNote
+  }
+
+  public updateLessonNote(id: string, updates: Partial<TenantLessonNote>): void {
+    if (this.lessonNotes.length === 0) this.loadLessonNotes()
+    const idx = this.lessonNotes.findIndex((n) => n.id === id)
+    if (idx >= 0) {
+      this.lessonNotes[idx] = { ...this.lessonNotes[idx], ...updates }
+      this.saveLessonNotes()
+    }
+  }
+
+  public deleteLessonNote(id: string): void {
+    if (this.lessonNotes.length === 0) this.loadLessonNotes()
+    this.lessonNotes = this.lessonNotes.filter((n) => n.id !== id)
+    this.saveLessonNotes()
+  }
+
+  // ============================================================
+  // ATTENDANCE SESSIONS & DAILY ROLL-CALL
+  // ============================================================
+  private attendanceSessions: TenantAttendanceSession[] = []
+
+  private loadAttendanceSessions() {
+    if (typeof window === 'undefined') {
+      this.attendanceSessions = []
+      return
+    }
+    try {
+      const stored = localStorage.getItem(ATTENDANCE_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          this.attendanceSessions = parsed
+          return
+        }
+      }
+    } catch {
+      // fallback
+    }
+    this.attendanceSessions = []
+  }
+
+  private saveAttendanceSessions() {
+    if (typeof window === 'undefined') return
+    safeTenantStorePersist(ATTENDANCE_STORAGE_KEY, this.attendanceSessions)
+    this.triggerCloudPush()
+    window.dispatchEvent(new CustomEvent('gc-tenant-attendance-updated'))
+  }
+
+  public getAttendanceSessions(slug: string, className?: string, date?: string): TenantAttendanceSession[] {
+    if (this.attendanceSessions.length === 0) this.loadAttendanceSessions()
+    const clean = slug.toLowerCase()
+    let filtered = this.attendanceSessions.filter((s) => s.school_slug.toLowerCase() === clean)
+    if (className && className !== 'all') {
+      filtered = filtered.filter((s) => s.class_name.toLowerCase() === className.toLowerCase())
+    }
+    if (date) {
+      filtered = filtered.filter((s) => s.date === date)
+    }
+    return filtered
+  }
+
+  public saveAttendanceSession(
+    input: Omit<TenantAttendanceSession, 'id' | 'created_at'>
+  ): TenantAttendanceSession {
+    if (this.attendanceSessions.length === 0) this.loadAttendanceSessions()
+
+    const existingIndex = this.attendanceSessions.findIndex(
+      (s) =>
+        s.school_slug.toLowerCase() === input.school_slug.toLowerCase() &&
+        s.class_name.toLowerCase() === input.class_name.toLowerCase() &&
+        s.date === input.date &&
+        (input.period_name ? s.period_name === input.period_name : true)
+    )
+
+    const session: TenantAttendanceSession = {
+      ...input,
+      id: existingIndex >= 0 ? this.attendanceSessions[existingIndex].id : `att_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      created_at: new Date().toISOString(),
+    }
+
+    if (existingIndex >= 0) {
+      this.attendanceSessions[existingIndex] = session
+    } else {
+      this.attendanceSessions.unshift(session)
+    }
+
+    // Update individual student overall attendance_percent based on this session
+    session.records.forEach((rec) => {
+      const student = this.students.find((st) => st.id === rec.student_id)
+      if (student) {
+        let delta = 0
+        if (rec.status === 'present') delta = 0.5
+        else if (rec.status === 'late') delta = 0.1
+        else if (rec.status === 'absent') delta = -1.0
+        const newPercent = Math.min(100, Math.max(0, +(student.attendance_percent + delta).toFixed(1)))
+        this.updateStudent(student.id, { attendance_percent: newPercent })
+      }
+    })
+
+    this.saveAttendanceSessions()
+    return session
+  }
+
+  public deleteAttendanceSession(id: string): void {
+    if (this.attendanceSessions.length === 0) this.loadAttendanceSessions()
+    this.attendanceSessions = this.attendanceSessions.filter((s) => s.id !== id)
+    this.saveAttendanceSessions()
   }
 
   // ============================================================

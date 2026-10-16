@@ -249,7 +249,30 @@ export interface TenantLessonNote {
   title: string
   summary: string
   file_url?: string
+  material_type?: 'Lecture Notes' | 'Assignment' | 'Past Paper' | 'Lab Manual' | 'Syllabus'
+  due_date?: string
   teacher_name: string
+  created_at: string
+}
+
+export interface TenantAttendanceRecord {
+  student_id: string
+  student_name: string
+  admission_number: string
+  status: 'present' | 'absent' | 'late' | 'excused'
+  note?: string
+}
+
+export interface TenantAttendanceSession {
+  id: string
+  school_slug: string
+  class_name: string
+  subject_name: string
+  date: string
+  period_name?: string
+  teacher_name: string
+  notes?: string
+  records: TenantAttendanceRecord[]
   created_at: string
 }
 

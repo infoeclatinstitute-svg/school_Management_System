@@ -2276,6 +2276,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               studentList={studentList}
               gradeList={gradeList}
               lessonNotesList={lessonNotesList}
+              sessionUser={currentSession}
               onReloadData={() => reloadSchoolData(school.slug)}
             />
           )
