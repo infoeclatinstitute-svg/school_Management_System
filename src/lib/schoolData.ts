@@ -39,57 +39,11 @@ function isValidUuid(id?: string): boolean {
 }
 
 // Official Enrolled Students
-export const INITIAL_STUDENTS: StudentRecord[] = [
-  {
-    id: 'std-2026-001',
-    admission_number: 'GC-2026-001',
-    full_name: 'Alex Kiprop',
-    gender: 'Male',
-    dob: '2004-05-14',
-    class_id: 'class-swe',
-    class_name: 'Diploma in Software Engineering',
-    grade_level: 'Year 2 Semester 1',
-    stream: 'Main Campus',
-    enrollment_date: '2026-01-10',
-    admission_date: '2026-01-10',
-    status: 'Active',
-    guardian: {
-      name: 'Joseph Kiprop',
-      relationship: 'Father',
-      phone: '+254712345678',
-      email: 'joseph.kiprop@example.com',
-    },
-    parent_phone: '+254712345678',
-    emergency_contact: '+254712345678',
-    fee_balance: 0,
-    term_fee_total: 45000,
-    fee_cleared: true,
-    attendance_rate: 98,
-    discipline_points: 100,
-    merits_count: 3,
-    demerits_count: 0,
-    biometric_enrolled: true,
-    certificate_granted: false,
-    portal_password: 'Student@2026#!',
-  },
-]
+export const INITIAL_STUDENTS: StudentRecord[] = []
 export const INITIAL_TIMETABLE: TimetablePeriod[] = []
 export const INITIAL_EXAMS: ExamSession[] = []
 export const INITIAL_REPORT_CARDS: ReportCard[] = []
-
-export const INITIAL_FACULTY_TEACHERS: FacultyTeacher[] = [
-  {
-    id: 'tch-2026-001',
-    staff_id: 'STF-2026-001',
-    name: 'Dr. Sarah Kamau',
-    title: 'Senior Lecturer',
-    email: 'sarah.kamau@eclat.institute',
-    department: 'Computing & Technology',
-    specialty: 'Software Architecture & Cloud Systems',
-    portal_password: 'Teacher@2026#!',
-    created_at: '2026-01-01T00:00:00Z',
-  },
-]
+export const INITIAL_FACULTY_TEACHERS: FacultyTeacher[] = []
 export const INITIAL_DEPARTMENTS: CollegeDepartment[] = []
 export const INITIAL_SUBJECTS: CollegeSubject[] = []
 

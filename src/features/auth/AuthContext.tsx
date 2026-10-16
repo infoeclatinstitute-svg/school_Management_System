@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { schoolStore } from '@/lib/schoolData'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { INSTITUTION_CONFIG } from '@/config/institution'
-import { verifyPassword } from '@/lib/crypto'
+import { verifyPassword, hashPassword, isLegacyPasswordHash } from '@/lib/crypto'
 import type { Profile, Role } from '@/lib/database.types'
 
 import { getFriendlyDeviceName } from '@/utils/platform'
@@ -502,8 +502,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!student.portal_password || student.portal_password.trim() === '') {
         return { error: 'Account password not configured. Please contact the Administrator.' }
       }
-      if (password.trim() !== student.portal_password.trim()) {
+      const isPasswordValid = await verifyPassword(password.trim(), student.portal_password.trim())
+      if (!isPasswordValid) {
         return { error: 'Incorrect password for this student admission account.' }
+      }
+
+      // Proactively upgrade legacy unhashed or legacy SHA-256 password to PBKDF2
+      if (isLegacyPasswordHash(student.portal_password)) {
+        hashPassword(password.trim()).then((upgradedHash) => {
+          schoolStore.updateStudent({ ...student, portal_password: upgradedHash })
+        }).catch(() => {})
       }
 
       const renewedExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
@@ -588,8 +596,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (teacher) {
       if (teacher.portal_password && teacher.portal_password.trim() !== '') {
-        if (password.trim() !== teacher.portal_password.trim()) {
+        const isPasswordValid = await verifyPassword(password.trim(), teacher.portal_password.trim())
+        if (!isPasswordValid) {
           return { error: 'Incorrect password for this faculty teacher account.' }
+        }
+
+        // Proactively upgrade legacy unhashed or legacy SHA-256 password to PBKDF2
+        if (isLegacyPasswordHash(teacher.portal_password)) {
+          hashPassword(password.trim()).then((upgradedHash) => {
+            schoolStore.updateTeacher({ ...teacher, portal_password: upgradedHash })
+          }).catch(() => {})
         }
       }
       const teacherProfile: Profile = {

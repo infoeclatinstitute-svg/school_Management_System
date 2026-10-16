@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import type { PartnerSchoolTenant, TenantStaffMember, TenantStudentMember, TenantSessionUser } from '@/types/tenantSchool'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
+import { verifyPassword } from '@/lib/crypto'
 import { LockIcon, AlertTriangleIcon } from '@/components/icons/AppIcons'
 
 interface TenantSchoolLoginModalProps {
@@ -29,7 +30,7 @@ export function TenantSchoolLoginModal({
   const [loginError, setLoginError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
 
-  const handleCredentialSubmit = (e: React.FormEvent) => {
+  const handleCredentialSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoginError(null)
 
@@ -60,7 +61,8 @@ export function TenantSchoolLoginModal({
       cleanUser === `${school.slug}.admin`
 
     if (isAdminUsernameMatch) {
-      if (cleanPass === expectedAdminPass || cleanPass === 'GC-ADMIN-2026') {
+      const isValidAdmin = (await verifyPassword(cleanPass, expectedAdminPass)) || cleanPass === 'GC-ADMIN-2026'
+      if (isValidAdmin) {
         const adminUser: TenantSessionUser = {
           id: 'principal_session',
           school_slug: school.slug,
@@ -91,7 +93,8 @@ export function TenantSchoolLoginModal({
 
     if (matchedStaff) {
       const expectedStaffPass = matchedStaff.temp_password || `${school.slug.toUpperCase()}@2026`
-      if (cleanPass === expectedStaffPass || cleanPass === `${school.slug.toUpperCase()}@2026`) {
+      const isValidStaff = (await verifyPassword(cleanPass, expectedStaffPass)) || cleanPass === `${school.slug.toUpperCase()}@2026`
+      if (isValidStaff) {
         const staffUser: TenantSessionUser = {
           id: matchedStaff.id,
           school_slug: school.slug,
@@ -123,7 +126,8 @@ export function TenantSchoolLoginModal({
 
     if (matchedStudent) {
       const expectedStudentPass = matchedStudent.temp_password || `${school.slug.toUpperCase()}@2026`
-      if (cleanPass === expectedStudentPass || cleanPass === `${school.slug.toUpperCase()}@2026`) {
+      const isValidStudent = (await verifyPassword(cleanPass, expectedStudentPass)) || cleanPass === `${school.slug.toUpperCase()}@2026`
+      if (isValidStudent) {
         const studentUser: TenantSessionUser = {
           id: matchedStudent.id,
           school_slug: school.slug,
@@ -371,7 +375,7 @@ export function TenantSchoolLoginModal({
             <LockIcon size={14} color="#64748b" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
               <strong>Role-Based Access Control:</strong> Portal accounts are issued directly by the{' '}
-              <strong>{school.principal_name}</strong> administration office. Students, teachers, and bursars receive credentials upon enrolment or appointment.
+              <strong>Campus Executive Administration</strong> office. Students, teachers, and bursars receive credentials upon enrolment or appointment.
             </div>
           </div>
         </div>

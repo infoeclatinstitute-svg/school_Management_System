@@ -1,8 +1,10 @@
 import { supabase } from '@/lib/supabase'
+import { idbStorage } from '@/lib/indexedDb'
 import type {
   PartnerSchoolTenant,
   CreateTenantSchoolInput,
   AcademicCalendarPeriod,
+  AcademicCalendarSystem,
   TenantStaffMember,
   TenantStudentMember,
   TenantPayrollRecord,
@@ -13,6 +15,9 @@ import type {
   TenantSessionUser,
   InstitutionProgram,
   InstitutionCampus,
+  TenantSchoolNotice,
+  TenantAdmissionApplication,
+  ApplicationStatus,
 } from '@/types/tenantSchool'
 
 const STORAGE_KEY = 'gc_v2_partner_schools_tenants'
@@ -25,135 +30,21 @@ const NOTES_STORAGE_KEY = 'gc_v2_tenant_lesson_notes'
 const PAYMENTS_STORAGE_KEY = 'gc_v2_tenant_fee_payments'
 const TIMETABLE_STORAGE_KEY = 'gc_v2_tenant_timetables'
 const PROGRAMS_STORAGE_KEY = 'gc_v2_tenant_programs'
+const NOTICES_STORAGE_KEY = 'gc_v2_tenant_notices'
+const APPLICATIONS_STORAGE_KEY = 'gc_v2_tenant_applications'
 const SESSION_STORAGE_KEY_PREFIX = 'gc_v2_tenant_session_'
 
-const INITIAL_PARTNER_SCHOOLS: PartnerSchoolTenant[] = [
-  {
-    id: 'school-eg-001',
-    name: 'EG Institute of Science & Technology',
-    slug: 'eg',
-    institution_category: 'college',
-    registration_number: 'TVETA/PUB/2026/042',
-    currency: 'USD',
-    grading_scale: 'standard_percentage',
-    departments_list: ['Computing & IT', 'Engineering', 'Business Management'],
-    classes_list: ['Year 1', 'Year 2', 'Diploma', 'Certificate'],
-    campus_count: 1,
-    campuses_list: [{ id: 'cmp-eg-1', name: 'Main Campus', code: 'MC-01', location: 'City Center', is_main: true }],
-    motto: 'Excellence in Global Learning & Innovation',
-    logo_url: '/favicon.svg',
-    primary_color: '#1e3a8a',
-    accent_color: '#3b82f6',
-    academic_system: 'semester',
-    academic_calendar: [
-      {
-        id: 'cal-sem-1',
-        name: 'Semester 1, 2026',
-        code: 'SEM-1-2026',
-        start_date: '2026-01-15',
-        end_date: '2026-05-30',
-        status: 'Active',
-      },
-    ],
-    active_period_name: 'Semester 1, 2026',
-    curriculum_type: 'STEM & Technology Institute',
-    country: 'Kenya',
-    city: 'Nairobi',
-    address: 'Eclat Innovation Hub, Tech City',
-    contact_email: 'info@eg.cloud.eclat.institute',
-    contact_phone: '+254 700 000 000',
-    website: 'https://cloud.eclat.institute/s/eg',
-    custom_domain: '',
-    subdomain: 'eg',
-    principal_name: 'Prof. Egerton K.',
-    principal_title: 'Director & Principal',
-    principal_email: 'principal@eg.cloud.eclat.institute',
-    admin_username: 'eg.admin',
-    admin_password: 'Global@2026#!',
-    subscription_tier: 'enterprise',
-    subscription_status: 'licensed',
-    stats: {
-      students: 24,
-      teachers: 8,
-      classes: 6,
-      departments: 3,
-    },
-    features_enabled: {
-      student_portal: true,
-      teacher_portal: true,
-      bursar_portal: true,
-      principal_portal: true,
-      online_admissions: true,
-      biometric_attendance: true,
-      report_cards: true,
-      e_library: true,
-    },
-    created_at: '2026-01-01T00:00:00Z',
-    is_verified: true,
-  },
-  {
-    id: 'school-prime-001',
-    name: 'Prime International College',
-    slug: 'prime',
-    institution_category: 'college',
-    registration_number: 'REG/PRIME/2026',
-    currency: 'USD',
-    grading_scale: 'letter_gpa',
-    departments_list: ['Business', 'Technology', 'Health Sciences'],
-    classes_list: ['Grade 10', 'Grade 11', 'Diploma'],
-    campus_count: 1,
-    campuses_list: [{ id: 'cmp-prime-1', name: 'Westlands Campus', code: 'WC-01', is_main: true }],
-    motto: 'Knowledge, Integrity, Leadership',
-    logo_url: '/favicon.svg',
-    primary_color: '#0f766e',
-    accent_color: '#14b8a6',
-    academic_system: 'term',
-    academic_calendar: [
-      {
-        id: 'cal-term-1',
-        name: 'Term 1, 2026',
-        code: 'T1-2026',
-        start_date: '2026-01-10',
-        end_date: '2026-04-15',
-        status: 'Active',
-      },
-    ],
-    active_period_name: 'Term 1, 2026',
-    curriculum_type: 'General Academic & Multi-Disciplinary',
-    country: 'Kenya',
-    city: 'Nairobi',
-    address: 'Parklands Road, Nairobi',
-    contact_email: 'admin@prime.cloud.eclat.institute',
-    contact_phone: '+254 711 000 000',
-    website: 'https://cloud.eclat.institute/s/prime',
-    subdomain: 'prime',
-    principal_name: 'Dr. Arthur Vance',
-    principal_title: 'Head of Institution',
-    principal_email: 'head@prime.cloud.eclat.institute',
-    admin_username: 'prime.admin',
-    admin_password: 'Global@2026#!',
-    subscription_tier: 'growth',
-    subscription_status: 'licensed',
-    stats: {
-      students: 45,
-      teachers: 12,
-      classes: 8,
-      departments: 3,
-    },
-    features_enabled: {
-      student_portal: true,
-      teacher_portal: true,
-      bursar_portal: true,
-      principal_portal: true,
-      online_admissions: true,
-      biometric_attendance: true,
-      report_cards: true,
-      e_library: true,
-    },
-    created_at: '2026-01-01T00:00:00Z',
-    is_verified: true,
-  },
-]
+function safeTenantStorePersist<T>(key: string, data: T): void {
+  if (typeof window === 'undefined') return
+  idbStorage.set(key, data).catch(() => {})
+  try {
+    localStorage.setItem(key, JSON.stringify(data))
+  } catch (err) {
+    console.warn(`LocalStorage quota exceeded for key "${key}". Persisted safely in high-capacity IndexedDB.`, err)
+  }
+}
+
+const INITIAL_PARTNER_SCHOOLS: PartnerSchoolTenant[] = []
 
 class TenantSchoolStore {
   private schools: PartnerSchoolTenant[] = []
@@ -348,6 +239,28 @@ class TenantSchoolStore {
         localStorage.setItem(TIMETABLE_STORAGE_KEY, JSON.stringify(this.timetables))
       }
 
+      if (Array.isArray(cloudState.notices) && cloudState.notices.length > 0) {
+        this.loadNotices()
+        const map = new Map<string, TenantSchoolNotice>()
+        cloudState.notices.forEach((n) => map.set(n.id, n))
+        this.notices.forEach((n) => {
+          if (!map.has(n.id)) { map.set(n.id, n); hadLocalChanges = true }
+        })
+        this.notices = Array.from(map.values())
+        localStorage.setItem(NOTICES_STORAGE_KEY, JSON.stringify(this.notices))
+      }
+
+      if (Array.isArray(cloudState.applications) && cloudState.applications.length > 0) {
+        this.loadApplications()
+        const map = new Map<string, TenantAdmissionApplication>()
+        cloudState.applications.forEach((a) => map.set(a.id, a))
+        this.applications.forEach((a) => {
+          if (!map.has(a.id)) { map.set(a.id, a); hadLocalChanges = true }
+        })
+        this.applications = Array.from(map.values())
+        localStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(this.applications))
+      }
+
       if (hadLocalChanges) {
         this.triggerCloudPush()
       }
@@ -373,6 +286,8 @@ class TenantSchoolStore {
             lessonNotes: this.lessonNotes,
             payments: this.payments,
             timetables: this.timetables,
+            notices: this.notices,
+            applications: this.applications,
           },
           updated_at: new Date().toISOString(),
           updated_by: 'TenantSchoolStore',
@@ -425,13 +340,9 @@ class TenantSchoolStore {
 
   private saveSchools() {
     if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.schools))
-      window.dispatchEvent(new CustomEvent('gc-tenant-schools-updated', { detail: this.schools }))
-      this.triggerCloudPush()
-    } catch {
-      // ignore
-    }
+    safeTenantStorePersist(STORAGE_KEY, this.schools)
+    window.dispatchEvent(new CustomEvent('gc-tenant-schools-updated', { detail: this.schools }))
+    this.triggerCloudPush()
   }
 
   public getSchools(): PartnerSchoolTenant[] {
@@ -859,6 +770,292 @@ class TenantSchoolStore {
   }
 
   // ============================================================
+  // ACADEMIC CALENDAR MANAGEMENT (DYNAMIC & EDITABLE)
+  // ============================================================
+
+  public addCalendarPeriod(
+    slug: string,
+    period: Omit<AcademicCalendarPeriod, 'id'>
+  ): PartnerSchoolTenant | null {
+    const school = this.getSchoolBySlug(slug)
+    if (!school) return null
+
+    const newPeriod: AcademicCalendarPeriod = {
+      ...period,
+      id: `cal_${Date.now()}_${Math.floor(100 + Math.random() * 900)}`,
+    }
+
+    let updatedCalendar = [...(school.academic_calendar || []), newPeriod]
+    let activePeriodName = school.active_period_name
+
+    if (newPeriod.status === 'Active') {
+      updatedCalendar = updatedCalendar.map((p) =>
+        p.id === newPeriod.id ? p : p.status === 'Active' ? { ...p, status: 'Upcoming' as const } : p
+      )
+      activePeriodName = newPeriod.name
+    }
+
+    const updated = this.updateSchoolBranding(slug, {
+      academic_calendar: updatedCalendar,
+      active_period_name: activePeriodName,
+    })
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('gc-tenant-school-updated', { detail: { slug } }))
+    }
+    return updated
+  }
+
+  public updateCalendarPeriod(
+    slug: string,
+    periodId: string,
+    updates: Partial<AcademicCalendarPeriod>
+  ): PartnerSchoolTenant | null {
+    const school = this.getSchoolBySlug(slug)
+    if (!school) return null
+
+    let activePeriodName = school.active_period_name
+    const updatedCalendar = (school.academic_calendar || []).map((p) => {
+      if (p.id === periodId) {
+        const mod = { ...p, ...updates }
+        if (mod.status === 'Active') {
+          activePeriodName = mod.name
+        }
+        return mod
+      }
+      if (updates.status === 'Active' && p.status === 'Active') {
+        return { ...p, status: 'Upcoming' as const }
+      }
+      return p
+    })
+
+    const updated = this.updateSchoolBranding(slug, {
+      academic_calendar: updatedCalendar,
+      active_period_name: activePeriodName,
+    })
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('gc-tenant-school-updated', { detail: { slug } }))
+    }
+    return updated
+  }
+
+  public deleteCalendarPeriod(slug: string, periodId: string): PartnerSchoolTenant | null {
+    const school = this.getSchoolBySlug(slug)
+    if (!school) return null
+
+    const remaining = (school.academic_calendar || []).filter((p) => p.id !== periodId)
+    let activePeriodName = school.active_period_name
+    const stillHasActive = remaining.some((p) => p.status === 'Active')
+    if (!stillHasActive && remaining.length > 0) {
+      remaining[0].status = 'Active'
+      activePeriodName = remaining[0].name
+    }
+
+    const updated = this.updateSchoolBranding(slug, {
+      academic_calendar: remaining,
+      active_period_name: activePeriodName,
+    })
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('gc-tenant-school-updated', { detail: { slug } }))
+    }
+    return updated
+  }
+
+  public setActiveCalendarPeriod(slug: string, periodId: string): PartnerSchoolTenant | null {
+    const school = this.getSchoolBySlug(slug)
+    if (!school) return null
+
+    const target = (school.academic_calendar || []).find((p) => p.id === periodId)
+    if (!target) return null
+
+    const updatedCalendar = (school.academic_calendar || []).map((p) => ({
+      ...p,
+      status: (p.id === periodId ? 'Active' : p.status === 'Active' ? 'Upcoming' : p.status) as 'Active' | 'Upcoming' | 'Past',
+    }))
+
+    const updated = this.updateSchoolBranding(slug, {
+      academic_calendar: updatedCalendar,
+      active_period_name: target.name,
+    })
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('gc-tenant-school-updated', { detail: { slug } }))
+    }
+    return updated
+  }
+
+  public updateAcademicSystem(
+    slug: string,
+    system: AcademicCalendarSystem,
+    populateDefaultPeriods = false,
+    customYear?: number
+  ): PartnerSchoolTenant | null {
+    const school = this.getSchoolBySlug(slug)
+    if (!school) return null
+
+    const currentYear = customYear || new Date().getFullYear()
+    let calendar = school.academic_calendar || []
+    let activePeriodName = school.active_period_name
+
+    if (populateDefaultPeriods || calendar.length === 0) {
+      if (system === 'semester') {
+        activePeriodName = `Semester 1 (${currentYear})`
+        calendar = [
+          {
+            id: `cal_${Date.now()}_sem1`,
+            name: `Semester 1 (${currentYear})`,
+            code: 'SEM-1',
+            start_date: `${currentYear}-01-12`,
+            end_date: `${currentYear}-05-29`,
+            status: 'Active',
+            exam_start_date: `${currentYear}-05-18`,
+            exam_end_date: `${currentYear}-05-28`,
+            fee_deadline: `${currentYear}-01-31`,
+          },
+          {
+            id: `cal_${Date.now()}_sem2`,
+            name: `Semester 2 (${currentYear})`,
+            code: 'SEM-2',
+            start_date: `${currentYear}-08-17`,
+            end_date: `${currentYear}-12-11`,
+            status: 'Upcoming',
+            exam_start_date: `${currentYear}-11-30`,
+            exam_end_date: `${currentYear}-12-10`,
+            fee_deadline: `${currentYear}-08-31`,
+          },
+        ]
+      } else if (system === 'term') {
+        activePeriodName = `Term 1 (${currentYear})`
+        calendar = [
+          {
+            id: `cal_${Date.now()}_term1`,
+            name: `Term 1 (${currentYear})`,
+            code: 'TERM-1',
+            start_date: `${currentYear}-01-06`,
+            end_date: `${currentYear}-04-03`,
+            status: 'Active',
+            exam_start_date: `${currentYear}-03-24`,
+            exam_end_date: `${currentYear}-04-02`,
+            fee_deadline: `${currentYear}-01-25`,
+          },
+          {
+            id: `cal_${Date.now()}_term2`,
+            name: `Term 2 (${currentYear})`,
+            code: 'TERM-2',
+            start_date: `${currentYear}-05-04`,
+            end_date: `${currentYear}-08-07`,
+            status: 'Upcoming',
+            exam_start_date: `${currentYear}-07-28`,
+            exam_end_date: `${currentYear}-08-06`,
+            fee_deadline: `${currentYear}-05-20`,
+          },
+          {
+            id: `cal_${Date.now()}_term3`,
+            name: `Term 3 (${currentYear})`,
+            code: 'TERM-3',
+            start_date: `${currentYear}-08-31`,
+            end_date: `${currentYear}-11-20`,
+            status: 'Upcoming',
+            exam_start_date: `${currentYear}-11-10`,
+            exam_end_date: `${currentYear}-11-19`,
+            fee_deadline: `${currentYear}-09-15`,
+          },
+        ]
+      } else if (system === 'trimester') {
+        activePeriodName = `Trimester 1 (${currentYear})`
+        calendar = [
+          {
+            id: `cal_${Date.now()}_trim1`,
+            name: `Trimester 1 (${currentYear})`,
+            code: 'TRIM-1',
+            start_date: `${currentYear}-01-12`,
+            end_date: `${currentYear}-04-24`,
+            status: 'Active',
+            exam_start_date: `${currentYear}-04-13`,
+            exam_end_date: `${currentYear}-04-23`,
+            fee_deadline: `${currentYear}-01-30`,
+          },
+          {
+            id: `cal_${Date.now()}_trim2`,
+            name: `Trimester 2 (${currentYear})`,
+            code: 'TRIM-2',
+            start_date: `${currentYear}-05-11`,
+            end_date: `${currentYear}-08-21`,
+            status: 'Upcoming',
+            exam_start_date: `${currentYear}-08-10`,
+            exam_end_date: `${currentYear}-08-20`,
+            fee_deadline: `${currentYear}-05-30`,
+          },
+          {
+            id: `cal_${Date.now()}_trim3`,
+            name: `Trimester 3 (${currentYear})`,
+            code: 'TRIM-3',
+            start_date: `${currentYear}-09-07`,
+            end_date: `${currentYear}-12-18`,
+            status: 'Upcoming',
+            exam_start_date: `${currentYear}-12-07`,
+            exam_end_date: `${currentYear}-12-17`,
+            fee_deadline: `${currentYear}-09-25`,
+          },
+        ]
+      } else {
+        activePeriodName = `Quarter 1 (${currentYear})`
+        calendar = [
+          {
+            id: `cal_${Date.now()}_q1`,
+            name: `Quarter 1 (${currentYear})`,
+            code: 'Q1',
+            start_date: `${currentYear}-01-05`,
+            end_date: `${currentYear}-03-27`,
+            status: 'Active',
+            fee_deadline: `${currentYear}-01-20`,
+          },
+          {
+            id: `cal_${Date.now()}_q2`,
+            name: `Quarter 2 (${currentYear})`,
+            code: 'Q2',
+            start_date: `${currentYear}-04-06`,
+            end_date: `${currentYear}-06-26`,
+            status: 'Upcoming',
+            fee_deadline: `${currentYear}-04-20`,
+          },
+          {
+            id: `cal_${Date.now()}_q3`,
+            name: `Quarter 3 (${currentYear})`,
+            code: 'Q3',
+            start_date: `${currentYear}-07-06`,
+            end_date: `${currentYear}-09-25`,
+            status: 'Upcoming',
+            fee_deadline: `${currentYear}-07-20`,
+          },
+          {
+            id: `cal_${Date.now()}_q4`,
+            name: `Quarter 4 (${currentYear})`,
+            code: 'Q4',
+            start_date: `${currentYear}-10-05`,
+            end_date: `${currentYear}-12-18`,
+            status: 'Upcoming',
+            fee_deadline: `${currentYear}-10-20`,
+          },
+        ]
+      }
+    }
+
+    const updated = this.updateSchoolBranding(slug, {
+      academic_system: system,
+      academic_calendar: calendar,
+      active_period_name: activePeriodName,
+    })
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('gc-tenant-school-updated', { detail: { slug } }))
+    }
+    return updated
+  }
+
+  // ============================================================
   // 1. STAFF MANAGEMENT & CREDENTIAL PROVISIONING
   // ============================================================
   private staff: TenantStaffMember[] = []
@@ -885,10 +1082,8 @@ class TenantSchoolStore {
 
   private saveStaff() {
     if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(this.staff))
-      this.triggerCloudPush()
-    } catch {}
+    safeTenantStorePersist(STAFF_STORAGE_KEY, this.staff)
+    this.triggerCloudPush()
   }
 
   public getAllStaff(): TenantStaffMember[] {
@@ -994,10 +1189,8 @@ class TenantSchoolStore {
 
   private saveStudents() {
     if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(this.students))
-      this.triggerCloudPush()
-    } catch {}
+    safeTenantStorePersist(STUDENTS_STORAGE_KEY, this.students)
+    this.triggerCloudPush()
   }
 
   public getAllStudents(): TenantStudentMember[] {
@@ -1138,10 +1331,8 @@ class TenantSchoolStore {
 
   private savePayroll() {
     if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(this.payroll))
-      this.triggerCloudPush()
-    } catch {}
+    safeTenantStorePersist(PAYROLL_STORAGE_KEY, this.payroll)
+    this.triggerCloudPush()
   }
 
   public getPayrollBySchool(slug: string): TenantPayrollRecord[] {
@@ -1244,10 +1435,8 @@ class TenantSchoolStore {
 
   private saveGrades() {
     if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(GRADES_STORAGE_KEY, JSON.stringify(this.grades))
-      this.triggerCloudPush()
-    } catch {}
+    safeTenantStorePersist(GRADES_STORAGE_KEY, this.grades)
+    this.triggerCloudPush()
   }
 
   public getGradesBySchool(slug: string): TenantGradeRecord[] {
@@ -1328,10 +1517,8 @@ class TenantSchoolStore {
 
   private saveLessonNotes() {
     if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(this.lessonNotes))
-      this.triggerCloudPush()
-    } catch {}
+    safeTenantStorePersist(NOTES_STORAGE_KEY, this.lessonNotes)
+    this.triggerCloudPush()
   }
 
   public getLessonNotesBySchool(slug: string, className?: string): TenantLessonNote[] {
@@ -1383,10 +1570,8 @@ class TenantSchoolStore {
 
   private savePayments() {
     if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(PAYMENTS_STORAGE_KEY, JSON.stringify(this.payments))
-      this.triggerCloudPush()
-    } catch {}
+    safeTenantStorePersist(PAYMENTS_STORAGE_KEY, this.payments)
+    this.triggerCloudPush()
   }
 
   public getPaymentsBySchool(slug: string): TenantFeePayment[] {
@@ -1445,10 +1630,8 @@ class TenantSchoolStore {
 
   private saveTimetables() {
     if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(TIMETABLE_STORAGE_KEY, JSON.stringify(this.timetables))
-      this.triggerCloudPush()
-    } catch {}
+    safeTenantStorePersist(TIMETABLE_STORAGE_KEY, this.timetables)
+    this.triggerCloudPush()
   }
 
   public getTimetableBySchool(slug: string, className?: string): TenantTimetableEntry[] {
@@ -1510,11 +1693,9 @@ class TenantSchoolStore {
 
   private savePrograms() {
     if (typeof window === 'undefined') return
-    try {
-      localStorage.setItem(PROGRAMS_STORAGE_KEY, JSON.stringify(this.programs))
-      this.triggerCloudPush()
-      window.dispatchEvent(new CustomEvent('gc-tenant-programs-updated', { detail: this.programs }))
-    } catch {}
+    safeTenantStorePersist(PROGRAMS_STORAGE_KEY, this.programs)
+    this.triggerCloudPush()
+    window.dispatchEvent(new CustomEvent('gc-tenant-programs-updated', { detail: this.programs }))
   }
 
   public getProgramsBySchool(slug: string): InstitutionProgram[] {
@@ -1589,103 +1770,268 @@ class TenantSchoolStore {
       window.dispatchEvent(new CustomEvent('gc-tenant-session-changed', { detail: { slug, session } }))
     } catch {}
   }
+
+  // ============================================================
+  // 10. CAMPUS NOTICEBOARD & SENATE ANNOUNCEMENTS (DYNAMIC & EDITABLE)
+  // ============================================================
+  private notices: TenantSchoolNotice[] = []
+
+  private loadNotices() {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = localStorage.getItem(NOTICES_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.notices = parsed
+          return
+        }
+      }
+    } catch {}
+    this.notices = []
+  }
+
+  private saveNotices() {
+    if (typeof window === 'undefined') return
+    safeTenantStorePersist(NOTICES_STORAGE_KEY, this.notices)
+    this.triggerCloudPush()
+    window.dispatchEvent(new CustomEvent('gc-tenant-notices-updated', { detail: this.notices }))
+  }
+
+  public getNoticesBySchool(slug: string, activePeriodLabel?: string): TenantSchoolNotice[] {
+    if (this.notices.length === 0) this.loadNotices()
+    const clean = slug.toLowerCase().trim()
+    const schoolNotices = this.notices.filter((n) => n.school_slug.toLowerCase() === clean)
+
+    if (schoolNotices.length > 0) {
+      // Sort pinned notices first, then newest first
+      return [...schoolNotices].sort((a, b) => {
+        if (a.is_pinned && !b.is_pinned) return -1
+        if (!a.is_pinned && b.is_pinned) return 1
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      })
+    }
+
+    // Default dynamic notices adapted to the school's session if no custom notices posted yet
+    const periodName = activePeriodLabel || 'Semester 1'
+    return [
+      {
+        id: `not_${clean}_exam_1`,
+        school_slug: clean,
+        department: 'Examination Registry',
+        title: `${periodName} Continuous Assessment Schedule`,
+        content:
+          'Mid-term CAT examination timetables and practical assessment rosters have been published in the Student and Teacher portals.',
+        category: 'Examination',
+        accent_color: '#d97706',
+        target_audience: 'All',
+        is_pinned: true,
+        created_at: new Date().toISOString(),
+        author_name: 'Registrar & Examinations Senate',
+        author_role: 'Office of the Registrar',
+      },
+      {
+        id: `not_${clean}_bursar_1`,
+        school_slug: clean,
+        department: "Bursar's Treasury",
+        title: 'Tuition Fee Statements & Clearance',
+        content:
+          'Fee payment receipts and official bank deposit slips are validated at the Bursar Desk. Students can verify clearances online.',
+        category: 'Finance & Fees',
+        accent_color: '#16a34a',
+        target_audience: 'Students',
+        is_pinned: false,
+        created_at: new Date().toISOString(),
+        author_name: 'Chief Bursar & Finance Desk',
+        author_role: 'Treasury Office',
+      },
+      {
+        id: `not_${clean}_faculty_1`,
+        school_slug: clean,
+        department: 'Academic Faculty',
+        title: 'Study Guides & Digital Lesson Materials',
+        content:
+          'Subject instructors have uploaded downloadable lesson notes and past papers. Log in to the Student Portal to download.',
+        category: 'Academics',
+        accent_color: '#2563eb',
+        target_audience: 'Students',
+        is_pinned: false,
+        created_at: new Date().toISOString(),
+        author_name: 'Faculty Senate & Heads of Department',
+        author_role: 'Academic Affairs',
+      },
+    ]
+  }
+
+  public addNotice(
+    input: Omit<TenantSchoolNotice, 'id' | 'created_at'>
+  ): TenantSchoolNotice {
+    if (this.notices.length === 0) this.loadNotices()
+    const newNotice: TenantSchoolNotice = {
+      ...input,
+      id: `not_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      created_at: new Date().toISOString(),
+    }
+    this.notices.unshift(newNotice)
+    this.saveNotices()
+    return newNotice
+  }
+
+  public updateNotice(
+    id: string,
+    updates: Partial<TenantSchoolNotice>
+  ): TenantSchoolNotice | null {
+    if (this.notices.length === 0) this.loadNotices()
+    let index = this.notices.findIndex((n) => n.id === id)
+    if (index === -1) {
+      // If updating a virtual default notice, convert defaults to explicit stored notices first
+      if (updates.school_slug) {
+        const defaults = this.getNoticesBySchool(updates.school_slug)
+        const targetDefault = defaults.find((n) => n.id === id)
+        if (targetDefault) {
+          defaults.forEach((d) => {
+            if (!this.notices.some((existing) => existing.id === d.id)) {
+              this.notices.push({ ...d })
+            }
+          })
+          index = this.notices.findIndex((n) => n.id === id)
+        }
+      }
+      if (index === -1) return null
+    }
+    const updated = { ...this.notices[index], ...updates }
+    this.notices[index] = updated
+    this.saveNotices()
+    return updated
+  }
+
+  public deleteNotice(id: string, schoolSlug?: string): boolean {
+    if (this.notices.length === 0) this.loadNotices()
+    let index = this.notices.findIndex((n) => n.id === id)
+    if (index === -1 && schoolSlug) {
+      // Materialize default notices first so we can remove the selected one
+      const defaults = this.getNoticesBySchool(schoolSlug)
+      this.notices = defaults.filter((n) => n.id !== id)
+      this.saveNotices()
+      return true
+    }
+    const prevLen = this.notices.length
+    this.notices = this.notices.filter((n) => n.id !== id)
+    this.saveNotices()
+    return this.notices.length < prevLen
+  }
+
+  public togglePinNotice(id: string, schoolSlug?: string): TenantSchoolNotice | null {
+    if (this.notices.length === 0) this.loadNotices()
+    let notice = this.notices.find((n) => n.id === id)
+    if (!notice && schoolSlug) {
+      const defaults = this.getNoticesBySchool(schoolSlug)
+      defaults.forEach((d) => {
+        if (!this.notices.some((existing) => existing.id === d.id)) {
+          this.notices.push({ ...d })
+        }
+      })
+      notice = this.notices.find((n) => n.id === id)
+    }
+    if (!notice) return null
+    return this.updateNotice(id, { is_pinned: !notice.is_pinned })
+  }
+
+  // ============================================================
+  // 10. ONLINE ADMISSION APPLICATIONS & PROSPECTIVE LEADS
+  // ============================================================
+  private applications: TenantAdmissionApplication[] = []
+
+  private loadApplications() {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = localStorage.getItem(APPLICATIONS_STORAGE_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          this.applications = parsed
+          return
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  private saveApplications() {
+    if (typeof window === 'undefined') return
+    safeTenantStorePersist(APPLICATIONS_STORAGE_KEY, this.applications)
+    this.triggerCloudPush()
+    window.dispatchEvent(
+      new CustomEvent('gc-tenant-applications-updated', { detail: this.applications })
+    )
+  }
+
+  public getApplicationsBySchool(slug: string): TenantAdmissionApplication[] {
+    if (this.applications.length === 0) this.loadApplications()
+    return this.applications
+      .filter((a) => a.school_slug.toLowerCase() === slug.toLowerCase())
+      .sort((a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime())
+  }
+
+  public submitAdmissionApplication(
+    input: Omit<TenantAdmissionApplication, 'id' | 'application_number' | 'applied_at' | 'status'>
+  ): TenantAdmissionApplication {
+    if (this.applications.length === 0) this.loadApplications()
+    const currentYear = new Date().getFullYear()
+    const seq = Math.floor(1000 + Math.random() * 9000)
+    const slugPrefix = (input.school_slug || 'SCH').substring(0, 4).toUpperCase()
+    const applicationNumber = `APP-${slugPrefix}-${currentYear}-${seq}`
+
+    const newApp: TenantAdmissionApplication = {
+      ...input,
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `app-${Date.now()}-${seq}`,
+      application_number: applicationNumber,
+      status: 'Pending Review',
+      applied_at: new Date().toISOString(),
+    }
+
+    this.applications = [newApp, ...this.applications]
+    this.saveApplications()
+    return newApp
+  }
+
+  public updateApplicationStatus(
+    id: string,
+    status: ApplicationStatus,
+    followUpNotes?: string
+  ): TenantAdmissionApplication | null {
+    if (this.applications.length === 0) this.loadApplications()
+    const index = this.applications.findIndex((a) => a.id === id)
+    if (index === -1) return null
+    const updated: TenantAdmissionApplication = {
+      ...this.applications[index],
+      status,
+      follow_up_notes: followUpNotes !== undefined ? followUpNotes : this.applications[index].follow_up_notes,
+      reviewed_at: new Date().toISOString(),
+    }
+    this.applications[index] = updated
+    this.saveApplications()
+    return updated
+  }
+
+  public deleteApplication(id: string): boolean {
+    if (this.applications.length === 0) this.loadApplications()
+    const prevLen = this.applications.length
+    this.applications = this.applications.filter((a) => a.id !== id)
+    this.saveApplications()
+    return this.applications.length < prevLen
+  }
 }
+
 
 
 // ============================================================
 // CLEAN BASELINE DATA STORE (ZERO SEEDED TEST DATA)
 // ============================================================
 
-const INITIAL_STAFF_MEMBERS: TenantStaffMember[] = [
-  {
-    id: 'tstf-eg-001',
-    school_slug: 'eg',
-    full_name: 'Prof. Egerton K.',
-    role: 'principal',
-    email: 'principal@eg.cloud.eclat.institute',
-    username: 'eg.admin',
-    temp_password: 'Global@2026#!',
-    phone: '+254 700 000 000',
-    department: 'Executive Administration',
-    title: 'Director & Principal',
-    assigned_classes: ['All'],
-    assigned_subjects: ['Institutional Governance'],
-    salary_base: 180000,
-    salary_housing: 30000,
-    salary_transport: 20000,
-    salary_tax: 45000,
-    salary_pension: 10000,
-    net_salary: 175000,
-    status: 'active',
-    joined_date: '2026-01-01',
-  },
-  {
-    id: 'tstf-eg-002',
-    school_slug: 'eg',
-    full_name: 'Catherine Mwangi',
-    role: 'bursar',
-    email: 'bursar@eg.cloud.eclat.institute',
-    username: 'eg.bursar',
-    temp_password: 'EG@2026',
-    phone: '+254 700 333 444',
-    department: 'Finance & Accounts',
-    title: 'Chief Bursar',
-    assigned_classes: [],
-    assigned_subjects: [],
-    salary_base: 95000,
-    salary_housing: 15000,
-    salary_transport: 10000,
-    salary_tax: 22000,
-    salary_pension: 5000,
-    net_salary: 93000,
-    status: 'active',
-    joined_date: '2026-01-05',
-  },
-  {
-    id: 'tstf-eg-003',
-    school_slug: 'eg',
-    full_name: 'Eng. Dennis Mutua',
-    role: 'teacher',
-    email: 'dennis@eg.cloud.eclat.institute',
-    username: 'eg.teacher',
-    temp_password: 'EG@2026',
-    phone: '+254 700 555 666',
-    department: 'Computing & IT',
-    title: 'Lead Lecturer',
-    assigned_classes: ['Year 1', 'Year 2'],
-    assigned_subjects: ['Software Architecture', 'Web Technologies'],
-    salary_base: 85000,
-    salary_housing: 15000,
-    salary_transport: 10000,
-    salary_tax: 19000,
-    salary_pension: 5000,
-    net_salary: 86000,
-    status: 'active',
-    joined_date: '2026-01-10',
-  },
-]
-const INITIAL_STUDENTS: TenantStudentMember[] = [
-  {
-    id: 'tstd-eg-001',
-    school_slug: 'eg',
-    admission_number: 'EG-2026-001',
-    full_name: 'David Omondi',
-    grade_class: 'Diploma Year 2',
-    guardian_name: 'Grace Omondi',
-    guardian_phone: '+254 700 111 222',
-    guardian_email: 'grace.omondi@example.com',
-    email: 'david.omondi@eg.cloud.eclat.institute',
-    phone: '+254 700 111 223',
-    username: 'EG-2026-001',
-    temp_password: 'EG@2026',
-    fee_total: 45000,
-    fee_paid: 45000,
-    fee_balance: 0,
-    attendance_percent: 96,
-    status: 'active',
-    admission_date: '2026-01-10',
-  },
-]
+const INITIAL_STAFF_MEMBERS: TenantStaffMember[] = []
+const INITIAL_STUDENTS: TenantStudentMember[] = []
 const INITIAL_PAYROLL_RECORDS: TenantPayrollRecord[] = []
 const INITIAL_GRADES: TenantGradeRecord[] = []
 const INITIAL_LESSON_NOTES: TenantLessonNote[] = []

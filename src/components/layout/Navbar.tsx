@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { Notification } from '@/lib/database.types'
 import { RoleBadge } from '@/components/ui/Badge'
-import { RoleSwitcher } from '@/components/shared/RoleSwitcher'
+import { INSTITUTION_CONFIG } from '@/config/institution'
 import { dispatchSchoolBellAlert } from '@/components/shared/ClassBellReminderModal'
 import { formatDateTime } from '@/lib/utils'
 import { isNativeApp, isElectronApp } from '@/utils/platform'
@@ -91,8 +91,8 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
 
       <Link to="/" className="navbar-brand">
         <div>
-          <div className="navbar-school-name" style={{ fontFamily: 'var(--font-heading)', color: '#1e3a8a', letterSpacing: '0.04em', fontWeight: 800 }}>GLOBAL COLLEGE</div>
-          <span className="navbar-tagline" style={{ color: '#64748b', letterSpacing: '0.08em', fontSize: '0.65rem', fontWeight: 600 }}>School Management System</span>
+          <div className="navbar-school-name" style={{ fontFamily: 'var(--font-heading)', color: '#1e3a8a', letterSpacing: '0.04em', fontWeight: 800 }}>{INSTITUTION_CONFIG.name}</div>
+          <span className="navbar-tagline" style={{ color: '#64748b', letterSpacing: '0.08em', fontSize: '0.65rem', fontWeight: 600 }}>{INSTITUTION_CONFIG.tagline}</span>
         </div>
       </Link>
 
@@ -206,13 +206,6 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
             <span>📖</span>
             <span>E-Library</span>
           </Link>
-        )}
-
-        {/* Role Simulator Switcher (Public Website Only) */}
-        {!isNativeApp() && (
-          <div className="hide-mobile">
-            <RoleSwitcher />
-          </div>
         )}
 
         {/* Install Web App Button */}

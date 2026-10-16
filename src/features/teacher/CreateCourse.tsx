@@ -419,11 +419,20 @@ export function CreateCourse() {
             <div>
               <label className="label">Course Category *</label>
               <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                <option value="Tech & Programming">💻 Tech & Programming</option>
-                <option value="Languages & Communication">🗣️ Languages & Communication</option>
-                <option value="Business Tech & Accounting">📊 Business Tech & Accounting</option>
-                <option value="Computer & Digital Skills">🎨 Computer & Digital Skills</option>
-                <option value="Executive Masterclass">🌟 Executive Masterclass</option>
+                {Array.from(new Set([
+                  ...departments.map((d) => d.name),
+                  'Tech & Programming',
+                  'Computer & Digital Skills',
+                  'Languages & Communication',
+                  'Business Tech & Accounting',
+                  'Data Science & Research',
+                  'Creative Arts & Design',
+                  'Executive Masterclass',
+                ])).map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -431,12 +440,20 @@ export function CreateCourse() {
             <div>
               <label className="label">Course Duration / Period *</label>
               <select className="input" value={courseDuration} onChange={(e) => setCourseDuration(e.target.value)}>
-                <option value="2 Months (8 Weeks Comprehensive)">2 Months (8 Weeks Comprehensive)</option>
-                <option value="6 Weeks (Fast-Track Skills)">6 Weeks (Fast-Track Skills)</option>
-                <option value="3 Months (Certificate Course)">3 Months (Certificate Course)</option>
-                <option value="4 Months (Professional Short Course)">4 Months (Professional Short Course)</option>
-                <option value="6 Months (Modular Diploma)">6 Months (Modular Diploma)</option>
-                <option value="Self-Paced Short Course">Self-Paced Short Course</option>
+                {[
+                  '6 Weeks (Fast-Track Skills)',
+                  '2 Months (8 Weeks Comprehensive)',
+                  '3 Months (Certificate Course)',
+                  '4 Months (Professional Short Course)',
+                  '6 Months (Modular Diploma)',
+                  '1 Year (Full Diploma)',
+                  'Self-Paced Short Course',
+                  'Executive Masterclass',
+                ].map((dur) => (
+                  <option key={dur} value={dur}>
+                    {dur}
+                  </option>
+                ))}
               </select>
             </div>
 

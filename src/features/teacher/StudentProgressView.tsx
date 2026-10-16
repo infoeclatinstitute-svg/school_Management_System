@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { ProgressBar } from '@/components/ui/ProgressBar'
 import { Spinner } from '@/components/ui/Spinner'
+import { schoolStore } from '@/lib/schoolData'
 import type { Course, Profile } from '@/lib/database.types'
 
 export function StudentProgressView() {
@@ -13,13 +14,36 @@ export function StudentProgressView() {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Fetch teacher's courses
-  const { data: courses } = useQuery({
-    queryKey: ['teacher-courses-spv', profile?.id],
+  // Fetch teacher's courses (dynamically merged from schoolStore and cloud)
+  const { data: courses = [] } = useQuery({
+    queryKey: ['teacher-courses-spv', profile?.id, profile?.full_name],
     queryFn: async () => {
-      if (!profile?.id) return []
-      const { data } = await supabase.from('courses').select('*').eq('teacher_id', profile.id)
-      return (data || []) as Course[]
+      const storeUnits = schoolStore.getCourseUnits()
+      const assignedUnits = (profile?.role === 'admin')
+        ? storeUnits
+        : storeUnits.filter(
+            (u) =>
+              u.teacher_id === profile?.id ||
+              u.teacher_name?.toLowerCase() === profile?.full_name?.toLowerCase()
+          )
+
+      let cloudCourses: Course[] = []
+      try {
+        if (profile?.id) {
+          const { data } = await supabase.from('courses').select('*').eq('teacher_id', profile.id)
+          cloudCourses = (data || []) as Course[]
+        }
+      } catch {}
+
+      const merged = new Map<string, { id: string; title: string }>()
+      cloudCourses.forEach((c) => merged.set(c.id, { id: c.id, title: c.title }))
+      assignedUnits.forEach((u) => {
+        if (!merged.has(u.id)) {
+          merged.set(u.id, { id: u.id, title: u.title })
+        }
+      })
+
+      return Array.from(merged.values())
     },
     enabled: !!profile?.id,
   })

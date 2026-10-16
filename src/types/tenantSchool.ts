@@ -293,3 +293,47 @@ export interface TenantSessionUser {
   student_id?: string
   staff_id?: string
 }
+
+export interface TenantSchoolNotice {
+  id: string
+  school_slug: string
+  title: string
+  department: string // e.g. "Examination Registry", "Bursar's Treasury", "Academic Faculty", "Executive Office"
+  content: string
+  category: 'Examination' | 'Finance & Fees' | 'Academics' | 'General' | 'Events' | 'Urgent'
+  accent_color?: string // e.g. "#d97706", "#16a34a", "#2563eb", "#dc2626"
+  target_audience?: 'All' | 'Students' | 'Teachers' | 'Parents' | 'Public'
+  is_pinned?: boolean
+  created_at: string
+  author_name?: string
+  author_role?: string
+}
+
+export type ApplicationStatus =
+  | 'Pending Review'
+  | 'Contacted'
+  | 'Interview Scheduled'
+  | 'Admitted'
+  | 'Rejected'
+
+export interface TenantAdmissionApplication {
+  id: string
+  school_slug: string
+  application_number: string // e.g. "APP-2026-1042"
+  full_name: string
+  email: string
+  phone: string
+  program_title: string
+  level?: string
+  intake?: string
+  prior_qualifications?: string
+  guardian_name?: string
+  guardian_phone?: string
+  notes?: string
+  status: ApplicationStatus
+  applied_at: string
+  follow_up_notes?: string
+  reviewed_at?: string
+}
+
+

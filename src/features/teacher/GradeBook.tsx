@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
+import { schoolStore } from '@/lib/schoolData'
 import { getCollegeGrade, getCollegeLabel, getCollegeColor } from '@/lib/database.types'
 import type { Course, QuizAttempt, Profile } from '@/lib/database.types'
 
@@ -14,12 +15,37 @@ export function GradeBook() {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('')
 
   // Fetch teacher's courses
-  const { data: courses } = useQuery({
-    queryKey: ['teacher-courses-gb', profile?.id],
+  const { data: courses = [] } = useQuery({
+    queryKey: ['teacher-courses-gb', profile?.id, profile?.full_name],
     queryFn: async () => {
-      if (!profile?.id) return []
-      const { data } = await supabase.from('courses').select('*').eq('teacher_id', profile.id)
-      return (data || []) as Course[]
+      const storeUnits = schoolStore.getCourseUnits()
+      const assignedUnits = (profile?.role === 'admin')
+        ? storeUnits
+        : storeUnits.filter(
+            (u) =>
+              u.teacher_id === profile?.id ||
+              u.teacher_name?.toLowerCase() === profile?.full_name?.toLowerCase()
+          )
+
+      let cloudCourses: Course[] = []
+      try {
+        if (profile?.id) {
+          const { data } = await supabase.from('courses').select('*').eq('teacher_id', profile.id)
+          cloudCourses = (data || []) as Course[]
+        }
+      } catch {
+        // Offline resilience
+      }
+
+      const merged = new Map<string, { id: string; title: string }>()
+      cloudCourses.forEach((c) => merged.set(c.id, { id: c.id, title: c.title }))
+      assignedUnits.forEach((u) => {
+        if (!merged.has(u.id)) {
+          merged.set(u.id, { id: u.id, title: u.title })
+        }
+      })
+
+      return Array.from(merged.values())
     },
     enabled: !!profile?.id,
   })
@@ -30,32 +56,79 @@ export function GradeBook() {
     queryFn: async () => {
       if (!selectedCourseId) return null
 
-      // Get lessons in course
-      const { data: lessons } = await supabase
-        .from('lessons')
-        .select('*, quiz:quizzes(*)')
-        .eq('course_id', selectedCourseId)
-        .order('order_index')
+      // Get lessons in course (Supabase with hybrid fallback)
+      let lessons: any[] = []
+      try {
+        const { data } = await supabase
+          .from('lessons')
+          .select('*, quiz:quizzes(*)')
+          .eq('course_id', selectedCourseId)
+          .order('order_index')
+        if (data && data.length > 0) lessons = data
+      } catch {
+        // Fallback
+      }
 
-      if (!lessons) return null
+      if (lessons.length === 0) {
+        const storeUnit = schoolStore.getCourseUnits().find((u) => u.id === selectedCourseId)
+        if (storeUnit?.lessons) {
+          lessons = storeUnit.lessons.map((l, i) => ({
+            id: l.id,
+            title: l.title,
+            course_id: selectedCourseId,
+            order_index: i,
+            quiz: null,
+          }))
+        }
+      }
 
       // Get enrolled students
-      const { data: enrollments } = await supabase
-        .from('enrollments')
-        .select('*, student:profiles!student_id(*)')
-        .eq('course_id', selectedCourseId)
+      let students: Profile[] = []
+      try {
+        const { data: enrollments } = await supabase
+          .from('enrollments')
+          .select('*, student:profiles!student_id(*)')
+          .eq('course_id', selectedCourseId)
+        if (enrollments && enrollments.length > 0) {
+          students = enrollments.map((e) => e.student as Profile)
+        }
+      } catch {
+        // Fallback
+      }
 
-      const students = (enrollments || []).map((e) => e.student as Profile)
+      if (students.length === 0) {
+        const storeStudents = schoolStore.getStudents()
+        const targetCourse = schoolStore.getCourseUnits().find((u) => u.id === selectedCourseId)
+        const matched = storeStudents.filter(
+          (s) =>
+            s.class_id === selectedCourseId ||
+            (targetCourse && s.class_name?.toLowerCase() === targetCourse.title.toLowerCase())
+        )
+        const activeList = matched.length > 0 ? matched : storeStudents
+        students = activeList.map((s) => ({
+          id: s.id,
+          full_name: s.full_name,
+          admission_number: s.admission_number,
+          role: 'student',
+          first_login_at: null,
+          access_expires_at: null,
+          is_active: true,
+          created_at: s.enrollment_date,
+        }))
+      }
+
       const quizIds = lessons.map((l) => l.quiz?.id).filter(Boolean) as string[]
 
       // Get all quiz attempts for these quizzes
       let attempts: QuizAttempt[] = []
       if (quizIds.length > 0) {
-        const { data: attData } = await supabase
-          .from('quiz_attempts')
-          .select('*')
-          .in('quiz_id', quizIds)
-        attempts = attData || []
+        try {
+          const { data: attData } = await supabase
+            .from('quiz_attempts')
+            .select('*')
+            .in('quiz_id', quizIds)
+          attempts = attData || []
+        } catch {}
       }
 
       return { lessons, students, attempts }

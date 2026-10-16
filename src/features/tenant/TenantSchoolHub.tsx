@@ -29,6 +29,9 @@ import { TenantBursarDesk } from './components/TenantBursarDesk'
 import { TenantTeacherDesk } from './components/TenantTeacherDesk'
 import { TenantStudentDesk } from './components/TenantStudentDesk'
 import { TenantProgramsPage } from './components/TenantProgramsPage'
+import { TenantAcademicCalendarView } from './components/TenantAcademicCalendarView'
+import { TenantCampusNoticeboard } from './components/TenantCampusNoticeboard'
+import { TenantApplyAdmissionModal } from './components/TenantApplyAdmissionModal'
 import { TenantSchoolLoginModal } from './components/TenantSchoolLoginModal'
 import { TenantProfilePage } from './components/TenantProfilePage'
 import { licensingStore } from '@/lib/licensingStore'
@@ -91,6 +94,8 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   const [selectedPayslip, setSelectedPayslip] = useState<TenantPayrollRecord | null>(null)
   const [selectedReceipt, setSelectedReceipt] = useState<TenantFeePayment | null>(null)
   const [activeStudent, setActiveStudent] = useState<TenantStudentMember | null>(null)
+  const [showApplyModal, setShowApplyModal] = useState(false)
+  const [applyProgramTitle, setApplyProgramTitle] = useState('')
 
   // Active Session User State
   const [currentSession, setCurrentSession] = useState<TenantSessionUser | null>(() => {
@@ -135,6 +140,24 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
     else { document.body.style.overflow = '' }
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
   }, [drawerOpen])
+
+  // Dynamically apply tenant brand tokens across the design system
+  useEffect(() => {
+    if (school?.primary_color) {
+      document.documentElement.style.setProperty('--color-primary', school.primary_color)
+      document.documentElement.style.setProperty('--color-primary-dark', school.primary_color)
+      if (school.accent_color) {
+        document.documentElement.style.setProperty('--color-accent', school.accent_color)
+        document.documentElement.style.setProperty('--color-secondary', school.accent_color)
+      }
+    }
+    return () => {
+      document.documentElement.style.removeProperty('--color-primary')
+      document.documentElement.style.removeProperty('--color-primary-dark')
+      document.documentElement.style.removeProperty('--color-accent')
+      document.documentElement.style.removeProperty('--color-secondary')
+    }
+  }, [school?.primary_color, school?.accent_color])
 
   // Product Key License Activation State
   const [showLicenseModal, setShowLicenseModal] = useState(false)
@@ -288,6 +311,12 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       setCurrentSession(null)
       setShowLoginModal(true)
     }
+  }
+
+  // Handle Online Admission Application Modal
+  const handleOpenApplyModal = (programTitle?: string) => {
+    setApplyProgramTitle(programTitle || '')
+    setShowApplyModal(true)
   }
 
   if (loading) {
@@ -1537,7 +1566,28 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 </div>
               </div>
 
-              <div>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => handleOpenApplyModal()}
+                  style={{
+                    background: accentColor || '#d4af37',
+                    color: '#0f172a',
+                    fontWeight: 900,
+                    padding: '0.8rem 1.4rem',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span>🎓 Apply for Admission ➔</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowLoginModal(true)}
@@ -1563,7 +1613,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               </div>
             </div>
 
-            {/* Quick Key Performance Indicators (KPIs) */}
+            {/* Quick Key Performance Indicators (KPIs) — Privacy-Protected for Public Landing */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '1.1rem', marginBottom: '2.5rem' }}>
               <div
                 style={{
@@ -1628,14 +1678,18 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                     flexShrink: 0,
                   }}
                 >
-                  🎓
+                  {activeRole === 'admin' ? '🎓' : '🏛️'}
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Enrolled Scholars</div>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-                    {studentList.length > 0 ? studentList.length : school.stats.students} Active
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {activeRole === 'admin' ? 'Enrolled Scholars' : 'Institutional Status'}
                   </div>
-                  <div style={{ fontSize: '0.74rem', color: '#2563eb', fontWeight: 700, marginTop: '2px' }}>✓ Biometric Records</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                    {activeRole === 'admin' ? `${studentList.length > 0 ? studentList.length : school.stats.students} Registered` : 'Verified Campus'}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#2563eb', fontWeight: 700, marginTop: '2px' }}>
+                    {activeRole === 'admin' ? '● Internal SIS Roster' : '✓ Registered SIS Institution'}
+                  </div>
                 </div>
               </div>
 
@@ -1668,12 +1722,14 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   👨‍🏫
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Certified Faculty</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    {activeRole === 'admin' ? 'Certified Faculty' : 'Academic Governance'}
+                  </div>
                   <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-                    {staffList.length > 0 ? staffList.length : school.stats.teachers} Staff
+                    {activeRole === 'admin' ? `${staffList.length > 0 ? staffList.length : school.stats.teachers} Staff` : 'Accredited Faculty'}
                   </div>
                   <div style={{ fontSize: '0.74rem', color: '#059669', fontWeight: 700, marginTop: '2px' }}>
-                    {school.stats.departments || 1} Departments
+                    {activeRole === 'admin' ? `${school.stats.departments || 1} Departments` : '● Continuous Assessment'}
                   </div>
                 </div>
               </div>
@@ -1707,83 +1763,25 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   🛡️
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Executive Directorate</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Executive Directorate
+                  </div>
                   <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {school.principal_name}
+                    {school.principal_title || 'Office of the Principal'}
                   </div>
                   <div style={{ fontSize: '0.74rem', color: primaryColor, fontWeight: 700, marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {school.principal_title}
+                    ● Role-Governed Access
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Campus Noticeboard & Official Announcements */}
-            <div
-              style={{
-                background: '#ffffff',
-                borderRadius: '22px',
-                border: '1px solid #e2e8f0',
-                padding: '1.75rem',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                marginBottom: '2.75rem',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.9rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '1.35rem' }}>📢</span>
-                  <div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: 0 }}>
-                      Campus Noticeboard &amp; Senate Announcements
-                    </h3>
-                    <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
-                      Official circulars published by the Executive Office, Examinations Registry &amp; Bursar
-                    </div>
-                  </div>
-                </div>
-                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: primaryColor, background: `${primaryColor}14`, padding: '3px 10px', borderRadius: '6px' }}>
-                  Session: {school.active_period_name}
-                </span>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.1rem' }}>
-                <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', borderTop: '3.5px solid #d97706' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#d97706', textTransform: 'uppercase', marginBottom: '5px' }}>
-                    Examination Registry
-                  </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                    {systemTermLabel} Continuous Assessment Schedule
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5 }}>
-                    Mid-term CAT examination timetables and practical assessment rosters have been published in the Student and Teacher portals.
-                  </p>
-                </div>
-
-                <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', borderTop: '3.5px solid #16a34a' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#16a34a', textTransform: 'uppercase', marginBottom: '5px' }}>
-                    Bursar's Treasury
-                  </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                    Tuition Fee Statements &amp; Clearance
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5 }}>
-                    Fee payment receipts and official bank deposit slips are validated at the Bursar Desk. Students can verify clearances online.
-                  </p>
-                </div>
-
-                <div style={{ background: '#f8fafc', borderRadius: '16px', padding: '1.25rem', border: '1px solid #e2e8f0', borderTop: '3.5px solid #2563eb' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 900, color: '#2563eb', textTransform: 'uppercase', marginBottom: '5px' }}>
-                    Academic Faculty
-                  </div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                    Study Guides &amp; Digital Lesson Materials
-                  </div>
-                  <p style={{ margin: 0, fontSize: '0.84rem', color: '#64748b', lineHeight: 1.5 }}>
-                    Subject instructors have uploaded downloadable lesson notes and past papers. Log in to the Student Portal to download.
-                  </p>
-                </div>
-              </div>
-            </div>
+            {/* Campus Noticeboard & Senate Announcements (Dynamic & Role-Governed) */}
+            <TenantCampusNoticeboard
+              school={school}
+              isAdmin={activeRole === 'admin'}
+              primaryColor={primaryColor}
+            />
 
             {/* The 4 Dedicated Portal Workspaces */}
             <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -2221,77 +2219,21 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           <TenantProgramsPage
             school={school}
             isAdmin={activeRole === 'admin'}
-            onOpenAdmissions={() => {
-              setActiveTab('principal')
-              navigate(getDeskRoute('principal'))
-            }}
+            onOpenAdmissions={handleOpenApplyModal}
           />
         )}
 
-        {/* VIEW 2: ACADEMIC CALENDAR */}
+        {/* VIEW 2: DYNAMIC & EDITABLE ACADEMIC CALENDAR */}
         {activeTab === 'calendar' && (
-          <div style={{ maxWidth: '1060px', margin: '0 auto' }}>
-            <div style={{ background: '#ffffff', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0', marginBottom: '2rem', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
-              <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '0.74rem', fontWeight: 800, color: primaryColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {school.name} ACADEMIC GOVERNANCE
-                </span>
-                <h2 style={{ fontSize: '1.6rem', fontWeight: 900, margin: '4px 0 0', color: '#0f172a' }}>
-                  Official Academic Calendar &amp; Period Cycles
-                </h2>
-                <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px' }}>
-                  Operating System: <strong>{school.academic_system.toUpperCase()}-BASED CALENDAR</strong> ({school.academic_system === 'semester' ? '2 Semesters / Year' : '3 Terms / Year'})
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
-                {school.academic_calendar.map((period) => (
-                  <div
-                    key={period.id}
-                    style={{
-                      background: period.status === 'Active' ? '#f0fdf4' : '#f8fafc',
-                      borderRadius: '16px',
-                      padding: '1.5rem',
-                      border: period.status === 'Active' ? '2px solid #86efac' : '1px solid #e2e8f0',
-                      position: 'relative',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', background: '#ffffff', padding: '2px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        {period.code}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.72rem',
-                          fontWeight: 800,
-                          padding: '3px 9px',
-                          borderRadius: '6px',
-                          background: period.status === 'Active' ? '#dcfce7' : period.status === 'Upcoming' ? '#eff6ff' : '#f1f5f9',
-                          color: period.status === 'Active' ? '#15803d' : period.status === 'Upcoming' ? '#1d4ed8' : '#64748b',
-                        }}
-                      >
-                        ● {period.status} Period
-                      </span>
-                    </div>
-
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem' }}>
-                      {period.name}
-                    </h3>
-
-                    <div style={{ fontSize: '0.82rem', color: '#475569', lineHeight: 1.7 }}>
-                      <div>📅 <strong>Period Dates:</strong> {period.start_date} to {period.end_date}</div>
-                      {period.exam_start_date && (
-                        <div>📝 <strong>Examinations:</strong> {period.exam_start_date} to {period.exam_end_date}</div>
-                      )}
-                      {period.fee_deadline && (
-                        <div>💳 <strong>Tuition Deadline:</strong> {period.fee_deadline}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <TenantAcademicCalendarView
+            school={school}
+            isAdmin={activeRole === 'admin'}
+            primaryColor={primaryColor}
+            accentColor={accentColor}
+            onSchoolUpdate={(updated) => {
+              setSchool(updated)
+            }}
+          />
         )}
 
         {/* VIEW 3: STUDENT DESK */}
@@ -2893,6 +2835,17 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           </div>
         </div>
       )}
+
+      {/* Online Admission Application Modal */}
+      <TenantApplyAdmissionModal
+        school={school}
+        isOpen={showApplyModal}
+        initialProgramTitle={applyProgramTitle}
+        onClose={() => setShowApplyModal(false)}
+        onSubmitted={() => {
+          loadTenantData()
+        }}
+      />
 
       {/* Cross-Platform PWA Installation Modal (Phone & Laptop/PC) */}
       <SafariInstallModal

@@ -1,110 +1,36 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuthContext } from '@/features/auth/AuthContext'
+import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { MobileAppBottomNav } from '@/components/layout/MobileAppBottomNav'
 import { sanitizeInput } from '@/lib/utils'
 import { LockIcon, AlertTriangleIcon, UserIcon, ArrowRightIcon } from '@/components/icons/AppIcons'
-import type { Role } from '@/lib/database.types'
-
-interface RoleOption {
-  role: Role
-  label: string
-  shortLabel: string
-  icon: string
-  identifierLabel: string
-  identifierPlaceholder: string
-  defaultUser: string
-  defaultPass: string
-  helpText: string
-}
-
-const ROLE_OPTIONS: RoleOption[] = [
-  {
-    role: 'student',
-    label: 'Student Learning Portal',
-    shortLabel: 'Student',
-    icon: '🎓',
-    identifierLabel: 'Student Admission Number',
-    identifierPlaceholder: 'e.g. GC-2026-001 or EG-2026-001',
-    defaultUser: 'GC-2026-001',
-    defaultPass: 'Student@2026#!',
-    helpText: 'Access courses, timetables, continuous assessments, fee invoices, and student results.',
-  },
-  {
-    role: 'teacher',
-    label: 'Faculty & Teacher Desk',
-    shortLabel: 'Teacher',
-    icon: '👨‍🏫',
-    identifierLabel: 'Staff ID / Lecturer Username',
-    identifierPlaceholder: 'e.g. STF-2026-001 or eg.teacher',
-    defaultUser: 'STF-2026-001',
-    defaultPass: 'Teacher@2026#!',
-    helpText: 'Record attendance, submit student CAT/Exam marks, and distribute lesson materials.',
-  },
-  {
-    role: 'bursar',
-    label: 'Bursar & Finance Desk',
-    shortLabel: 'Bursar',
-    icon: '💼',
-    identifierLabel: 'Bursar Staff ID / Username',
-    identifierPlaceholder: 'e.g. BUR-SEC-001 or eg.bursar',
-    defaultUser: 'BUR-SEC-001',
-    defaultPass: 'Bursar@2026#!',
-    helpText: 'Issue invoices, record fee receipts, manage tuition statements and payroll records.',
-  },
-  {
-    role: 'admin',
-    label: 'Principal & Executive Admin',
-    shortLabel: 'Admin',
-    icon: '🏛️',
-    identifierLabel: 'Administrator Username / ID',
-    identifierPlaceholder: 'e.g. Global@admin or eg.admin',
-    defaultUser: 'Global@admin',
-    defaultPass: 'Global@2026#!',
-    helpText: 'Full institutional governance, campus configuration, user provisioning and reporting.',
-  },
-  {
-    role: 'parent',
-    label: 'Parent & Sponsor Portal',
-    shortLabel: 'Parent',
-    icon: '👨‍👩‍👧',
-    identifierLabel: 'Parent ID / Student Admission Number',
-    identifierPlaceholder: 'e.g. PAR-2026-001 or GC-2026-001',
-    defaultUser: 'PAR-2026-001',
-    defaultPass: 'Parent@2026#!',
-    helpText: 'Monitor your ward’s daily attendance, academic transcripts, and tuition clearance.',
-  },
-]
 
 export function Login() {
-  const { signIn, signInAsDemo } = useAuthContext()
+  const { signIn } = useAuthContext()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const initialRoleParam = searchParams.get('role') as Role | null
-  const [selectedRole, setSelectedRole] = useState<Role>(
-    initialRoleParam && ROLE_OPTIONS.some((r) => r.role === initialRoleParam)
-      ? initialRoleParam
-      : 'student'
-  )
-
-  const currentRole = ROLE_OPTIONS.find((r) => r.role === selectedRole) || ROLE_OPTIONS[0]
-
-  const [admissionNumber, setAdmissionNumber] = useState(currentRole.defaultUser)
-  const [password, setPassword] = useState(currentRole.defaultPass)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [lockoutSeconds, setLockoutSeconds] = useState(0)
 
-  // Switch role handler: auto-populates sample test credentials for convenience
-  const handleRoleSelect = (opt: RoleOption) => {
-    setSelectedRole(opt.role)
-    setAdmissionNumber(opt.defaultUser)
-    setPassword(opt.defaultPass)
-    setError(null)
-  }
+  // Dynamic registered schools from tenant store (no hardcoded schools)
+  const [schools, setSchools] = useState(() => tenantSchoolStore.getSchools())
+
+  useEffect(() => {
+    const handleSync = () => setSchools(tenantSchoolStore.getSchools())
+    window.addEventListener('gc-tenant-schools-updated', handleSync)
+    window.addEventListener('storage', handleSync)
+    return () => {
+      window.removeEventListener('gc-tenant-schools-updated', handleSync)
+      window.removeEventListener('storage', handleSync)
+    }
+  }, [])
 
   useEffect(() => {
     if (lockoutSeconds > 0) {
@@ -121,15 +47,15 @@ export function Login() {
       setError(`Security Lockout Active: Please wait ${lockoutSeconds}s before retrying.`)
       return
     }
-    if (!admissionNumber.trim() || !password) {
-      setError('Please enter your credentials.')
+    if (!username.trim() || !password) {
+      setError('Please enter your administrator username and password.')
       return
     }
 
     setError(null)
     setLoading(true)
-    const cleanAdmission = sanitizeInput(admissionNumber)
-    const res = await signIn(cleanAdmission, password)
+    const cleanUser = sanitizeInput(username.trim())
+    const res = await signIn(cleanUser, password)
     setLoading(false)
 
     if (res.error) {
@@ -144,7 +70,7 @@ export function Login() {
     } else {
       setFailedAttempts(0)
       setLockoutSeconds(0)
-      const role = res.profile?.role || selectedRole
+      const role = res.profile?.role || 'admin'
       const nextParam = searchParams.get('next')
 
       if (nextParam) {
@@ -152,27 +78,12 @@ export function Login() {
         return
       }
 
-      if (role === 'admin') {
-        navigate('/admin')
-      } else if (role === 'bursar') {
-        navigate('/bursar')
-      } else if (role === 'teacher') {
-        navigate('/teacher')
-      } else if (role === 'parent') {
-        navigate('/parent')
-      } else {
-        navigate('/student')
-      }
+      if (role === 'admin') navigate('/admin')
+      else if (role === 'bursar') navigate('/bursar')
+      else if (role === 'teacher') navigate('/teacher')
+      else if (role === 'parent') navigate('/parent')
+      else navigate('/student')
     }
-  }
-
-  const handleInstantDemoLogin = (role: Role) => {
-    signInAsDemo(role)
-    if (role === 'admin') navigate('/admin')
-    else if (role === 'bursar') navigate('/bursar')
-    else if (role === 'teacher') navigate('/teacher')
-    else if (role === 'parent') navigate('/parent')
-    else navigate('/student')
   }
 
   return (
@@ -202,134 +113,76 @@ export function Login() {
         <div
           style={{
             background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-            padding: '1.75rem 1.5rem 1.25rem',
+            padding: '2rem 1.5rem 1.5rem',
             textAlign: 'center',
             borderBottom: '1px solid #334155',
           }}
         >
           <div
             style={{
-              width: '52px',
-              height: '52px',
-              borderRadius: '14px',
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
               background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 0.75rem',
-              fontSize: '1.6rem',
+              margin: '0 auto 0.85rem',
+              fontSize: '1.75rem',
               boxShadow: '0 8px 20px rgba(37,99,235,0.35)',
             }}
           >
-            {currentRole.icon}
+            🏛️
           </div>
-          <div
+          <h1
             style={{
               color: '#ffffff',
-              fontSize: '1.25rem',
+              fontSize: '1.4rem',
               fontWeight: 900,
+              margin: 0,
               letterSpacing: '-0.01em',
             }}
           >
-            {currentRole.label}
-          </div>
-          <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '4px', fontWeight: 500 }}>
-            Global College • Universal Education Cloud Portal
-          </div>
+            Platform Admin Portal
+          </h1>
+          <p style={{ color: '#94a3b8', fontSize: '0.82rem', margin: '6px 0 0', fontWeight: 500 }}>
+            Executive platform administration and campus governance
+          </p>
         </div>
 
-        {/* Role Selector Tabs */}
+        {/* School Dedicated URL Notice */}
         <div
           style={{
-            display: 'flex',
-            background: '#f1f5f9',
-            padding: '0.35rem',
-            gap: '0.25rem',
-            overflowX: 'auto',
+            background: '#f8fafc',
             borderBottom: '1px solid #e2e8f0',
+            padding: '0.9rem 1.25rem',
+            fontSize: '0.78rem',
+            color: '#475569',
+            lineHeight: 1.5,
           }}
         >
-          {ROLE_OPTIONS.map((opt) => {
-            const isActive = selectedRole === opt.role
-            return (
-              <button
-                key={opt.role}
-                type="button"
-                onClick={() => handleRoleSelect(opt)}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '4px',
-                  padding: '0.5rem 0.4rem',
-                  fontSize: '0.78rem',
-                  fontWeight: isActive ? 800 : 600,
-                  color: isActive ? '#1e3a8a' : '#64748b',
-                  background: isActive ? '#ffffff' : 'transparent',
-                  border: 'none',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span>{opt.icon}</span>
-                <span>{opt.shortLabel}</span>
-              </button>
-            )
-          })}
+          <div style={{ fontWeight: 700, color: '#1e3a8a', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+            <span>🏫</span>
+            <span>Are you a student, teacher, or parent?</span>
+          </div>
+          <div>
+            Please access your portal through your <strong>school's dedicated URL</strong> (e.g.,{' '}
+            <span style={{ fontFamily: 'monospace', color: '#1e40af' }}>schoolname.cloud.eclat.institute</span> or{' '}
+            <span style={{ fontFamily: 'monospace', color: '#1e40af' }}>/s/schoolname</span>).
+          </div>
         </div>
 
         {/* Form Body */}
-        <div style={{ padding: '1.5rem 1.75rem 1.75rem' }}>
-          {/* Quick role explanation */}
-          <div
-            style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              padding: '0.65rem 0.85rem',
-              fontSize: '0.76rem',
-              color: '#475569',
-              marginBottom: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '0.5rem',
-            }}
-          >
-            <span>{currentRole.helpText}</span>
-            <button
-              type="button"
-              onClick={() => handleInstantDemoLogin(currentRole.role)}
-              style={{
-                background: '#2563eb',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '3px 8px',
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-              title="Skip password and test this portal immediately"
-            >
-              1-Click Demo ➔
-            </button>
-          </div>
-
+        <div style={{ padding: '1.75rem' }}>
           {error && (
             <div
               style={{
                 background: '#fef2f2',
                 border: '1px solid #f87171',
                 borderRadius: '10px',
-                padding: '0.7rem 0.9rem',
+                padding: '0.75rem 1rem',
                 color: '#991b1b',
-                fontSize: '0.83rem',
+                fontSize: '0.85rem',
                 marginBottom: '1.25rem',
                 display: 'flex',
                 gap: '0.5rem',
@@ -342,7 +195,7 @@ export function Login() {
           )}
 
           <form onSubmit={handleSubmit} autoComplete="off">
-            <div style={{ marginBottom: '1.1rem' }}>
+            <div style={{ marginBottom: '1.2rem' }}>
               <label
                 style={{
                   display: 'block',
@@ -352,29 +205,44 @@ export function Login() {
                   marginBottom: '6px',
                 }}
               >
-                {currentRole.identifierLabel}
+                Administrator Username or Email *
               </label>
-              <input
-                type="text"
-                required
-                autoComplete="off"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                className="input"
-                value={admissionNumber}
-                onChange={(e) => setAdmissionNumber(e.target.value)}
-                placeholder={currentRole.identifierPlaceholder}
-                style={{
-                  fontSize: '0.92rem',
-                  padding: '0.75rem 0.9rem',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  required
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className="input"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="e.g. Global@admin or principal username"
+                  style={{
+                    fontSize: '0.92rem',
+                    padding: '0.75rem 0.9rem 0.75rem 2.4rem',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                  }}
+                />
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#94a3b8',
+                  }}
+                >
+                  <UserIcon size={16} color="#94a3b8" />
+                </span>
+              </div>
             </div>
 
-            <div style={{ marginBottom: '1.4rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
               <div
                 style={{
                   display: 'flex',
@@ -383,134 +251,146 @@ export function Login() {
                   marginBottom: '6px',
                 }}
               >
-                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>
-                  Portal Password
+                <label
+                  style={{
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: '#1e293b',
+                  }}
+                >
+                  Password *
                 </label>
                 <button
                   type="button"
+                  onClick={() => setShowPassword(!showPassword)}
                   style={{
                     background: 'none',
                     border: 'none',
                     color: '#2563eb',
-                    fontSize: '0.78rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
                     cursor: 'pointer',
-                    fontWeight: 600,
                     padding: 0,
                   }}
-                  onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                autoComplete="current-password"
-                autoCapitalize="none"
-                className="input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                style={{
-                  fontSize: '0.92rem',
-                  padding: '0.75rem 0.9rem',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-              />
+
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  autoComplete="current-password"
+                  className="input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter administrator password"
+                  style={{
+                    fontSize: '0.92rem',
+                    padding: '0.75rem 0.9rem 0.75rem 2.4rem',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    borderRadius: '10px',
+                    border: '1.5px solid #cbd5e1',
+                  }}
+                />
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '0.75rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#94a3b8',
+                  }}
+                >
+                  <LockIcon size={16} color="#94a3b8" />
+                </span>
+              </div>
             </div>
 
             <button
               type="submit"
-              className="btn btn-primary btn-full"
               disabled={loading || lockoutSeconds > 0}
+              className="btn btn-primary"
               style={{
-                fontWeight: 800,
+                width: '100%',
                 padding: '0.85rem',
-                borderRadius: '12px',
                 fontSize: '0.95rem',
+                fontWeight: 800,
+                borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
+                background: 'linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)',
+                color: '#ffffff',
+                border: 'none',
+                cursor: loading || lockoutSeconds > 0 ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 14px rgba(29, 78, 216, 0.4)',
+                opacity: loading || lockoutSeconds > 0 ? 0.7 : 1,
               }}
             >
-              <span>
-                {lockoutSeconds > 0
-                  ? `Locked — wait ${lockoutSeconds}s`
-                  : loading
-                  ? 'Authenticating...'
-                  : `Sign In to ${currentRole.shortLabel} Portal`}
-              </span>
-              <ArrowRightIcon size={16} />
+              <span>{loading ? 'Authenticating...' : 'Sign In to Admin Portal'}</span>
+              {!loading && <ArrowRightIcon size={16} color="#ffffff" />}
             </button>
           </form>
 
-          {/* Partner School Jump Links */}
-          <div
-            style={{
-              marginTop: '1.5rem',
-              paddingTop: '1.25rem',
-              borderTop: '1px solid #e2e8f0',
-              fontSize: '0.78rem',
-              color: '#64748b',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-              🏛️ Dedicated Partner School Portals
+          {/* Dynamic Partner School Hub Selector */}
+          {schools.length > 0 && (
+            <div
+              style={{
+                marginTop: '1.5rem',
+                paddingTop: '1.25rem',
+                borderTop: '1px solid #e2e8f0',
+                fontSize: '0.78rem',
+                color: '#64748b',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+                🏛️ Dedicated Partner School Portals
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {schools.slice(0, 4).map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => navigate(`/s/${s.slug}`)}
+                    style={{
+                      background: '#eff6ff',
+                      color: '#1d4ed8',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '8px',
+                      padding: '4px 10px',
+                      fontSize: '0.76rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                    title={`Open ${s.name}`}
+                  >
+                    {s.name} (/s/{s.slug})
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => navigate('/register-school')}
+                  style={{
+                    background: '#f8fafc',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    padding: '4px 10px',
+                    fontSize: '0.76rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  + Register New School
+                </button>
+              </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => navigate('/s/eg')}
-                style={{
-                  background: '#eff6ff',
-                  color: '#1d4ed8',
-                  border: '1px solid #bfdbfe',
-                  borderRadius: '8px',
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                EG Institute (/s/eg)
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/s/prime')}
-                style={{
-                  background: '#f0fdf4',
-                  color: '#15803d',
-                  border: '1px solid #bbf7d0',
-                  borderRadius: '8px',
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Prime College (/s/prime)
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/register-school')}
-                style={{
-                  background: '#f8fafc',
-                  color: '#475569',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                + Register New School
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Encryption Footer */}
           <div
@@ -530,20 +410,17 @@ export function Login() {
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-            <button
-              type="button"
-              onClick={() => navigate('/')}
+            <Link
+              to="/"
               style={{
-                background: 'none',
-                border: 'none',
                 color: '#64748b',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                cursor: 'pointer',
+                textDecoration: 'none',
               }}
             >
               ← Back to Homepage
-            </button>
+            </Link>
           </div>
         </div>
       </div>

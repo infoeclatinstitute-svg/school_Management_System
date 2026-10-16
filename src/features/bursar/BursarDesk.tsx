@@ -218,6 +218,21 @@ export function BursarDesk() {
 
   // Unit Registration Form State
   const [regStudentId, setRegStudentId] = useState<string>(students[0]?.id || '')
+  const dynamicDurations = useMemo(() => {
+    return Array.from(
+      new Set([
+        ...courseUnits.map((u) => u.course_duration).filter((d): d is string => Boolean(d)),
+        ...getDynamicCoursesList(schoolStore.getSubjects(), schoolStore.getCourseUnits()).map((c) => c.duration).filter((d): d is string => Boolean(d)),
+        '1 Month (Intensive Skills)',
+        '2 Months (Fast-Track Skills)',
+        '3 Months (Certificate Program)',
+        '4 Months (Professional Course)',
+        '6 Months (Modular Diploma)',
+        '1 Year (Full Diploma)',
+        'Executive Masterclass',
+      ])
+    )
+  }, [courseUnits])
   const [regCourseDuration, setRegCourseDuration] = useState('3 Months (Certificate Program)')
   const [regAcademicYear, setRegAcademicYear] = useState(currentAcademicYear)
   const [selectedUnitIds, setSelectedUnitIds] = useState<string[]>([])
@@ -228,7 +243,7 @@ export function BursarDesk() {
     phone: '',
     email: '',
     purpose: 'New Admission Inquiry',
-    program_of_interest: 'Comprehensive Computer Packages & Digital Skills',
+    program_of_interest: 'General Admissions Consultation',
     notes: '',
     status: 'Open',
   })
@@ -1714,11 +1729,11 @@ export function BursarDesk() {
                   <div>
                     <label className="label">Course Duration / Period</label>
                     <select className="input" value={regCourseDuration} onChange={(e) => setRegCourseDuration(e.target.value)}>
-                      <option value="2 Months (Fast-Track Skills)">2 Months (Fast-Track Skills)</option>
-                      <option value="3 Months (Certificate Program)">3 Months (Certificate Program)</option>
-                      <option value="4 Months (Professional Course)">4 Months (Professional Course)</option>
-                      <option value="6 Months (Modular Diploma)">6 Months (Modular Diploma)</option>
-                      <option value="Executive Masterclass">Executive Masterclass</option>
+                      {dynamicDurations.map((duration) => (
+                        <option key={duration} value={duration}>
+                          {duration}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
