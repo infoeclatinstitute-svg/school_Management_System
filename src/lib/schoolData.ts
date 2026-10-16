@@ -2309,6 +2309,10 @@ class SchoolDataStore {
     await this.pushCollectionToCloud('faculty_teachers', this.getTeachers())
   }
 
+  async updateTeacher(teacher: FacultyTeacher): Promise<void> {
+    await this.addTeacher(teacher)
+  }
+
   async deleteTeacher(id: string): Promise<void> {
     await txEngine.executeAtomic(
       `DELETE_TEACHER_${id}`,

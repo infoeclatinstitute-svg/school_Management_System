@@ -6,6 +6,16 @@ export interface IconProps extends React.SVGProps<SVGSVGElement> {
   strokeWidth?: number
 }
 
+// ➕ Plus / Add Icon
+export function PlusIcon({ size = 20, color = 'currentColor', strokeWidth = 2, ...props }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  )
+}
+
 // 🏠 Home Icon
 export function HomeIcon({ size = 20, color = 'currentColor', strokeWidth = 2, ...props }: IconProps) {
   return (

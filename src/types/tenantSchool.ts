@@ -74,6 +74,7 @@ export interface PartnerSchoolTenant {
   academic_system: AcademicCalendarSystem // 'term' (Term 1,2,3) vs 'semester' (Semester 1,2)
   academic_calendar: AcademicCalendarPeriod[]
   active_period_name: string // e.g. "Term 1, 2026" or "Semester 2, 2025/2026"
+  active_period_code?: string // e.g. "TERM-1" or "SEM-1"
   curriculum_type: SchoolCurriculumType | string
   country: string
   city: string
@@ -307,6 +308,7 @@ export interface TenantSessionUser {
   id: string
   school_slug: string
   name: string
+  full_name?: string
   role: 'admin' | 'principal' | 'teacher' | 'bursar' | 'student' | 'public'
   username: string
   title?: string
@@ -349,12 +351,15 @@ export interface TenantAdmissionApplication {
   program_title: string
   level?: string
   intake?: string
+  desired_intake?: string
   prior_qualifications?: string
+  previous_qualification?: string
   guardian_name?: string
   guardian_phone?: string
   notes?: string
   status: ApplicationStatus
   applied_at: string
+  created_at?: string
   follow_up_notes?: string
   reviewed_at?: string
 }

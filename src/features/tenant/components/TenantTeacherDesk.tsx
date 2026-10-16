@@ -49,8 +49,9 @@ export function TenantTeacherDesk({
   // Active Teacher Profile (logged-in session or selected faculty persona)
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>(() => {
     if (sessionUser && sessionUser.role === 'teacher') {
+      const uName = (sessionUser.full_name || sessionUser.name || '').toLowerCase()
       const match = teachingStaff.find(
-        (t) => t.id === sessionUser.id || t.full_name.toLowerCase() === sessionUser.full_name.toLowerCase()
+        (t) => t.id === sessionUser.id || t.full_name.toLowerCase() === uName
       )
       if (match) return match.id
     }
@@ -61,7 +62,7 @@ export function TenantTeacherDesk({
     return teachingStaff.find((t) => t.id === selectedTeacherId) || {
       id: 'faculty_default',
       school_slug: school.slug,
-      full_name: sessionUser?.full_name || 'Academic Faculty Instructor',
+      full_name: sessionUser?.full_name || sessionUser?.name || 'Academic Faculty Instructor',
       role: 'teacher' as const,
       department: 'Academic Studies',
       title: 'Subject Instructor',
@@ -107,7 +108,10 @@ export function TenantTeacherDesk({
     })
     // Extract from Teacher assigned subjects
     if (currentTeacher.assigned_subjects) {
-      currentTeacher.assigned_subjects.split(',').forEach((s) => s.trim() && subs.add(s.trim()))
+      const subsList = Array.isArray(currentTeacher.assigned_subjects)
+        ? currentTeacher.assigned_subjects
+        : String(currentTeacher.assigned_subjects).split(',')
+      subsList.forEach((s) => s.trim() && subs.add(s.trim()))
     }
     const arr = Array.from(subs).filter(Boolean)
     return arr.length > 0

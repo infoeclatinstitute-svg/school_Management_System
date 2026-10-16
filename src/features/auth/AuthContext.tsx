@@ -510,7 +510,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Proactively upgrade legacy unhashed or legacy SHA-256 password to PBKDF2
       if (isLegacyPasswordHash(student.portal_password)) {
         hashPassword(password.trim()).then((upgradedHash) => {
-          schoolStore.updateStudent({ ...student, portal_password: upgradedHash })
+          schoolStore.updateStudent(student.id, { portal_password: upgradedHash })
         }).catch(() => {})
       }
 

@@ -2844,7 +2844,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         initialProgramTitle={applyProgramTitle}
         onClose={() => setShowApplyModal(false)}
         onSubmitted={() => {
-          loadTenantData()
+          reloadSchoolData(school.slug)
         }}
       />
 

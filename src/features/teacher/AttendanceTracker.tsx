@@ -229,13 +229,12 @@ export function AttendanceTracker() {
                 ? Math.max(50, currentRate - 1)
                 : Math.max(40, currentRate - 3)
 
-            schoolStore.updateStudent({
-              ...match,
+            schoolStore.updateStudent(match.id, {
               attendance_rate: adjustedRate,
             })
           }
         })
-        schoolEventBus.emit('STUDENT_UPDATED', { timestamp: Date.now() })
+        schoolEventBus.publish('STUDENT_UPDATED')
       } catch {
         // Non-blocking
       }

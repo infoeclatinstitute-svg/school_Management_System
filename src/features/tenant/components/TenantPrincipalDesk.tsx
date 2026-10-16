@@ -168,7 +168,7 @@ export function TenantPrincipalDesk({
   // Add/Edit Staff Form State (Zero hardcoded defaults)
   const [staffForm, setStaffForm] = useState({
     full_name: '',
-    role: 'teacher' as 'teacher' | 'bursar' | 'admin',
+    role: 'teacher' as 'teacher' | 'bursar' | 'admin' | 'principal',
     department: '',
     custom_department: '',
     title: '',
