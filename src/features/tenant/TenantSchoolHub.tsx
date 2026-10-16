@@ -2299,10 +2299,12 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               studentList={studentList}
               payrollList={payrollList}
               feePaymentsList={feePaymentsList}
+              sessionUser={currentSession}
               onReloadData={() => reloadSchoolData(school.slug)}
               onOpenPayslip={(p) => setSelectedPayslip(p)}
               onOpenReceipt={(r) => setSelectedReceipt(r)}
             />
+
           )
         )}
 

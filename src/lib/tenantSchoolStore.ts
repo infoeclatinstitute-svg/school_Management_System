@@ -1425,6 +1425,16 @@ class TenantSchoolStore {
     this.savePayroll()
   }
 
+  public updatePayrollRecord(id: string, updates: Partial<TenantPayrollRecord>): TenantPayrollRecord | null {
+    if (this.payroll.length === 0) this.loadPayroll()
+    const record = this.payroll.find((p) => p.id === id)
+    if (!record) return null
+    const updated = { ...record, ...updates }
+    this.payroll = this.payroll.map((p) => (p.id === id ? updated : p))
+    this.savePayroll()
+    return updated
+  }
+
   // ============================================================
   // 4. CONTINUOUS ASSESSMENT GRADEBOOK & TRANSCRIPTS
   // ============================================================
