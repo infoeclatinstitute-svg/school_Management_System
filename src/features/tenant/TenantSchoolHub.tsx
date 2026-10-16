@@ -2254,9 +2254,12 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               lessonNotesList={lessonNotesList}
               feePaymentsList={feePaymentsList}
               activeStudent={activeStudent || studentList[0]}
+              sessionUser={currentSession}
               onSelectStudent={(s) => setActiveStudent(s)}
+              onReloadData={() => reloadSchoolData(school.slug)}
               onOpenReceipt={(r) => setSelectedReceipt(r)}
             />
+
           )
         )}
 
