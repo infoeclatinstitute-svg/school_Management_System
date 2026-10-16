@@ -697,7 +697,7 @@ export function StaffPayslipModal({
                 {school.name}
               </h1>
               <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                Bursary &amp; Compensation Directorate • Trust Payroll
+                Bursary &amp; Finance Directorate • {school.name} Operations Payroll
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>

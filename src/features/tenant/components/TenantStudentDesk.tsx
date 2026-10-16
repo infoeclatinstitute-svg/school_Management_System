@@ -57,7 +57,7 @@ export function TenantStudentDesk({
   const [onlinePaymentInput, setOnlinePaymentInput] = useState({
     amount: activeStudent.fee_balance > 0 ? activeStudent.fee_balance : 0,
     payment_method: 'Mobile Money (M-Pesa)' as 'Bank Wire' | 'Mobile Money (M-Pesa)' | 'Credit Card' | 'Cash',
-    phone_or_account: activeStudent.guardian_phone || '0712345678',
+    phone_or_account: activeStudent.guardian_phone || activeStudent.phone || '',
     reference_code: '',
   })
 
@@ -160,15 +160,18 @@ export function TenantStudentDesk({
         late: lateCount,
         absent: absentCount,
         excused: excusedCount,
+        hasIndividualLogs: true,
       }
     }
+    const recordedRate = typeof activeStudent.attendance_percent === 'number' ? activeStudent.attendance_percent : 100
     return {
-      rate: activeStudent.attendance_percent || 90,
-      total: 30,
-      present: Math.round(((activeStudent.attendance_percent || 90) / 100) * 30),
-      late: 1,
-      absent: 30 - Math.round(((activeStudent.attendance_percent || 90) / 100) * 30),
+      rate: recordedRate,
+      total: 0,
+      present: 0,
+      late: 0,
+      absent: 0,
       excused: 0,
+      hasIndividualLogs: false,
     }
   }, [studentSessionLogs, activeStudent.attendance_percent])
 
@@ -1283,7 +1286,7 @@ export function TenantStudentDesk({
                   setOnlinePaymentInput({
                     amount: activeStudent.fee_balance,
                     payment_method: 'Mobile Money (M-Pesa)',
-                    phone_or_account: activeStudent.guardian_phone || '0712345678',
+                    phone_or_account: activeStudent.guardian_phone || activeStudent.phone || '',
                     reference_code: '',
                   })
                   setShowOnlinePaymentModal(true)
@@ -1487,17 +1490,25 @@ export function TenantStudentDesk({
             <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>PRESENT SESSIONS</div>
               <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-                {attendanceStats.present}
+                {attendanceStats.hasIndividualLogs ? attendanceStats.present : 'Roster'}
               </div>
-              <div style={{ fontSize: '0.76rem', color: '#64748b' }}>Out of {attendanceStats.total} Total Sessions</div>
+              <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                {attendanceStats.hasIndividualLogs
+                  ? `Out of ${attendanceStats.total} Total Sessions`
+                  : 'Cumulative Roster Standing'}
+              </div>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>ABSENT OR MISSED</div>
               <div style={{ fontSize: '1.8rem', fontWeight: 900, color: attendanceStats.absent > 3 ? '#dc2626' : '#64748b', marginTop: '2px' }}>
-                {attendanceStats.absent}
+                {attendanceStats.hasIndividualLogs ? attendanceStats.absent : '0'}
               </div>
-              <div style={{ fontSize: '0.76rem', color: '#64748b' }}>Late entries: {attendanceStats.late}</div>
+              <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                {attendanceStats.hasIndividualLogs
+                  ? `Late entries: ${attendanceStats.late}`
+                  : 'No unexcused absences logged'}
+              </div>
             </div>
           </div>
 

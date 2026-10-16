@@ -37,13 +37,21 @@ export function TenantProgramsPage({
 
   // Editor form fields
   const [editTitle, setEditTitle] = useState('')
-  const [editDepartment, setEditDepartment] = useState('')
-  const [editLevel, setEditLevel] = useState<InstitutionProgram['level']>('Diploma')
-  const [editDuration, setEditDuration] = useState('2 Years (6 Semesters)')
-  const [editTuitionFee, setEditTuitionFee] = useState<number>(35000)
+  const [editDepartment, setEditDepartment] = useState(school.departments_list?.[0] || 'General Department')
+  const [editLevel, setEditLevel] = useState<InstitutionProgram['level']>(
+    school.institution_category === 'college'
+      ? 'Diploma'
+      : school.institution_category === 'university'
+      ? 'Degree'
+      : 'Certificate'
+  )
+  const [editDuration, setEditDuration] = useState('')
+  const [editTuitionFee, setEditTuitionFee] = useState<number>(0)
   const [editFeeCurrency, setEditFeeCurrency] = useState(school.currency || 'KES')
-  const [editIntake, setEditIntake] = useState('January, May & September Intakes')
-  const [editRequirements, setEditRequirements] = useState('KCSE Mean Grade C- or Equivalent')
+  const [editIntake, setEditIntake] = useState(
+    school.active_period_name ? `${school.active_period_name} Intake` : 'Rolling Admission'
+  )
+  const [editRequirements, setEditRequirements] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [editOutcomes, setEditOutcomes] = useState('')
   const [editFeatured, setEditFeatured] = useState(false)
@@ -60,13 +68,20 @@ export function TenantProgramsPage({
   const openNewProgramModal = () => {
     setEditingProgram(null)
     setEditTitle('')
-    setEditDepartment(school.departments_list?.[0] || 'School of Computing & IT')
-    setEditLevel('Diploma')
-    setEditDuration('2 Years (6 Semesters)')
-    setEditTuitionFee(35000)
+    setEditDepartment(school.departments_list?.[0] || 'General Department')
+    setEditLevel(
+      school.institution_category === 'college'
+        ? 'Diploma'
+        : school.institution_category === 'university'
+        ? 'Degree'
+        : 'Certificate'
+    )
+    setEditDuration('')
+
+    setEditTuitionFee(0)
     setEditFeeCurrency(school.currency || 'KES')
-    setEditIntake('January, May & September Intakes')
-    setEditRequirements('KCSE Mean Grade C- or Equivalent Certificate')
+    setEditIntake(school.active_period_name ? `${school.active_period_name} Intake` : 'Rolling Admission')
+    setEditRequirements('')
     setEditDescription('')
     setEditOutcomes('')
     setEditFeatured(false)

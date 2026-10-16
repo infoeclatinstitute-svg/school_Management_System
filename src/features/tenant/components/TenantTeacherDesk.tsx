@@ -55,23 +55,32 @@ export function TenantTeacherDesk({
       )
       if (match) return match.id
     }
-    return teachingStaff[0]?.id || 'faculty_default'
+    return teachingStaff[0]?.id || allStaff[0]?.id || `faculty_${school.slug}`
   })
 
   const currentTeacher = useMemo(() => {
-    return teachingStaff.find((t) => t.id === selectedTeacherId) || {
-      id: 'faculty_default',
-      school_slug: school.slug,
-      full_name: sessionUser?.full_name || sessionUser?.name || 'Academic Faculty Instructor',
-      role: 'teacher' as const,
-      department: 'Academic Studies',
-      title: 'Subject Instructor',
-      email: sessionUser?.username ? `${sessionUser.username}@school.ac` : 'faculty@school.ac',
-      phone: '',
-      assigned_classes: '',
-      assigned_subjects: '',
-    }
-  }, [teachingStaff, selectedTeacherId, sessionUser, school.slug])
+    return (
+      teachingStaff.find((t) => t.id === selectedTeacherId) || {
+        id: teachingStaff[0]?.id || allStaff[0]?.id || `faculty_${school.slug}`,
+        school_slug: school.slug,
+        full_name:
+          sessionUser?.full_name ||
+          sessionUser?.name ||
+          allStaff[0]?.full_name ||
+          `${school.name} Instructor`,
+        role: 'teacher' as const,
+        department: school.departments_list?.[0] || 'Academic Studies',
+        title: 'Subject Instructor',
+        email: sessionUser?.username
+          ? `${sessionUser.username}@${school.slug}.ac`
+          : school.contact_email,
+        phone: school.contact_phone,
+        assigned_classes: '',
+        assigned_subjects: '',
+      }
+    )
+  }, [teachingStaff, allStaff, selectedTeacherId, sessionUser, school.slug, school.name, school.departments_list, school.contact_email, school.contact_phone])
+
 
   // Dynamic Classes List
   const availableClasses = useMemo(() => {

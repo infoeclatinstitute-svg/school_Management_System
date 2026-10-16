@@ -120,15 +120,37 @@ export function TenantBursarDesk({
     bursar_notes: '',
   })
 
-  // Batch Invoicing State
-  const [batchInvoiceForm, setBatchInvoiceForm] = useState({
-    target_cohort: cohortsList[0] || '',
-    tuition_component: 15000,
-    exam_component: 2000,
-    activity_component: 1500,
-    lab_component: 1000,
-    library_component: 500,
+  // Banking Channels State
+  const [bankingConfig, setBankingConfig] = useState(() => {
+    const code = Math.abs(
+      school.slug.split('').reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0)
+    ) % 900000 + 100000
+    return {
+      bank_name: `${school.name} Designated Revenue Bank`,
+      account_name: `${school.name} Operations Treasury`,
+      account_number: `ACC-${school.slug.toUpperCase().slice(0, 4)}-${code}`,
+      mobile_channel: 'M-Pesa Business Paybill',
+      paybill_number: `${code}`,
+      account_format: 'ADM-XXXX',
+    }
   })
+  const [isEditingBanking, setIsEditingBanking] = useState(false)
+
+  // Batch Invoicing State
+  const [batchInvoiceForm, setBatchInvoiceForm] = useState(() => {
+    const firstCohort = cohortsList[0] || ''
+    const cohortStudents = studentList.filter((s) => s.grade_class === firstCohort)
+    const existingFee = cohortStudents[0]?.fee_total || 0
+    return {
+      target_cohort: firstCohort,
+      tuition_component: existingFee > 0 ? Math.round(existingFee * 0.75) : 0,
+      exam_component: existingFee > 0 ? Math.round(existingFee * 0.1) : 0,
+      activity_component: existingFee > 0 ? Math.round(existingFee * 0.05) : 0,
+      lab_component: existingFee > 0 ? Math.round(existingFee * 0.05) : 0,
+      library_component: existingFee > 0 ? Math.round(existingFee * 0.05) : 0,
+    }
+  })
+
 
   // Selected student for fee payment modal
   const selectedStudentForPayment = useMemo(() => {
@@ -1986,14 +2008,83 @@ export function TenantBursarDesk({
       {/* ============================================================ */}
       {bursarSubTab === 'banking' && (
         <div style={{ background: '#ffffff', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
-              Institution Treasury &amp; Approved Payment Channels
-            </h3>
-            <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
-              Official collection accounts displayed on student invoices, demand notices, and parent payment portals.
-            </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
+                Institution Treasury &amp; Approved Payment Channels
+              </h3>
+              <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                Official collection accounts displayed on student invoices, demand notices, and parent payment portals.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditingBanking(!isEditingBanking)}
+              style={{
+                background: isEditingBanking ? '#0f172a' : '#ffffff',
+                color: isEditingBanking ? '#ffffff' : '#0f172a',
+                border: '1px solid #cbd5e1',
+                padding: '0.5rem 1rem',
+                borderRadius: '10px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {isEditingBanking ? '✓ Finish Editing' : '✏️ Configure Channels'}
+            </button>
           </div>
+
+          {isEditingBanking && (
+            <div
+              style={{
+                background: '#f8fafc',
+                padding: '1.5rem',
+                borderRadius: '16px',
+                border: '1px solid #cbd5e1',
+                marginBottom: '1.75rem',
+              }}
+            >
+              <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                Edit Institution Collection Details
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
+                    Designated Bank Name
+                  </label>
+                  <input
+                    type="text"
+                    value={bankingConfig.bank_name}
+                    onChange={(e) => setBankingConfig({ ...bankingConfig, bank_name: e.target.value })}
+                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
+                    Bank Account Number
+                  </label>
+                  <input
+                    type="text"
+                    value={bankingConfig.account_number}
+                    onChange={(e) => setBankingConfig({ ...bankingConfig, account_number: e.target.value })}
+                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
+                    Mobile Paybill / Till Number
+                  </label>
+                  <input
+                    type="text"
+                    value={bankingConfig.paybill_number}
+                    onChange={(e) => setBankingConfig({ ...bankingConfig, paybill_number: e.target.value })}
+                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
             {/* Primary Bank Account */}
@@ -2015,18 +2106,18 @@ export function TenantBursarDesk({
               </div>
               <div style={{ fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '4px' }}>Bank Name</div>
               <div style={{ fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.01em', marginBottom: '1rem' }}>
-                National Commercial Bank / Standard Chartered
+                {bankingConfig.bank_name}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Account Name</div>
-                  <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>{school.name} Operations</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.88rem' }}>{bankingConfig.account_name}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Account Number</div>
                   <div style={{ fontWeight: 800, fontSize: '0.88rem', fontFamily: 'monospace' }}>
-                    010-{school.slug.toUpperCase().slice(0, 4)}-987214
+                    {bankingConfig.account_number}
                   </div>
                 </div>
               </div>
@@ -2055,17 +2146,21 @@ export function TenantBursarDesk({
               </div>
               <div style={{ fontSize: '0.85rem', color: '#a7f3d0', marginBottom: '4px' }}>Mobile Money Channel</div>
               <div style={{ fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.01em', marginBottom: '1rem' }}>
-                M-Pesa Business Paybill
+                {bankingConfig.mobile_channel}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.74rem', color: '#a7f3d0' }}>Business Number</div>
-                  <div style={{ fontWeight: 800, fontSize: '1.1rem', fontFamily: 'monospace' }}>522522</div>
+                  <div style={{ fontSize: '0.74rem', color: '#a7f3d0' }}>Business / Paybill #</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.1rem', fontFamily: 'monospace' }}>
+                    {bankingConfig.paybill_number}
+                  </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.74rem', color: '#a7f3d0' }}>Account Number Format</div>
-                  <div style={{ fontWeight: 800, fontSize: '0.88rem', fontFamily: 'monospace' }}>ADM-XXXX</div>
+                  <div style={{ fontSize: '0.74rem', color: '#a7f3d0' }}>Account Format</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.88rem', fontFamily: 'monospace' }}>
+                    {bankingConfig.account_format}
+                  </div>
                 </div>
               </div>
 
@@ -2076,6 +2171,7 @@ export function TenantBursarDesk({
           </div>
         </div>
       )}
+
 
       {/* ============================================================ */}
       {/* MODAL 1: RECORD TUITION PAYMENT */}

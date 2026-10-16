@@ -28,7 +28,7 @@ export function TenantApplyAdmissionModal({
     if (school.academic_calendar && school.academic_calendar.length > 0) {
       return school.academic_calendar.map((p) => p.name)
     }
-    return [school.active_period_name || 'Upcoming Intake 2026', 'Next Academic Term', 'September / Fall Intake']
+    return [school.active_period_name || 'Upcoming Intake', 'Next Academic Term', 'Open Intake']
   }, [school.academic_calendar, school.active_period_name])
 
   // Form Fields
@@ -85,7 +85,7 @@ export function TenantApplyAdmissionModal({
         phone: phone.trim(),
         program_title: finalProgram,
         intake: selectedIntake,
-        prior_qualifications: priorQualifications.trim() || 'Standard Secondary Completion',
+        prior_qualifications: priorQualifications.trim() || 'Not specified',
         guardian_name: guardianName.trim(),
         guardian_phone: guardianPhone.trim(),
         notes: notes.trim(),
