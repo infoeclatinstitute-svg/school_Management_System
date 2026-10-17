@@ -72,6 +72,10 @@ export const CLOUD_SYNC_SYSTEM_IDS: Record<string, string> = {
   unit_registrations: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa12',
 }
 
+export function safeAdmClean(val?: string | null): string {
+  return (val || '').trim().toLowerCase()
+}
+
 // ============================================================
 // High-Performance Data Access & Transaction Store
 // ============================================================
@@ -338,12 +342,16 @@ class SchoolDataStore {
 
   mergeCloudStudents(cloudList: StudentRecord[]): void {
     if (!Array.isArray(cloudList)) return
-    const currentList = this.get<StudentRecord[]>('students', INITIAL_STUDENTS)
+    const currentList = this.get<StudentRecord[]>('students', INITIAL_STUDENTS) || []
     const map = new Map<string, StudentRecord>()
-    currentList.forEach((s) => map.set(s.admission_number.toLowerCase().trim(), s))
+    currentList.filter(Boolean).forEach((s) => {
+      const key = (s.admission_number || s.id || '').toLowerCase().trim()
+      if (key) map.set(key, s)
+    })
 
-    cloudList.forEach((cs) => {
-      const key = cs.admission_number.toLowerCase().trim()
+    cloudList.filter(Boolean).forEach((cs) => {
+      const key = (cs.admission_number || cs.id || '').toLowerCase().trim()
+      if (!key) return
       const local = map.get(key)
       if (local) {
         const isCleared = cs.fee_cleared === true || local.fee_cleared === true || (cs.fee_balance === 0) || (local.fee_balance === 0)
@@ -611,13 +619,17 @@ class SchoolDataStore {
     }
   }
 
-  // --- Students CRUD (ACID Protected) ---
   getStudents(): StudentRecord[] {
-    const rawList = this.get<StudentRecord[]>('students', INITIAL_STUDENTS)
-    const receipts = this.getReceipts()
-    return rawList.map((s) => {
+    const rawList = this.get<StudentRecord[]>('students', INITIAL_STUDENTS) || []
+    const receipts = this.getReceipts() || []
+    return rawList.filter(Boolean).map((s) => {
+      const sAdm = (s.admission_number || '').trim().toLowerCase()
       const studentReceipts = receipts.filter(
-        (r) => (r.student_id && r.student_id === s.id) || (r.admission_number && r.admission_number.toLowerCase() === s.admission_number.toLowerCase())
+        (r) =>
+          r && (
+            (r.student_id && s.id && r.student_id === s.id) ||
+            (r.admission_number && sAdm && r.admission_number.trim().toLowerCase() === sAdm)
+          )
       )
       const totalPaid = studentReceipts.reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
       const billed = Number(s.term_fee_total) || 60
@@ -630,6 +642,8 @@ class SchoolDataStore {
 
       return {
         ...s,
+        admission_number: s.admission_number || '',
+        full_name: s.full_name || 'Student',
         term_fee_total: billed,
         fee_balance: finalBalance,
         fee_cleared: isCleared,
@@ -648,8 +662,9 @@ class SchoolDataStore {
       ['gc_v2_school_students', 'gc_v2_school_invoices'],
       () => {
         const list = this.get<StudentRecord[]>('students', INITIAL_STUDENTS)
+        const targetAdmClean = safeAdmClean(student.admission_number)
         const existingIdx = list.findIndex(
-          (s) => s.id === student.id || s.admission_number.toLowerCase() === student.admission_number.toLowerCase()
+          (s) => s && ((student.id && s.id === student.id) || (targetAdmClean && safeAdmClean(s.admission_number) === targetAdmClean))
         )
 
         const billed = Number(student.term_fee_total) || 75
@@ -677,7 +692,7 @@ class SchoolDataStore {
 
         // Automatically create unpaid/pending invoice for the new student
         const invoices = this.get<FeeInvoice[]>('invoices', INITIAL_INVOICES)
-        if (!invoices.some((inv) => inv.admission_number.toLowerCase() === student.admission_number.toLowerCase())) {
+        if (targetAdmClean && !invoices.some((inv) => safeAdmClean(inv.admission_number) === targetAdmClean)) {
           invoices.unshift({
             id: `inv-${Date.now()}-${student.admission_number.replace(/[^a-zA-Z0-9]/g, '')}`,
             invoice_number: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -724,23 +739,32 @@ class SchoolDataStore {
       }, { onConflict: 'id' })
     } catch {}
 
-    const std = this.getStudents().find((s) => s.id === student.id || s.admission_number.toLowerCase() === student.admission_number.toLowerCase())
+    const targetAdmClean = safeAdmClean(student.admission_number)
+    const std = this.getStudents().find(
+      (s) => s && ((student.id && s.id === student.id) || (targetAdmClean && safeAdmClean(s.admission_number) === targetAdmClean))
+    )
     if (std) {
       await this.syncStudentProfileToSupabase(std)
     }
   }
 
   async updateStudent(id: string, updated: Partial<StudentRecord>): Promise<void> {
+    const targetIdClean = safeAdmClean(id)
     await txEngine.executeAtomic(
       `UPDATE_STUDENT_${id}`,
       ['gc_v2_school_students', 'gc_v2_school_invoices', 'gc_v2_school_receipts', 'gc_v2_school_unit_registrations'],
       () => {
         const list = this.getStudents()
-        const idx = list.findIndex((s) => s.id === id || s.admission_number.toLowerCase() === id.toLowerCase())
+        const idx = list.findIndex(
+          (s) => s && ((s.id && s.id === id) || (targetIdClean && safeAdmClean(s.admission_number) === targetIdClean))
+        )
         if (idx === -1) throw new IntegrityError(`Student ID "${id}" not found.`)
 
         if (updated.admission_number) {
-          const conflict = list.find((s) => s.id !== id && s.admission_number.toLowerCase() === updated.admission_number!.toLowerCase())
+          const conflictAdm = safeAdmClean(updated.admission_number)
+          const conflict = list.find(
+            (s) => s && s.id !== id && conflictAdm && safeAdmClean(s.admission_number) === conflictAdm
+          )
           if (conflict) {
             throw new IntegrityError(`Admission Number "${updated.admission_number}" is already taken by another student.`)
           }
@@ -766,16 +790,17 @@ class SchoolDataStore {
         this.set('students', list)
 
         if (isCleared) {
-          const adm = merged.admission_number.toLowerCase().trim()
+          const adm = safeAdmClean(merged.admission_number)
           const admAlpha = adm.replace(/[^a-z0-9]/g, '')
 
           // Settle invoices
           const invoices = this.getInvoices()
           invoices.forEach((inv) => {
+            const invAdm = safeAdmClean(inv.admission_number)
             if (
               inv.student_id === merged.id ||
-              inv.admission_number.toLowerCase().trim() === adm ||
-              inv.admission_number.toLowerCase().replace(/[^a-z0-9]/g, '') === admAlpha
+              (adm && invAdm === adm) ||
+              (admAlpha && invAdm.replace(/[^a-z0-9]/g, '') === admAlpha)
             ) {
               inv.paid_amount = inv.total_amount
               inv.balance = 0
@@ -787,10 +812,11 @@ class SchoolDataStore {
           // Ensure unit registration is cleared
           const unitRegs = this.getUnitRegistrations()
           unitRegs.forEach((reg) => {
+            const regAdm = safeAdmClean(reg.admission_number)
             if (
               reg.student_id === merged.id ||
-              reg.admission_number.toLowerCase().trim() === adm ||
-              reg.admission_number.toLowerCase().replace(/[^a-z0-9]/g, '') === admAlpha
+              (adm && regAdm === adm) ||
+              (admAlpha && regAdm.replace(/[^a-z0-9]/g, '') === admAlpha)
             ) {
               reg.fee_clearance_status = 'Cleared'
               reg.exam_card_issued = true
@@ -800,12 +826,14 @@ class SchoolDataStore {
 
           // Ensure clearance receipt exists
           const receipts = this.getReceipts()
-          const hasReceipt = receipts.some(
-            (r) =>
+          const hasReceipt = receipts.some((r) => {
+            const rAdm = safeAdmClean(r.admission_number)
+            return (
               r.student_id === merged.id ||
-              r.admission_number.toLowerCase().trim() === adm ||
-              r.admission_number.toLowerCase().replace(/[^a-z0-9]/g, '') === admAlpha
-          )
+              (adm && rAdm === adm) ||
+              (admAlpha && rAdm.replace(/[^a-z0-9]/g, '') === admAlpha)
+            )
+          })
           if (!hasReceipt) {
             receipts.unshift({
               id: `rec-clear-${merged.id}`,
@@ -840,7 +868,9 @@ class SchoolDataStore {
     await this.pushCollectionToCloud('receipts', this.getReceipts())
     await this.pushCollectionToCloud('unit_registrations', this.getUnitRegistrations())
 
-    const std = this.getStudents().find((s) => s.id === id || s.admission_number.toLowerCase() === id.toLowerCase())
+    const std = this.getStudents().find(
+      (s) => s && ((s.id && s.id === id) || (targetIdClean && safeAdmClean(s.admission_number) === targetIdClean))
+    )
     if (std) {
       await this.syncStudentProfileToSupabase(std)
     }
@@ -848,7 +878,10 @@ class SchoolDataStore {
 
   async deleteStudent(id: string): Promise<void> {
     const students = this.getStudents()
-    const student = students.find((s) => s.id === id || s.admission_number.toLowerCase() === id.toLowerCase())
+    const targetIdClean = safeAdmClean(id)
+    const student = students.find(
+      (s) => s && ((s.id && s.id === id) || (targetIdClean && safeAdmClean(s.admission_number) === targetIdClean))
+    )
     const targetId = student?.id || id
     const targetAdm = student?.admission_number || ''
     const cleanAdm = targetAdm.toLowerCase().replace(/[^a-z0-9]/g, '')

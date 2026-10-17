@@ -4,7 +4,7 @@ import { useIsMobile } from '@/hooks/useMediaQuery'
 import { schoolStore, schoolEventBus } from '@/lib/schoolData'
 import { supabase } from '@/lib/supabase'
 import { getEmbeddableDocumentUrl, getGoogleDrivePreviewUrl } from '@/lib/utils'
-import { OFFICIAL_APKPURE_URL, OFFICIAL_APK_URL, OFFICIAL_DESKTOP_URL, LOCAL_DESKTOP_URL } from '@/utils/platform'
+import { OFFICIAL_APKPURE_URL, OFFICIAL_APK_URL, OFFICIAL_DESKTOP_URL } from '@/utils/platform'
 import { ACADEMIC_HANDBOOKS, COMIC_BOOKS_DATA, AcademicHandbook, ComicBook } from './academicHandbookData'
 import type { AcademicResource } from '@/types/school'
 

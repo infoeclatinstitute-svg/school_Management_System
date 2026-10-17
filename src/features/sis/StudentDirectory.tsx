@@ -714,7 +714,7 @@ export function StudentDirectory() {
                           className="btn btn-sm"
                           style={{ background: '#f8fafc', border: '1px solid #cbd5e1', color: '#1e3a8a', fontWeight: 700 }}
                           onClick={() => {
-                            const cleanAdm = std.admission_number.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+                            const cleanAdm = (std.admission_number || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
                             let currentPass = std.portal_password || ''
                             if (!currentPass) {
                               try {
@@ -1049,7 +1049,7 @@ export function StudentDirectory() {
                   className="btn"
                   style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                   onClick={() => {
-                    const cleanAdm = selectedStudent.admission_number.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+                    const cleanAdm = (selectedStudent.admission_number || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
                     let currentPass = 'Student@2026'
                     try {
                       const raw = localStorage.getItem('gc_v2_local_credentials') || localStorage.getItem('gc_local_credentials')

@@ -55,12 +55,13 @@ export function StudentDashboard() {
 
   const matchedStudent =
     allStudents.find((s) => {
-      const sAdm = s.admission_number.trim().toLowerCase()
+      if (!s) return false
+      const sAdm = (s.admission_number || '').trim().toLowerCase()
       const sAdmAlpha = sAdm.replace(/[^a-z0-9]/g, '')
-      const sNameAlpha = s.full_name.toLowerCase().replace(/[^a-z0-9]/g, '')
-      const sId = s.id.toLowerCase()
+      const sNameAlpha = (s.full_name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const sId = (s.id || '').toLowerCase()
       return (
-        sId === myIdClean ||
+        (myIdClean && sId === myIdClean) ||
         (myAdmClean && sAdm === myAdmClean) ||
         (myAdmAlpha && sAdmAlpha === myAdmAlpha) ||
         (myNameAlpha && myNameAlpha.length > 3 && sNameAlpha === myNameAlpha)
@@ -68,6 +69,7 @@ export function StudentDashboard() {
     })
 
   const studentReceipts = schoolStore.getReceipts().filter((r) => {
+    if (!r) return false
     const rAdmClean = (r.admission_number || '').trim().toLowerCase()
     const rAdmAlpha = rAdmClean.replace(/[^a-z0-9]/g, '')
     const rStdId = (r.student_id || '').toLowerCase()
@@ -80,6 +82,7 @@ export function StudentDashboard() {
   })
 
   const studentInvoices = schoolStore.getInvoices().filter((i) => {
+    if (!i) return false
     const iAdmClean = (i.admission_number || '').trim().toLowerCase()
     const iAdmAlpha = iAdmClean.replace(/[^a-z0-9]/g, '')
     const iStdId = (i.student_id || '').toLowerCase()
@@ -200,9 +203,11 @@ export function StudentDashboard() {
       {showCertModal && (() => {
         const matchingUnit = schoolStore.getCourseUnits().find(
           (u) =>
-            u.id === currentStudent?.class_id ||
-            u.title.toLowerCase() === currentStudent?.class_name?.toLowerCase() ||
-            (currentStudent?.class_name && u.title.toLowerCase().includes(currentStudent.class_name.toLowerCase()))
+            u && (
+              u.id === currentStudent?.class_id ||
+              (u.title && currentStudent?.class_name && u.title.toLowerCase() === currentStudent.class_name.toLowerCase()) ||
+              (currentStudent?.class_name && u.title && u.title.toLowerCase().includes(currentStudent.class_name.toLowerCase()))
+            )
         )
         return (
           <CertificateGenerator 

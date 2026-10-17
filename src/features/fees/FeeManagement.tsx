@@ -98,12 +98,13 @@ export function FeeManagement() {
 
   const currentStudent =
     students.find((s) => {
-      const sAdm = s.admission_number.trim().toLowerCase()
+      if (!s) return false
+      const sAdm = (s.admission_number || '').trim().toLowerCase()
       const sAdmAlpha = sAdm.replace(/[^a-z0-9]/g, '')
-      const sNameAlpha = s.full_name.toLowerCase().replace(/[^a-z0-9]/g, '')
-      const sId = s.id.toLowerCase()
+      const sNameAlpha = (s.full_name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const sId = (s.id || '').toLowerCase()
       return (
-        sId === myIdClean ||
+        (myIdClean && sId === myIdClean) ||
         (myAdmClean && sAdm === myAdmClean) ||
         (myAdmAlpha && sAdmAlpha === myAdmAlpha) ||
         (myNameAlpha && myNameAlpha.length > 3 && sNameAlpha === myNameAlpha)

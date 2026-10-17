@@ -89,7 +89,7 @@ export function ManageUsers() {
     if (!resettingUser || !newResetPassword.trim()) return
 
     const cleanPass = sanitizeInput(newResetPassword.trim())
-    const cleanAdm = resettingUser.admission_number.trim()
+    const cleanAdm = (resettingUser.admission_number || resettingUser.id || '').trim()
     const cleanKey = cleanAdm.toLowerCase().replace(/[^a-z0-9]/g, '')
 
     try {
