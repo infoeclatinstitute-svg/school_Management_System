@@ -86,16 +86,37 @@ export function TenantPrincipalDesk({
     }
   }, [initialSubTab])
 
+  // Dynamic Academic Programs for School
+  const schoolPrograms = useMemo(() => {
+    return tenantSchoolStore.getProgramsBySchool(school.slug)
+  }, [school.slug])
+
   // Dynamic Class Cohorts
   const availableClasses = useMemo(() => {
-    const list = school.classes_list && school.classes_list.length > 0 ? [...school.classes_list] : []
+    const set = new Set<string>()
+    if (Array.isArray(school.classes_list) && school.classes_list.length > 0) {
+      school.classes_list.forEach((c) => { if (c && c.trim()) set.add(c.trim()) })
+    }
+    schoolPrograms.forEach((p) => {
+      if (p.title && p.title.trim()) set.add(p.title.trim())
+    })
     studentList.forEach((s) => {
-      if (s.grade_class && !list.includes(s.grade_class)) {
-        list.push(s.grade_class)
+      if (s.grade_class && s.grade_class.trim()) {
+        set.add(s.grade_class.trim())
       }
     })
-    return list.length > 0 ? list : ['Cohort A', 'Cohort B']
-  }, [school.classes_list, studentList])
+    const list = Array.from(set)
+    if (list.length > 0) return list
+
+    // Category-specific defaults if no classes or programs are defined yet
+    if (school.institution_category === 'university') {
+      return ['Undergraduate Year 1', 'Postgraduate Cohort']
+    }
+    if (school.institution_category === 'school') {
+      return ['Grade 1', 'Grade 2']
+    }
+    return ['Diploma Cohort', 'Certificate Cohort']
+  }, [school.classes_list, school.institution_category, schoolPrograms, studentList])
 
   // Dynamic Departments
   const availableDepartments = useMemo(() => {
@@ -115,8 +136,15 @@ export function TenantPrincipalDesk({
 
   // Active Timetable Class
   const [selectedTimetableClass, setSelectedTimetableClass] = useState<string>(
-    availableClasses[0] || 'Cohort A'
+    availableClasses[0] || 'Main Cohort'
   )
+
+  useEffect(() => {
+    if (!availableClasses.includes(selectedTimetableClass) && availableClasses.length > 0) {
+      setSelectedTimetableClass(availableClasses[0])
+    }
+  }, [availableClasses, selectedTimetableClass])
+
   const classTimetable = useMemo(() => {
     return tenantSchoolStore.getTimetableBySchool(school.slug, selectedTimetableClass)
   }, [school.slug, selectedTimetableClass, studentList, staffList])
@@ -764,8 +792,14 @@ export function TenantPrincipalDesk({
     if (window.confirm(`Are you sure you want to remove the class cohort "${className}"?`)) {
       const updated = availableClasses.filter((c) => c !== className)
       tenantSchoolStore.updateSchoolBranding(school.slug, { classes_list: updated })
+      // Reassign any students with this class so it doesn't resurrect from studentList
+      studentList.forEach((s) => {
+        if (s.grade_class === className) {
+          tenantSchoolStore.updateStudent(s.id, { grade_class: updated[0] || 'Unassigned' })
+        }
+      })
       if (selectedTimetableClass === className) {
-        setSelectedTimetableClass(updated[0] || 'Cohort A')
+        setSelectedTimetableClass(updated[0] || 'Main Class')
       }
       onReloadData()
     }
@@ -2636,6 +2670,25 @@ export function TenantPrincipalDesk({
               </select>
               <button
                 type="button"
+                onClick={() => setShowManageClassesModal(true)}
+                style={{
+                  background: '#f8fafc',
+                  color: '#0f172a',
+                  border: '1px solid #cbd5e1',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                ⚙️ Manage Classes
+              </button>
+              <button
+                type="button"
                 onClick={handleOpenAddPeriod}
                 style={{
                   background: primaryColor,
@@ -3851,11 +3904,40 @@ export function TenantPrincipalDesk({
               </button>
             </div>
 
+            {schoolPrograms.length > 0 && (
+              <div style={{ marginBottom: '1rem', background: '#eff6ff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#1e40af' }}>
+                  <strong>{schoolPrograms.length} Academic Programs</strong> configured in catalog.
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const programTitles = schoolPrograms.map((p) => p.title.trim()).filter(Boolean)
+                    const combined = Array.from(new Set([...(school.classes_list || []), ...programTitles]))
+                    tenantSchoolStore.updateSchoolBranding(school.slug, { classes_list: combined })
+                    onReloadData()
+                  }}
+                  style={{
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.35rem 0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ⚡ Sync All to Classes
+                </button>
+              </div>
+            )}
+
             {/* Add New Class Form */}
             <form onSubmit={handleAddClassCohort} style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem' }}>
               <input
                 type="text"
-                placeholder="e.g. Grade 12 Senior, Diploma Year 2..."
+                placeholder="Enter class cohort (e.g. Diploma in Software Eng - Year 1)..."
                 value={newClassNameInput}
                 onChange={(e) => setNewClassNameInput(e.target.value)}
                 style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.84rem' }}

@@ -120,12 +120,27 @@ export function TenantBursarDesk({
 
   // Dynamic Cohorts list
   const cohortsList = useMemo(() => {
+    const set = new Set<string>()
     if (Array.isArray(school.classes_list) && school.classes_list.length > 0) {
-      return school.classes_list
+      school.classes_list.forEach((c) => { if (c && c.trim()) set.add(c.trim()) })
     }
-    const fromStudents = Array.from(new Set(studentList.map((s) => s.grade_class).filter(Boolean)))
-    return fromStudents.length > 0 ? fromStudents : ['General Cohort']
-  }, [school.classes_list, studentList])
+    const progs = tenantSchoolStore.getProgramsBySchool(school.slug)
+    progs.forEach((p) => {
+      if (p.title && p.title.trim()) set.add(p.title.trim())
+    })
+    studentList.forEach((s) => {
+      if (s.grade_class && s.grade_class.trim()) set.add(s.grade_class.trim())
+    })
+    const list = Array.from(set)
+    if (list.length > 0) return list
+    if (school.institution_category === 'university') {
+      return ['Undergraduate Year 1', 'Postgraduate Cohort']
+    }
+    if (school.institution_category === 'school') {
+      return ['Grade 1', 'Grade 2']
+    }
+    return ['Diploma Cohort', 'Certificate Cohort']
+  }, [school.classes_list, school.institution_category, school.slug, studentList])
 
   // New Payment Form Input
   const [newPaymentInput, setNewPaymentInput] = useState({

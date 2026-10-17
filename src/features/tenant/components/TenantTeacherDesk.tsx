@@ -93,8 +93,15 @@ export function TenantTeacherDesk({
       if (p.title) list.add(p.title.trim())
     })
     const arr = Array.from(list).filter(Boolean)
-    return arr.length > 0 ? arr : ['Main Cohort A', 'Main Cohort B']
-  }, [school.classes_list, school.slug, studentList])
+    if (arr.length > 0) return arr
+    if (school.institution_category === 'university') {
+      return ['Undergraduate Year 1', 'Postgraduate Cohort']
+    }
+    if (school.institution_category === 'school') {
+      return ['Grade 1', 'Grade 2']
+    }
+    return ['Diploma Cohort', 'Certificate Cohort']
+  }, [school.classes_list, school.institution_category, school.slug, studentList])
 
   // Dynamic Subjects List
   const availableSubjects = useMemo(() => {
