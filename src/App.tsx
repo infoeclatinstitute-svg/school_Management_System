@@ -8,6 +8,7 @@ import { initOTAUpdater } from '@/lib/otaUpdater'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { licensingStore } from '@/lib/licensingStore'
 import { detectTenantFromHost } from '@/lib/tenantDomain'
+import { initNativeBridge } from '@/lib/mobileNativeBridge'
 import { LayoutShell } from '@/components/layout/LayoutShell'
 import { LoadingScreen } from '@/components/ui/Spinner'
 import { PullToRefresh } from '@/components/shared/PullToRefresh'
@@ -162,9 +163,15 @@ export function App() {
     }, 600)
 
     const cleanupOTA = initOTAUpdater()
+    let cleanupNative: (() => void) | undefined
+    initNativeBridge().then((cleanup) => {
+      cleanupNative = cleanup
+    })
+
     return () => {
       clearTimeout(syncTimer)
       cleanupOTA()
+      if (cleanupNative) cleanupNative()
     }
   }, [])
 

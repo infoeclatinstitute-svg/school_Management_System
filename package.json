@@ -15,6 +15,8 @@
     "desktop:dist": "npm run build && electron-builder --win",
     "desktop:store": "npm run build && electron-builder --win appx",
     "cap:sync": "npm run build && npx cap sync",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:build": "npm run build && npx cap sync android && cd android && gradlew.bat assembleDebug",
     "android:open": "npm run build && npx cap open android",
     "ios:open": "npm run build && npx cap open ios"
   },
@@ -54,8 +56,11 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/camera": "^8.2.6",
     "@capacitor/core": "^8.5.1",
     "@capacitor/ios": "^8.5.1",
+    "@capacitor/status-bar": "^8.0.4",
     "@hookform/resolvers": "^5.4.0",
     "@supabase/supabase-js": "^2.110.0",
     "@tanstack/react-query": "^5.101.2",
