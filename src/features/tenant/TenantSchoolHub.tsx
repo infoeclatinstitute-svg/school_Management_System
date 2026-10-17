@@ -1689,6 +1689,10 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               accentColor={accentColor}
               onOpenAdmissions={handleOpenApplyModal}
               onOpenLogin={() => setShowLoginModal(true)}
+              onOpenLicense={() => {
+                setLicenseFeedback(null)
+                setShowLicenseModal(true)
+              }}
               currentSession={currentSession}
             />
 
@@ -1700,7 +1704,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
             />
 
             {/* The 4 Dedicated Portal Workspaces */}
-            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div id="portals" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', scrollMarginTop: '80px' }}>
               <div>
                 <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.25rem', letterSpacing: '-0.01em' }}>
                   School Portals &amp; Specialized Desks
@@ -2683,9 +2687,23 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 <strong>{school.campus_count || (school.campuses_list ? school.campuses_list.length : 1)} Campus(es)</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: '#64748b' }}>Monthly Subscription Rate:</span>
-                <span style={{ color: '#1e3a8a', fontWeight: 800 }}>
-                  KES {((school.campus_count || (school.campuses_list ? school.campuses_list.length : 1)) * 2500).toLocaleString()} / month (KES 2,500/campus)
+                <span style={{ color: '#64748b' }}>Subscription Tier:</span>
+                <span style={{
+                  fontWeight: 900,
+                  fontSize: '0.78rem',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  background: school.subscription_tier === 'gold' ? '#fef3c7' : '#eff6ff',
+                  color: school.subscription_tier === 'gold' ? '#b45309' : '#1e40af',
+                  border: school.subscription_tier === 'gold' ? '1px solid #fde047' : '1px solid #bfdbfe',
+                }}>
+                  {school.subscription_tier === 'gold' ? '🥇 GOLD TIER (KES 3,000/mo)' : '🥈 SILVER TIER (KES 2,500/mo)'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ color: '#64748b' }}>Public Page Showcase:</span>
+                <span style={{ fontWeight: 800, color: school.subscription_tier === 'gold' ? '#15803d' : '#b45309' }}>
+                  {school.subscription_tier === 'gold' ? '✓ Dedicated Page Unlocked' : '⭐ Requires Gold Tier (KES 3,000)'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -2710,13 +2728,17 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
             </div>
 
             <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1rem', fontSize: '0.82rem', color: '#065f46' }}>
-              <div style={{ fontWeight: 800, marginBottom: '2px' }}>📲 M-Pesa Subscription Payment:</div>
-              <div>Send monthly subscription (<strong>KES 2,500 / campus</strong>) to:</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#047857', marginTop: '4px', letterSpacing: '0.04em' }}>
+              <div style={{ fontWeight: 800, marginBottom: '4px' }}>📲 Subscription &amp; Tier Activation (M-Pesa):</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '6px', fontSize: '0.8rem' }}>
+                <div>• <strong>Gold Tier:</strong> KES 3,000 / campus / month (Unlocks Dedicated Public Page, Programs Catalog &amp; Facilities)</div>
+                <div>• <strong>Silver Tier:</strong> KES 2,500 / campus / month (Standard Core SIS/LMS Portals)</div>
+              </div>
+              <div>Send payment to:</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#047857', marginTop: '2px', letterSpacing: '0.04em' }}>
                 M-Pesa: 0740027346
               </div>
               <div style={{ fontSize: '0.74rem', color: '#059669', marginTop: '3px' }}>
-                Once processed, your 19-character Product Key will be issued to activate access below.
+                Once processed, your 19-character Product Key (e.g. <code>GC-GLD-...</code> or <code>GC-SLV-...</code>) will be issued to activate access below.
               </div>
             </div>
 
@@ -2726,7 +2748,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               </label>
               <input
                 type="text"
-                placeholder="GC-LIC-XXXX-XXXX-XXXX-XXXX"
+                placeholder="GC-GLD-XXXX-XXXX-XXXX-XXXX"
                 value={licenseKeyInput}
                 onChange={(e) => setLicenseKeyInput(e.target.value.toUpperCase())}
                 style={{

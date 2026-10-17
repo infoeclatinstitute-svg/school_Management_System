@@ -1,8 +1,18 @@
 import React, { useState, useEffect, useId } from 'react'
 import { Link } from 'react-router-dom'
-import { licensingStore, DEFAULT_CAMPUS_RATE_KES } from '@/lib/licensingStore'
+import { licensingStore } from '@/lib/licensingStore'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
-import type { ProductKeyLicense, SaasCampusInvoice, LicenseDurationType, MasterLicensingMetrics } from '@/types/licensing'
+import type {
+  ProductKeyLicense,
+  SaasCampusInvoice,
+  LicenseDurationType,
+  MasterLicensingMetrics,
+  SubscriptionTierType,
+} from '@/types/licensing'
+import {
+  SUBSCRIPTION_TIER_RATES,
+  SUBSCRIPTION_TIER_DETAILS,
+} from '@/types/licensing'
 import type { PartnerSchoolTenant } from '@/types/tenantSchool'
 import { SearchIcon } from '@/components/icons/AppIcons'
 import { AppLogo } from '@/components/common/AppLogo'
@@ -39,6 +49,7 @@ export function MasterSaasPortal() {
   const [customSchoolSlug, setCustomSchoolSlug] = useState<string>('')
   const [campusCount, setCampusCount] = useState<number>(1)
   const [planDuration, setPlanDuration] = useState<LicenseDurationType>('1_month')
+  const [selectedTier, setSelectedTier] = useState<SubscriptionTierType>('gold')
   const [customerContact, setCustomerContact] = useState<string>('')
   const [generatorNotes, setGeneratorNotes] = useState<string>('')
   const [latestGeneratedKey, setLatestGeneratedKey] = useState<ProductKeyLicense | null>(null)
@@ -154,6 +165,7 @@ export function MasterSaasPortal() {
         school_name: sName,
         campus_count: Number(campusCount) || 1,
         plan_duration: planDuration,
+        tier: selectedTier,
         customer_contact: customerContact,
         notes: generatorNotes,
       })
@@ -695,7 +707,7 @@ export function MasterSaasPortal() {
                 ⚡ Generate Official Product Key
               </h3>
               <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: '0 0 1.5rem', lineHeight: 1.5 }}>
-                Issue activation keys for new or existing client institutions. Rate is automatically calculated at <strong>KES 2,500 per campus/month</strong>.
+                Issue activation keys for client institutions. <strong>Gold Tier (KES 3,000/mo)</strong> unlocks the dedicated public showcase, programs catalog, About Us &amp; facilities; <strong>Silver Tier (KES 2,500/mo)</strong> covers core role portals.
               </p>
 
               <form onSubmit={handleGenerateKey} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
@@ -727,7 +739,7 @@ export function MasterSaasPortal() {
                     <option value="">-- Choose onboarded school or type custom below --</option>
                     {schools.map((s) => (
                       <option key={s.slug} value={s.slug}>
-                        {s.name} ({s.campus_count || 1} campus[es])
+                        {s.name} ({s.campus_count || 1} campus[es]) {s.subscription_tier ? `[${s.subscription_tier.toUpperCase()}]` : ''}
                       </option>
                     ))}
                   </select>
@@ -780,6 +792,73 @@ export function MasterSaasPortal() {
                   </div>
                 )}
 
+                {/* SUBSCRIPTION TIER SELECTOR */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8' }}>
+                      SUBSCRIPTION TIER &amp; PRODUCT LEVEL *
+                    </label>
+                    <span style={{ fontSize: '0.72rem', color: '#f59e0b', fontWeight: 800 }}>
+                      ⭐ Gold Tier = KES 3,000 / mo
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
+                    {(['gold', 'silver', 'platinum'] as SubscriptionTierType[]).map((tierKey) => {
+                      const details = SUBSCRIPTION_TIER_DETAILS[tierKey]
+                      const isSel = selectedTier === tierKey
+                      return (
+                        <div
+                          key={tierKey}
+                          onClick={() => setSelectedTier(tierKey)}
+                          style={{
+                            background: isSel
+                              ? tierKey === 'gold'
+                                ? 'linear-gradient(135deg, rgba(217, 119, 6, 0.25) 0%, rgba(245, 158, 11, 0.08) 100%)'
+                                : tierKey === 'platinum'
+                                ? 'rgba(99, 102, 241, 0.2)'
+                                : 'rgba(59, 130, 246, 0.15)'
+                              : '#0a0f1d',
+                            border: isSel
+                              ? tierKey === 'gold'
+                                ? '2px solid #f59e0b'
+                                : tierKey === 'platinum'
+                                ? '2px solid #818cf8'
+                                : '2px solid #3b82f6'
+                              : '1px solid #334155',
+                            borderRadius: '14px',
+                            padding: '0.85rem',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: tierKey === 'gold' ? '#fbbf24' : '#ffffff' }}>
+                              {details.badge}
+                            </span>
+                            {tierKey === 'gold' && (
+                              <span style={{ fontSize: '0.62rem', background: '#f59e0b', color: '#000000', fontWeight: 900, padding: '2px 6px', borderRadius: '4px' }}>
+                                POPULAR
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#10b981', margin: '2px 0' }}>
+                            KES {details.rateKes.toLocaleString()}
+                            <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>/campus/mo</span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px', lineHeight: 1.35 }}>
+                            {tierKey === 'gold'
+                              ? '⭐ Unlocks dedicated public page, programs catalog & facilities'
+                              : tierKey === 'platinum'
+                              ? 'Enterprise multi-campus federation & custom domain'
+                              : 'Standard core portals (Learner, Teacher, Bursar, Principal)'}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                   <div>
                     <label htmlFor={`${formId}-campuses-input`} style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '6px' }}>
@@ -805,7 +884,7 @@ export function MasterSaasPortal() {
                       }}
                     />
                     <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginTop: '4px' }}>
-                      @ KES 2,500/campus = KES {(campusCount * 2500).toLocaleString()}/mo
+                      @ KES {SUBSCRIPTION_TIER_RATES[selectedTier].toLocaleString()}/campus = KES {(campusCount * SUBSCRIPTION_TIER_RATES[selectedTier]).toLocaleString()}/mo
                     </span>
                   </div>
 
@@ -901,7 +980,7 @@ export function MasterSaasPortal() {
                       KES{' '}
                       {(
                         campusCount *
-                        DEFAULT_CAMPUS_RATE_KES *
+                        SUBSCRIPTION_TIER_RATES[selectedTier] *
                         (planDuration === '3_months'
                           ? 3
                           : planDuration === '6_months'
@@ -915,7 +994,7 @@ export function MasterSaasPortal() {
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', fontSize: '0.75rem', color: '#94a3b8' }}>
-                    {campusCount} campus(es) @ KES 2,500/mo
+                    {campusCount} campus(es) @ KES {SUBSCRIPTION_TIER_RATES[selectedTier].toLocaleString()}/mo ({selectedTier.toUpperCase()} TIER)
                   </div>
                 </div>
 
@@ -959,6 +1038,26 @@ export function MasterSaasPortal() {
                     <span style={{ fontSize: '0.7rem', background: '#22c55e', color: '#052e16', padding: '2px 8px', borderRadius: '999px', fontWeight: 800 }}>
                       ACTIVE
                     </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 900,
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        background: latestGeneratedKey.tier === 'gold' ? '#fef3c7' : latestGeneratedKey.tier === 'platinum' ? '#e0e7ff' : '#f1f5f9',
+                        color: latestGeneratedKey.tier === 'gold' ? '#b45309' : latestGeneratedKey.tier === 'platinum' ? '#4338ca' : '#475569',
+                      }}
+                    >
+                      {latestGeneratedKey.tier === 'gold' ? '🥇 GOLD TIER (KES 3,000/mo)' : latestGeneratedKey.tier === 'platinum' ? '💎 PLATINUM TIER' : '🥈 SILVER TIER (KES 2,500/mo)'}
+                    </span>
+                    {latestGeneratedKey.tier === 'gold' && (
+                      <span style={{ fontSize: '0.72rem', color: '#fde047', fontWeight: 800 }}>
+                        ✓ Dedicated Public Page &amp; Offerings Unlocked
+                      </span>
+                    )}
                   </div>
 
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: '0 0 0.35rem' }}>
@@ -1007,7 +1106,15 @@ export function MasterSaasPortal() {
                     <button
                       type="button"
                       onClick={() => {
-                        const msg = `Hello! Here is your Global College Cloud Campus Product Key for ${latestGeneratedKey.school_name}:\n\nKey: ${latestGeneratedKey.key}\nCampuses: ${latestGeneratedKey.campus_count}\nMonthly Rate: KES ${(latestGeneratedKey.campus_count * 2500).toLocaleString()}/month\nM-Pesa Payment Number: 0740027346\nValid until: ${latestGeneratedKey.expires_at.split('T')[0]}\n\nEnter this key in your Principal / Admin Desk under "Activate Campus License" to unlock full access.`
+                        const tierTitle = latestGeneratedKey.tier === 'gold'
+                          ? 'Gold Tier (KES 3,000/campus/month)'
+                          : latestGeneratedKey.tier === 'platinum'
+                          ? 'Platinum Tier (KES 5,000/campus/month)'
+                          : 'Silver Tier (KES 2,500/campus/month)'
+                        const featureSummary = latestGeneratedKey.tier === 'gold'
+                          ? 'Features Unlocked: Dedicated Public Page & Programs Catalog, About Us, Mission, Vision, Facilities & Core Portals'
+                          : 'Features: Standard SIS & LMS Core Role Portals'
+                        const msg = `Hello! Here is your Global College Cloud Campus Product Key for ${latestGeneratedKey.school_name}:\n\nKey: ${latestGeneratedKey.key}\nTier: ${tierTitle}\n${featureSummary}\nCampuses: ${latestGeneratedKey.campus_count}\nTotal Value: KES ${latestGeneratedKey.total_amount_kes.toLocaleString()}\nM-Pesa Payment Number: 0740027346\nValid until: ${latestGeneratedKey.expires_at.split('T')[0]}\n\nEnter this key in your Principal / Admin Desk under "Activate Campus License" to unlock access.`
                         copyText(msg, 'latest_msg')
                       }}
                       style={{
@@ -1076,9 +1183,21 @@ export function MasterSaasPortal() {
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#94a3b8' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: '#94a3b8' }}>
                           <span>{lic.school_name} ({lic.campus_count} campus[es])</span>
-                          <span>KES {lic.total_amount_kes.toLocaleString()}</span>
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 900,
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: lic.tier === 'gold' ? '#f59e0b20' : lic.tier === 'platinum' ? '#818cf820' : '#64748b20',
+                              color: lic.tier === 'gold' ? '#f59e0b' : lic.tier === 'platinum' ? '#a5b4fc' : '#94a3b8',
+                              border: lic.tier === 'gold' ? '1px solid #f59e0b50' : '1px solid #64748b40',
+                            }}
+                          >
+                            {lic.tier === 'gold' ? '🥇 GOLD (KES 3,000/mo)' : lic.tier === 'platinum' ? '💎 PLATINUM' : '🥈 SILVER (KES 2,500/mo)'}
+                          </span>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: '#64748b' }}>
@@ -1184,6 +1303,7 @@ export function MasterSaasPortal() {
                     <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8', textTransform: 'uppercase', fontSize: '0.72rem' }}>
                       <th style={{ padding: '0.75rem' }}>Institution</th>
                       <th style={{ padding: '0.75rem' }}>Category</th>
+                      <th style={{ padding: '0.75rem' }}>Tier</th>
                       <th style={{ padding: '0.75rem' }}>Campuses</th>
                       <th style={{ padding: '0.75rem' }}>Monthly Fee (KES)</th>
                       <th style={{ padding: '0.75rem' }}>Status</th>
@@ -1196,7 +1316,8 @@ export function MasterSaasPortal() {
                       .filter((s) => s.name.toLowerCase().includes(searchFilter.toLowerCase()) || s.slug.includes(searchFilter.toLowerCase()))
                       .map((sch) => {
                         const cCount = sch.campus_count || (sch.campuses_list ? sch.campuses_list.length : 1) || 1
-                        const monthlyRate = cCount * DEFAULT_CAMPUS_RATE_KES
+                        const tierRate = sch.subscription_tier === 'gold' ? 3000 : sch.subscription_tier === 'platinum' ? 5000 : 2500
+                        const monthlyRate = cCount * tierRate
 
                         return (
                           <tr key={sch.id} style={{ borderBottom: '1px solid #1e293b' }}>
@@ -1208,13 +1329,31 @@ export function MasterSaasPortal() {
                               {sch.institution_category || 'College'}
                             </td>
                             <td style={{ padding: '0.85rem 0.75rem' }}>
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 900,
+                                  padding: '3px 8px',
+                                  borderRadius: '6px',
+                                  background: sch.subscription_tier === 'gold' ? '#fef3c7' : sch.subscription_tier === 'platinum' ? '#e0e7ff' : '#f1f5f9',
+                                  color: sch.subscription_tier === 'gold' ? '#b45309' : sch.subscription_tier === 'platinum' ? '#4338ca' : '#475569',
+                                  border: sch.subscription_tier === 'gold' ? '1px solid #fde047' : '1px solid #cbd5e1',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                {sch.subscription_tier === 'gold' ? '🥇 GOLD' : sch.subscription_tier === 'platinum' ? '💎 PLATINUM' : '🥈 SILVER'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.85rem 0.75rem' }}>
                               <span style={{ background: '#1e293b', color: '#38bdf8', padding: '3px 8px', borderRadius: '6px', fontWeight: 800 }}>
                                 🏛️ {cCount} Campus(es)
                               </span>
                             </td>
                             <td style={{ padding: '0.85rem 0.75rem', fontWeight: 900, color: '#10b981' }}>
                               KES {monthlyRate.toLocaleString()} / mo
-                              <div style={{ fontSize: '0.68rem', color: '#64748b' }}>({cCount} × 2,500)</div>
+                              <div style={{ fontSize: '0.68rem', color: '#64748b' }}>({cCount} × {tierRate.toLocaleString()})</div>
                             </td>
                             <td style={{ padding: '0.85rem 0.75rem' }}>
                               <span
@@ -1240,6 +1379,32 @@ export function MasterSaasPortal() {
                                   type="button"
                                   onClick={() => {
                                     setSelectedSchoolSlug(sch.slug)
+                                    setSelectedTier('gold')
+                                    setActiveTab('keys')
+                                  }}
+                                  style={{
+                                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '0.4rem 0.7rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    boxShadow: '0 2px 6px rgba(217, 119, 6, 0.3)',
+                                  }}
+                                  title="Issue Gold Tier Key (KES 3,000/mo - Unlocks Public Showcase & Programs Catalog)"
+                                >
+                                  <span>🥇 Issue Gold Key</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedSchoolSlug(sch.slug)
+                                    setSelectedTier('silver')
                                     setActiveTab('keys')
                                   }}
                                   style={{
@@ -1253,7 +1418,7 @@ export function MasterSaasPortal() {
                                     cursor: 'pointer',
                                   }}
                                 >
-                                  + Generate Key
+                                  + Silver Key
                                 </button>
                                 <button
                                   type="button"

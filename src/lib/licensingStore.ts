@@ -4,6 +4,10 @@ import type {
   SaasCampusInvoice,
   LicenseDurationType,
   MasterLicensingMetrics,
+  SubscriptionTierType,
+} from '@/types/licensing'
+import {
+  SUBSCRIPTION_TIER_RATES,
 } from '@/types/licensing'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 
@@ -226,22 +230,27 @@ class LicensingStore {
     school_name: string
     campus_count: number
     plan_duration: LicenseDurationType
+    tier?: SubscriptionTierType
     customer_contact?: string
     notes?: string
   }): ProductKeyLicense {
     const campusCount = Math.max(1, params.campus_count || 1)
+    const tier: SubscriptionTierType = params.tier || 'gold'
+    const ratePerCampus = SUBSCRIPTION_TIER_RATES[tier] || (tier === 'gold' ? 3000 : 2500)
+
     let months = 1
     if (params.plan_duration === '3_months') months = 3
     else if (params.plan_duration === '6_months') months = 6
     else if (params.plan_duration === '1_year') months = 12
     else if (params.plan_duration === 'perpetual') months = 120
 
-    // Rate: 2,500 KES per campus per month
-    const totalKes = campusCount * DEFAULT_CAMPUS_RATE_KES * months
+    // Dynamic rate based on chosen tier (e.g. Gold = KES 3,000, Silver = KES 2,500)
+    const totalKes = campusCount * ratePerCampus * months
 
-    // Cryptographic-like alphanumeric token generator
+    // Cryptographic-like alphanumeric token generator with tier badge prefix
     const randPart = () => Math.random().toString(36).substring(2, 6).toUpperCase()
-    const key = `GC-LIC-${randPart()}-${randPart()}-${randPart()}-${randPart()}`
+    const tierPrefix = tier === 'gold' ? 'GLD' : tier === 'platinum' ? 'PLT' : 'SLV'
+    const key = `GC-${tierPrefix}-${randPart()}-${randPart()}-${randPart()}-${randPart()}`
 
     const now = new Date()
     const expiresDate = new Date(now)
@@ -253,7 +262,8 @@ class LicensingStore {
       school_slug: params.school_slug.trim().toLowerCase(),
       school_name: params.school_name.trim(),
       campus_count: campusCount,
-      rate_per_campus: DEFAULT_CAMPUS_RATE_KES,
+      tier,
+      rate_per_campus: ratePerCampus,
       total_amount_kes: totalKes,
       plan_duration: params.plan_duration,
       duration_months: months,
@@ -313,11 +323,17 @@ class LicensingStore {
     }
 
     if (!license) {
-      // Check if format matches valid Global College product key
-      const keyPattern = /^GC-LIC-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/
+      // Check if format matches valid Global College product key (including Gold, Silver, Platinum tier prefixes)
+      const keyPattern = /^GC-(?:LIC|GLD|SLV|PLT|STD)(?:-[A-Z0-9]{3,4}){3,5}$/i
       if (keyPattern.test(cleanKey)) {
         const targetSchool = tenantSchoolStore.getSchoolBySlug(cleanSlug)
         const campusCount = Math.max(1, targetSchool?.campus_count || (targetSchool?.campuses_list ? targetSchool.campuses_list.length : 1) || 1)
+        const fallbackTier: SubscriptionTierType = (cleanKey.includes('-GLD-') || cleanKey.startsWith('GC-GLD-'))
+          ? 'gold'
+          : (cleanKey.includes('-PLT-') || cleanKey.startsWith('GC-PLT-'))
+          ? 'platinum'
+          : 'silver'
+        const fallbackRate = SUBSCRIPTION_TIER_RATES[fallbackTier] || (fallbackTier === 'gold' ? 3000 : 2500)
         const now = new Date()
         const exp = new Date(now)
         exp.setMonth(exp.getMonth() + 1)
@@ -327,8 +343,9 @@ class LicensingStore {
           school_slug: cleanSlug,
           school_name: targetSchool?.name || cleanSlug,
           campus_count: campusCount,
-          rate_per_campus: DEFAULT_CAMPUS_RATE_KES,
-          total_amount_kes: campusCount * DEFAULT_CAMPUS_RATE_KES,
+          tier: fallbackTier,
+          rate_per_campus: fallbackRate,
+          total_amount_kes: campusCount * fallbackRate,
           plan_duration: '1_month',
           duration_months: 1,
           status: 'active',
@@ -350,6 +367,16 @@ class LicensingStore {
       return { success: false, message: 'This product key has already expired.' }
     }
 
+    // Determine the active subscription tier
+    const resolvedTier: SubscriptionTierType = license.tier || (
+      (cleanKey.includes('-GLD-') || cleanKey.startsWith('GC-GLD-'))
+        ? 'gold'
+        : (cleanKey.includes('-PLT-') || cleanKey.startsWith('GC-PLT-'))
+        ? 'platinum'
+        : 'silver'
+    )
+    license.tier = resolvedTier
+
     // Associate the license with the redeeming institution
     const targetSchool = tenantSchoolStore.getSchoolBySlug(cleanSlug)
     if (targetSchool) {
@@ -363,18 +390,25 @@ class LicensingStore {
     this.saveData()
     await this.pushToCloud()
 
-    // Update school subscription and license expiry date in tenantSchoolStore
+    // Update school subscription tier, status and license expiry date in tenantSchoolStore
     tenantSchoolStore.updateSchoolBranding(cleanSlug, {
       subscription_status: 'licensed',
+      subscription_tier: resolvedTier,
       active_license_key: license.key,
       license_valid_until: license.expires_at,
-      subscription_monthly_rate: license.total_amount_kes / license.duration_months,
+      subscription_monthly_rate: (license.total_amount_kes / license.duration_months) || (SUBSCRIPTION_TIER_RATES[resolvedTier] * license.campus_count),
       campus_count: license.campus_count,
     })
 
+    const tierBadge = resolvedTier === 'gold'
+      ? '🥇 GOLD TIER (Dedicated Public Showcase Unlocked)'
+      : resolvedTier === 'platinum'
+      ? '💎 PLATINUM TIER'
+      : '🥈 SILVER TIER'
+
     return {
       success: true,
-      message: `Successfully activated ${license.duration_months} month(s) campus license for ${license.campus_count} campus(es)! Valid until ${license.expires_at.split('T')[0]}.`,
+      message: `Successfully activated ${license.duration_months} month(s) ${tierBadge} campus license for ${license.campus_count} campus(es)! Valid until ${license.expires_at.split('T')[0]}.`,
       license,
     }
   }

@@ -97,8 +97,8 @@ export interface PartnerSchoolTenant {
   campus_facilities?: string[] // Notable campus facilities & infrastructure
   admin_username?: string
   admin_password?: string
-  subscription_tier?: 'starter' | 'growth' | 'enterprise'
-  subscription_monthly_rate?: number // KES 2,500 per campus/month
+  subscription_tier?: 'silver' | 'gold' | 'platinum' | 'starter' | 'growth' | 'enterprise'
+  subscription_monthly_rate?: number // e.g. KES 2,500 (Silver) or KES 3,000 (Gold) per campus/month
   subscription_billing_cycle?: 'monthly' | 'annually'
   subscription_status?: 'active' | 'trial' | 'past_due' | 'expired' | 'licensed'
   active_license_key?: string
@@ -161,7 +161,7 @@ export interface CreateTenantSchoolInput {
   admin_password?: string
   custom_domain?: string
   features_enabled?: Partial<PartnerSchoolTenant['features_enabled']>
-  subscription_tier?: 'starter' | 'growth' | 'enterprise'
+  subscription_tier?: 'silver' | 'gold' | 'platinum' | 'starter' | 'growth' | 'enterprise'
   subscription_monthly_rate?: number
   subscription_billing_cycle?: 'monthly' | 'annually'
   subscription_status?: 'active' | 'trial' | 'past_due' | 'expired' | 'licensed'

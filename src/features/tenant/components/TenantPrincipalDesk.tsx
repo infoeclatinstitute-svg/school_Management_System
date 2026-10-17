@@ -9,6 +9,8 @@ import type {
   ApplicationStatus,
 } from '@/types/tenantSchool'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
+import type { SubscriptionTierType } from '@/types/licensing'
+import { SUBSCRIPTION_TIER_RATES } from '@/types/licensing'
 import { TenantAcademicCalendarView } from './TenantAcademicCalendarView'
 import { TenantCampusNoticeboard } from './TenantCampusNoticeboard'
 import { TenantProgramsPage } from './TenantProgramsPage'
@@ -996,7 +998,7 @@ export function TenantPrincipalDesk({
                 Institutional Product Key Activation Required
               </div>
               <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
-                This institutional campus is awaiting license activation. Standard Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Administrative creation and editing features on this desk are disabled until activated.
+                This institutional campus is awaiting license activation. Silver Tier (KES {((school.campus_count || 1) * 2500).toLocaleString()}/mo) or Gold Tier (KES {((school.campus_count || 1) * 3000).toLocaleString()}/mo — includes Dedicated Public Showcase &amp; Offerings). Administrative creation and editing features on this desk are disabled until activated.
               </div>
             </div>
           </div>
@@ -3225,24 +3227,69 @@ export function TenantPrincipalDesk({
                 <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
                   Cloud LMS Subscription
                 </div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: primaryColor, marginTop: '4px', textTransform: 'capitalize' }}>
-                  {school.subscription_tier || 'Enterprise'} Edition
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', flexWrap: 'wrap', gap: '6px' }}>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 900, color: primaryColor, textTransform: 'capitalize' }}>
+                    {school.subscription_tier === 'gold' ? '👑 Gold Tier' : school.subscription_tier === 'platinum' ? '💎 Platinum Tier' : '🥈 Silver Tier'}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      background: school.subscription_tier === 'gold' ? '#fef3c7' : '#e0f2fe',
+                      color: school.subscription_tier === 'gold' ? '#92400e' : '#0369a1',
+                      border: `1px solid ${school.subscription_tier === 'gold' ? '#fde68a' : '#bae6fd'}`,
+                    }}
+                  >
+                    {school.subscription_tier === 'gold' ? 'Public Showcase Active' : 'Standard Portals'}
+                  </span>
                 </div>
-                <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '3px' }}>
-                  <strong>KES {((school.campus_count || 1) * 2500).toLocaleString()} / month</strong> ({school.campus_count || 1} Campus @ KES 2,500/mo)
+                <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '4px' }}>
+                  <strong>KES {((school.campus_count || 1) * (SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500))).toLocaleString()} / month</strong> ({school.campus_count || 1} Campus @ KES {(SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500)).toLocaleString()}/mo)
                 </div>
                 <div
                   style={{
                     fontSize: '0.76rem',
-                    color: school.subscription_status === 'active' ? '#16a34a' : '#b45309',
+                    color: school.subscription_status === 'active' || school.subscription_status === 'licensed' ? '#16a34a' : '#b45309',
                     fontWeight: 800,
                     marginTop: '8px',
                   }}
                 >
-                  {school.subscription_status === 'active'
+                  {school.subscription_status === 'active' || school.subscription_status === 'licensed'
                     ? '✓ Subscription Active & Product Key Authorized'
                     : '⚠️ Active Campus Licensing'}
                 </div>
+                {school.subscription_tier !== 'gold' && school.subscription_tier !== 'platinum' && (
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px' }}>
+                      Upgrade to <strong>Gold Tier (KES 3,000/mo)</strong> to unlock your Dedicated Public Landing Page, Academic Programs Catalog &amp; Campus Facilities showcase.
+                    </div>
+                    {onOpenLicenseModal && (
+                      <button
+                        type="button"
+                        onClick={onOpenLicenseModal}
+                        style={{
+                          background: '#f59e0b',
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '8px',
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        👑 Activate Gold Tier Key
+                      </button>
+                    )}
+                  </div>
+                )}
+                {school.subscription_tier === 'gold' && (
+                  <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
+                    ✨ Dedicated Public Showcase &amp; Offerings Catalog active on <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>/s/{school.slug}</code>
+                  </div>
+                )}
               </div>
             </div>
           </div>
