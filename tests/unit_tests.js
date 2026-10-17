@@ -460,15 +460,20 @@ test('index.html links /manifest.json, registers /sw.js, and captures beforeinst
 
 test('Electron desktop entry point (electron/main.cjs) and PWA install UI components exist', () => {
   const electronMain = path.join(ROOT_DIR, 'electron', 'main.cjs')
+  const electronPreload = path.join(ROOT_DIR, 'electron', 'preload.cjs')
   assert.ok(fs.existsSync(electronMain), 'electron/main.cjs must exist for desktop workstation builds')
+  assert.ok(fs.existsSync(electronPreload), 'electron/preload.cjs must exist for desktop workstation runtime bridging')
 
   const pwaHook = fs.readFileSync(path.join(ROOT_DIR, 'src', 'hooks', 'usePWAInstall.ts'), 'utf8')
   const installModal = fs.readFileSync(path.join(ROOT_DIR, 'src', 'components', 'shared', 'SafariInstallModal.tsx'), 'utf8')
   const navbar = fs.readFileSync(path.join(ROOT_DIR, 'src', 'components', 'layout', 'Navbar.tsx'), 'utf8')
+  const tenantHub = fs.readFileSync(path.join(ROOT_DIR, 'src', 'features', 'tenant', 'TenantSchoolHub.tsx'), 'utf8')
 
   assert.ok(pwaHook.includes('promptInstall'), 'usePWAInstall.ts must expose promptInstall()')
+  assert.ok(pwaHook.includes('isNativeApp'), 'usePWAInstall.ts must detect native app platform synchronously')
   assert.ok(navbar.includes('usePWAInstall'), 'Navbar must integrate PWA install capability')
   assert.ok(installModal.includes('Laptop &amp; Computer') && installModal.includes('Phone (Android / iOS)'), 'Install modal must guide both Laptop/Desktop and Phone users')
+  assert.ok(tenantHub.includes('!isInstalled && !isNativeApp()'), 'TenantSchoolHub must suppress Install App buttons on desktop/installed environments')
 })
 
 test('Login.tsx is a clean SaaS admin-only login — no public portal selection, no self-registration, no auto-filled school credentials', () => {

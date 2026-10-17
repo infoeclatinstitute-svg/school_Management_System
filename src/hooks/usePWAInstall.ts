@@ -1,8 +1,25 @@
 import { useState, useEffect } from 'react'
+import { isNativeApp, isElectronApp, isCapacitorApp } from '../utils/platform'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
+}
+
+function checkIsInstalledSync(): boolean {
+  if (typeof window === 'undefined') return false
+  if (isNativeApp()) return true
+  try {
+    if (
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      window.matchMedia?.('(display-mode: window-controls-overlay)')?.matches ||
+      (window.navigator as unknown as { standalone?: boolean })?.standalone === true ||
+      (typeof document !== 'undefined' && typeof document.referrer === 'string' && document.referrer.includes('android-app://'))
+    ) {
+      return true
+    }
+  } catch {}
+  return false
 }
 
 export function usePWAInstall() {
@@ -13,9 +30,10 @@ export function usePWAInstall() {
     return null
   })
   const [isInstallable, setIsInstallable] = useState<boolean>(() => {
+    if (checkIsInstalledSync()) return false
     return typeof window !== 'undefined' && Boolean((window as any).__deferredPWAInstallPrompt)
   })
-  const [isInstalled, setIsInstalled] = useState(false)
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => checkIsInstalledSync())
   const [isIOS, setIsIOS] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showInstallGuide, setShowInstallGuide] = useState(false)
@@ -23,27 +41,17 @@ export function usePWAInstall() {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
+    // If running inside desktop Electron app or native mobile app, mark as permanently installed
+    if (isNativeApp() || isElectronApp() || isCapacitorApp()) {
+      setIsInstalled(true)
+      setIsInstallable(false)
+      setDeferredPrompt(null)
+      setShowInstallGuide(false)
+      return
+    }
+
     // Check if already installed / running in native app or standalone window
-    const isCapacitor =
-      Boolean((window as any).Capacitor?.isNativePlatform?.()) ||
-      (window as any).Capacitor?.getPlatform?.() === 'android' ||
-      (window as any).Capacitor?.getPlatform?.() === 'ios' ||
-      window.location.protocol === 'capacitor:' ||
-      window.location.protocol === 'ionic:'
-
-    const isElectron =
-      Boolean((window as any).desktopAPI?.isDesktop) ||
-      Boolean((window as any).electronAPI) ||
-      /Electron|GlobalCollegeDesktop/i.test(navigator.userAgent)
-
-    const isStandalone =
-      isCapacitor ||
-      isElectron ||
-      window.matchMedia?.('(display-mode: standalone)')?.matches ||
-      window.matchMedia?.('(display-mode: window-controls-overlay)')?.matches ||
-      (window.navigator as unknown as { standalone?: boolean })?.standalone === true ||
-      (typeof document !== 'undefined' && typeof document.referrer === 'string' && document.referrer.includes('android-app://')) ||
-      false
+    const isStandalone = checkIsInstalledSync()
 
     setIsInstalled(isStandalone)
 
@@ -116,6 +124,9 @@ export function usePWAInstall() {
   }
 
   const promptInstall = async (): Promise<boolean> => {
+    if (isInstalled || isNativeApp() || isElectronApp()) {
+      return false
+    }
     // Open comprehensive installation & app download hub for Phone (Android APK / iOS) & Desktop (Windows .exe / macOS)
     setShowInstallGuide(true)
     return true

@@ -126,8 +126,14 @@ async function createMainWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       spellcheck: true,
+      preload: path.join(__dirname, 'preload.cjs'),
     },
   });
+
+  const defaultUA = mainWindow.webContents.getUserAgent();
+  if (!defaultUA.includes('GlobalCollegeDesktop')) {
+    mainWindow.webContents.setUserAgent(`${defaultUA} GlobalCollegeDesktop ElectronApp`);
+  }
 
   if (mainWindow.setIcon) {
     mainWindow.setIcon(appIcon);

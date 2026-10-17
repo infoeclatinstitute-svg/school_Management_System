@@ -206,7 +206,7 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         )}
 
         {/* Install Web App Button */}
-        {!isInstalled && (
+        {!isInstalled && !isNativeApp() && !isElectronApp() && (
           <button
             type="button"
             onClick={() => promptInstall()}

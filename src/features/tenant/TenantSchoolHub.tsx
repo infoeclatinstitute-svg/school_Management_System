@@ -47,6 +47,7 @@ import {
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
 import { getContrastColor } from '@/utils/colorContrast'
+import { isNativeApp, isElectronApp } from '@/utils/platform'
 
 export interface TenantSchoolHubProps {
   forcedSlug?: string
@@ -1254,7 +1255,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         })()}
 
         {/* Install Web App Action in Drawer */}
-        {!isInstalled && (
+        {!isInstalled && !isNativeApp() && !isElectronApp() && (
           <div style={{ padding: '0.65rem 0.85rem', borderTop: '1px solid #f1f5f9', background: '#ffffff' }}>
             <button
               type="button"
@@ -1420,28 +1421,30 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
           {/* Right side: Session status + Profile avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => promptInstall()}
-              style={{
-                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                color: '#ffffff',
-                border: '1px solid #334155',
-                padding: '5px 12px',
-                borderRadius: '999px',
-                fontSize: '0.78rem',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-              }}
-              title={`Download & Install ${school.name} Mobile App (.apk) or Desktop (.exe)`}
-            >
-              <span>📲</span>
-              <span className="hide-on-mobile">Install App</span>
-            </button>
+            {!isInstalled && !isNativeApp() && !isElectronApp() && (
+              <button
+                type="button"
+                onClick={() => promptInstall()}
+                style={{
+                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                  color: '#ffffff',
+                  border: '1px solid #334155',
+                  padding: '5px 12px',
+                  borderRadius: '999px',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                }}
+                title={`Download & Install ${school.name} Mobile App (.apk) or Desktop (.exe)`}
+              >
+                <span>📲</span>
+                <span className="hide-on-mobile">Install App</span>
+              </button>
+            )}
             {currentSession ? (
               <button
                 type="button"

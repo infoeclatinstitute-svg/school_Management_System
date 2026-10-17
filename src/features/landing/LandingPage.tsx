@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
 import { AppLogo } from '@/components/common/AppLogo'
+import { isNativeApp, isElectronApp } from '@/utils/platform'
 
 export function LandingPage() {
   const navigate = useNavigate()
@@ -128,7 +129,7 @@ export function LandingPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {!isInstalled && (
+          {!isInstalled && !isNativeApp() && !isElectronApp() && (
             <button
               type="button"
               onClick={() => promptInstall()}
@@ -293,7 +294,7 @@ export function LandingPage() {
               <span>Register Your School</span>
             </button>
 
-            {!isInstalled && (
+            {!isInstalled && !isNativeApp() && !isElectronApp() && (
               <button
                 type="button"
                 onClick={() => promptInstall()}
