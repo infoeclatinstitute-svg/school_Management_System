@@ -23,7 +23,7 @@ export function SafariInstallModal({
   isIOS,
   schoolName = 'Global College',
   schoolLogo,
-  primaryColor = '#2563eb',
+  primaryColor: _primaryColor = '#1e3a8a',
   onNativeInstallPrompt,
   hasNativePrompt = false,
 }: SafariInstallModalProps) {
@@ -43,590 +43,662 @@ export function SafariInstallModal({
 
   return (
     <div
-      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Download and install application"
       onClick={onClose}
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 10000,
-        background: 'rgba(15, 23, 42, 0.82)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
+        background: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1rem',
+        boxSizing: 'border-box',
       }}
     >
       <div
-        className="modal-content modal-md"
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: '#0f172a',
-          color: '#f8fafc',
+          background: '#ffffff',
+          color: '#0f172a',
           borderRadius: '24px',
-          border: '1.5px solid #334155',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
-          padding: '1.75rem',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 25px 70px rgba(15, 23, 42, 0.35)',
           maxWidth: '560px',
           width: '100%',
-          maxHeight: '92vh',
-          overflowY: 'auto',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
-        {/* Header with dynamic institution branding */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1.25rem' }}>
-          {schoolLogo ? (
-            <img
-              src={schoolLogo}
-              alt={schoolName}
-              style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '12px',
-                objectFit: 'contain',
-                background: '#ffffff',
-                padding: '4px',
-                border: '1px solid #334155',
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: '46px',
-                height: '46px',
-                borderRadius: '12px',
-                background: `linear-gradient(135deg, ${primaryColor} 0%, #1e293b 100%)`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.5rem',
-                color: '#ffffff',
-                fontWeight: 900,
-              }}
-            >
-              📲
-            </div>
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span
+        {/* Modal Header */}
+        <div
+          style={{
+            padding: '1.25rem 1.5rem',
+            borderBottom: '1px solid #f1f5f9',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            background: '#ffffff',
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0 }}>
+            {schoolLogo ? (
+              <img
+                src={schoolLogo}
+                alt={schoolName}
                 style={{
-                  background: 'rgba(16, 185, 129, 0.2)',
-                  color: '#34d399',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
-                  fontSize: '0.68rem',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  objectFit: 'contain',
+                  background: '#f8fafc',
+                  padding: '4px',
+                  border: '1px solid #e2e8f0',
+                  flexShrink: 0,
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.4rem',
+                  color: '#ffffff',
                   fontWeight: 900,
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  textTransform: 'uppercase',
+                  flexShrink: 0,
                 }}
               >
-                Official Release
-              </span>
+                🎓
+              </div>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span
+                  style={{
+                    background: '#ecfdf5',
+                    color: '#059669',
+                    border: '1px solid #a7f3d0',
+                    fontSize: '0.66rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Verified Release
+                </span>
+              </div>
+              <h3
+                style={{
+                  margin: '3px 0 0',
+                  fontSize: '1.15rem',
+                  fontWeight: 900,
+                  color: '#0f172a',
+                  letterSpacing: '-0.01em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                Download {schoolName} App
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+                Install directly on your Phone or Laptop Workstation
+              </p>
             </div>
-            <h3 style={{ margin: '3px 0 0', fontSize: '1.2rem', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Download &amp; Install {schoolName} App
-            </h3>
-            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#94a3b8' }}>
-              Install directly on your Phone (Android / iOS) or Laptop / Computer (Windows / Mac)
-            </p>
           </div>
+
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close download dialog"
             style={{
-              background: '#1e293b',
+              background: '#f1f5f9',
               border: 'none',
-              color: '#94a3b8',
+              color: '#64748b',
               borderRadius: '50%',
               width: '32px',
               height: '32px',
               cursor: 'pointer',
-              fontWeight: 900,
+              fontWeight: 800,
+              fontSize: '14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              transition: 'background 0.15s, color 0.15s',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#e2e8f0'
+              e.currentTarget.style.color = '#0f172a'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f1f5f9'
+              e.currentTarget.style.color = '#64748b'
             }}
           >
             ✕
           </button>
         </div>
 
-        {/* Platform Switcher Tabs */}
+        {/* Scrollable Body */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '0.5rem',
-            background: '#1e293b',
-            padding: '0.35rem',
-            borderRadius: '14px',
-            marginBottom: '1.25rem',
-            border: '1px solid #334155',
+            padding: '1.25rem 1.5rem',
+            overflowY: 'auto',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem',
           }}
         >
-          <button
-            type="button"
-            onClick={() => setSelectedTab('phone')}
+          {/* Platform Segmented Tabs */}
+          <div
             style={{
-              background: selectedTab === 'phone' ? primaryColor : 'transparent',
-              color: selectedTab === 'phone' ? '#ffffff' : '#94a3b8',
-              border: 'none',
-              borderRadius: '10px',
-              padding: '0.6rem 0.75rem',
-              fontSize: '0.84rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '4px',
+              background: '#f1f5f9',
+              padding: '4px',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
             }}
           >
-            <span>📱</span> Phone (Android / iOS)
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedTab('desktop')}
-            style={{
-              background: selectedTab === 'desktop' ? primaryColor : 'transparent',
-              color: selectedTab === 'desktop' ? '#ffffff' : '#94a3b8',
-              border: 'none',
-              borderRadius: '10px',
-              padding: '0.6rem 0.75rem',
-              fontSize: '0.84rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-            }}
-          >
-            <span>💻</span> Laptop &amp; Computer
-          </button>
-        </div>
-
-        {/* ======================================================== */}
-        {/* PHONE (ANDROID & iOS) TAB CONTENT                        */}
-        {/* ======================================================== */}
-        {selectedTab === 'phone' ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginBottom: '1.25rem' }}>
-            {/* Primary Android Native APK Download Card */}
-            <div
+            <button
+              type="button"
+              onClick={() => setSelectedTab('phone')}
               style={{
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%)',
-                borderRadius: '16px',
-                padding: '1.15rem',
-                border: '1.5px solid rgba(16, 185, 129, 0.45)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '1.2rem' }}>🤖</span>
-                    <strong style={{ fontSize: '0.95rem', color: '#ffffff' }}>Android Mobile App (.APK)</strong>
-                  </div>
-                  <div style={{ fontSize: '0.76rem', color: '#6ee7b7', marginTop: '3px' }}>
-                    Package: com.globalcollege.sms • Direct Install for Samsung, Tecno, Infinix, Xiaomi &amp; all Android
-                  </div>
-                </div>
-                <span
-                  style={{
-                    background: '#10b981',
-                    color: '#022c22',
-                    fontSize: '0.7rem',
-                    fontWeight: 900,
-                    padding: '2px 8px',
-                    borderRadius: '6px',
-                  }}
-                >
-                  APK 13.7 MB
-                </span>
-              </div>
-
-              {/* Direct Download Action Button */}
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <a
-                  href={OFFICIAL_APK_URL}
-                  download="global-college.apk"
-                  onClick={() => handleDownloadFeedback('apk')}
-                  style={{
-                    flex: 1,
-                    minWidth: '180px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: '#ffffff',
-                    padding: '0.65rem 1rem',
-                    borderRadius: '10px',
-                    fontSize: '0.86rem',
-                    fontWeight: 900,
-                    textDecoration: 'none',
-                    textAlign: 'center',
-                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <span>⬇️</span> Download Android APK
-                </a>
-                <a
-                  href={LOCAL_APK_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    background: '#1e293b',
-                    color: '#94a3b8',
-                    border: '1px solid #475569',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '10px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                  title="Alternative cloud download mirror"
-                >
-                  <span>🌐</span> Mirror
-                </a>
-              </div>
-
-              {downloadInitiated === 'apk' && (
-                <div
-                  style={{
-                    background: '#064e3b',
-                    color: '#a7f3d0',
-                    padding: '0.55rem 0.75rem',
-                    borderRadius: '8px',
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
-                    border: '1px solid #059669',
-                  }}
-                >
-                  ✓ APK download started! When completed, tap <strong>Open</strong> and allow <em>&ldquo;Install unknown apps&rdquo;</em> in your settings.
-                </div>
-              )}
-
-              {/* 3 Step Android Install Guide */}
-              <div style={{ background: 'rgba(15, 23, 42, 0.65)', borderRadius: '10px', padding: '0.75rem', fontSize: '0.78rem', color: '#cbd5e1' }}>
-                <div style={{ fontWeight: 800, color: '#34d399', marginBottom: '4px' }}>How to install APK on your phone:</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                  <div><strong>1.</strong> Click <strong>Download Android APK</strong> above.</div>
-                  <div><strong>2.</strong> Open the downloaded <code>global-college.apk</code> file in your notifications or Downloads folder.</div>
-                  <div><strong>3.</strong> If prompted, tap <strong>Settings &rarr; Allow from this source</strong>, then tap <strong>Install</strong>.</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Apple iPhone & iPad (Safari Guide) */}
-            <div
-              style={{
-                background: '#1e293b',
-                borderRadius: '14px',
-                padding: '0.9rem 1rem',
-                border: '1px solid #334155',
+                background: selectedTab === 'phone' ? '#ffffff' : 'transparent',
+                color: selectedTab === 'phone' ? '#0f172a' : '#64748b',
+                border: 'none',
+                borderRadius: '9px',
+                padding: '0.55rem 0.75rem',
+                fontSize: '0.84rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.85rem',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: selectedTab === 'phone' ? '0 2px 6px rgba(15, 23, 42, 0.08)' : 'none',
               }}
             >
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: '#000000',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '1.25rem',
-                  flexShrink: 0,
-                }}
-              >
-                
-              </div>
-              <div style={{ fontSize: '0.82rem', lineHeight: 1.45, flex: 1 }}>
-                <strong style={{ color: '#ffffff' }}>iPhone &amp; iPad (Apple iOS):</strong> Tap the <strong>Share icon (↑)</strong> on your Safari bottom bar, scroll down, and tap{' '}
-                <strong style={{ color: '#93c5fd' }}>&ldquo;Add to Home Screen (➕)&rdquo;</strong> to launch like a native iOS app.
-              </div>
-            </div>
-
-            {/* Instant Browser Install (PWA) on Mobile */}
-            {hasNativePrompt && onNativeInstallPrompt && (
-              <div
-                style={{
-                  background: 'rgba(37, 99, 235, 0.12)',
-                  borderRadius: '14px',
-                  padding: '0.9rem 1rem',
-                  border: '1px solid rgba(59, 130, 246, 0.4)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ fontSize: '0.8rem', color: '#bfdbfe', flex: 1 }}>
-                  <strong>Instant Install (No Download Required):</strong> Add this portal directly to your phone screen instantly.
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onNativeInstallPrompt()}
-                  style={{
-                    background: primaryColor,
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    fontWeight: 800,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  ⚡ 1-Click Install
-                </button>
-              </div>
-            )}
-
-            <div
+              <span>📱</span> Phone (Android / iOS)
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedTab('desktop')}
               style={{
-                fontSize: '0.76rem',
-                color: '#64748b',
-                padding: '0 0.25rem',
-              }}
-            >
-              <strong>Android (Chrome / Samsung Internet):</strong> Tap browser menu <strong>(⋮)</strong> &rarr; select <strong style={{ color: '#93c5fd' }}>&ldquo;Install App&rdquo;</strong> or <strong>&ldquo;Add to Home screen&rdquo;</strong>.
-            </div>
-          </div>
-        ) : (
-          /* ======================================================== */
-          /* LAPTOP & COMPUTER (WINDOWS / MAC / LINUX) TAB CONTENT    */
-          /* ======================================================== */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', marginBottom: '1.25rem' }}>
-            {/* Primary Windows Desktop Setup (.EXE) Download Card */}
-            <div
-              style={{
-                background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%)',
-                borderRadius: '16px',
-                padding: '1.15rem',
-                border: '1.5px solid rgba(59, 130, 246, 0.45)',
+                background: selectedTab === 'desktop' ? '#ffffff' : 'transparent',
+                color: selectedTab === 'desktop' ? '#0f172a' : '#64748b',
+                border: 'none',
+                borderRadius: '9px',
+                padding: '0.55rem 0.75rem',
+                fontSize: '0.84rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '0.75rem',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: selectedTab === 'desktop' ? '0 2px 6px rgba(15, 23, 42, 0.08)' : 'none',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '1.2rem' }}>🪟</span>
-                    <strong style={{ fontSize: '0.95rem', color: '#ffffff' }}>Windows PC Desktop Workstation (.EXE)</strong>
+              <span>💻</span> Laptop &amp; Computer
+            </button>
+          </div>
+
+          {/* ======================================================== */}
+          {/* TAB 1: PHONE (ANDROID & iOS)                            */}
+          {/* ======================================================== */}
+          {selectedTab === 'phone' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Android Card */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)',
+                  borderRadius: '16px',
+                  padding: '1.15rem',
+                  border: '1.5px solid #bbf7d0',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.85rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '1.25rem' }}>🤖</span>
+                      <strong style={{ fontSize: '0.96rem', color: '#064e3b', fontWeight: 900 }}>
+                        Android Mobile App (.APK)
+                      </strong>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#047857', marginTop: '3px' }}>
+                      Package: <code>com.globalcollege.sms</code> • Samsung, Tecno, Infinix, Xiaomi, Oppo &amp; all Android
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.76rem', color: '#93c5fd', marginTop: '3px' }}>
-                    Compatible with Windows 11 &amp; Windows 10 (64-bit) • Dedicated Window &amp; Offline Cache
+                  <span
+                    style={{
+                      background: '#dcfce7',
+                      color: '#15803d',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #86efac',
+                    }}
+                  >
+                    APK 26 MB
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <a
+                    href={OFFICIAL_APK_URL}
+                    download="global-college.apk"
+                    onClick={() => handleDownloadFeedback('apk')}
+                    style={{
+                      flex: 1,
+                      minWidth: '200px',
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      color: '#ffffff',
+                      padding: '0.7rem 1.15rem',
+                      borderRadius: '10px',
+                      fontSize: '0.86rem',
+                      fontWeight: 800,
+                      textDecoration: 'none',
+                      textAlign: 'center',
+                      boxShadow: '0 3px 10px rgba(5, 150, 105, 0.3)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <span>⬇️</span> Download Android APK
+                  </a>
+                  <a
+                    href={LOCAL_APK_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: '#ffffff',
+                      color: '#475569',
+                      border: '1.5px solid #cbd5e1',
+                      padding: '0.7rem 0.9rem',
+                      borderRadius: '10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                    title="Direct local mirror"
+                  >
+                    <span>🌐</span> Mirror
+                  </a>
+                </div>
+
+                {downloadInitiated === 'apk' && (
+                  <div
+                    style={{
+                      background: '#ecfdf5',
+                      color: '#065f46',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      border: '1px solid #6ee7b7',
+                    }}
+                  >
+                    ✓ Download initiated! Tap <strong>Open</strong> when finished and select <em>&ldquo;Install&rdquo;</em>.
+                  </div>
+                )}
+
+                <div style={{ background: '#ffffff', borderRadius: '10px', padding: '0.75rem', fontSize: '0.78rem', color: '#334155', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontWeight: 800, color: '#047857', marginBottom: '4px' }}>Quick Installation Instructions:</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', lineHeight: 1.45 }}>
+                    <div><strong>1.</strong> Click <strong>Download Android APK</strong> above.</div>
+                    <div><strong>2.</strong> Open the downloaded <code>global-college.apk</code> file in your notifications or Downloads.</div>
+                    <div><strong>3.</strong> If prompted, tap <strong>Settings &rarr; Allow from this source</strong>, then confirm <strong>Install</strong>.</div>
                   </div>
                 </div>
-                <span
-                  style={{
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    fontSize: '0.7rem',
-                    fontWeight: 900,
-                    padding: '2px 8px',
-                    borderRadius: '6px',
-                  }}
-                >
-                  EXE Setup
-                </span>
               </div>
 
-              {/* Direct Download Action Button */}
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <a
-                  href={OFFICIAL_DESKTOP_URL}
-                  download="global-college-setup.exe"
-                  onClick={() => handleDownloadFeedback('exe')}
-                  style={{
-                    flex: 1,
-                    minWidth: '220px',
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                    color: '#ffffff',
-                    padding: '0.75rem 1.25rem',
-                    borderRadius: '10px',
-                    fontSize: '0.88rem',
-                    fontWeight: 900,
-                    textDecoration: 'none',
-                    textAlign: 'center',
-                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                  }}
-                >
-                  <span>⬇️</span> Download Native Windows App (.exe)
-                </a>
-                <a
-                  href={LOCAL_DESKTOP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    background: '#1e293b',
-                    color: '#94a3b8',
-                    border: '1px solid #475569',
-                    padding: '0.75rem 0.85rem',
-                    borderRadius: '10px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                  title="Direct server download mirror"
-                >
-                  <span>🌐</span> Server Link
-                </a>
-              </div>
-
-              {downloadInitiated === 'exe' && (
+              {/* iOS Card */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  borderRadius: '14px',
+                  padding: '1rem 1.15rem',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.85rem',
+                }}
+              >
                 <div
                   style={{
-                    background: '#172554',
-                    color: '#bfdbfe',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: '8px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    border: '1px solid #3b82f6',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: '#0f172a',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.25rem',
+                    flexShrink: 0,
                   }}
                 >
-                  ✓ Setup executable download initiated! Run <code>global-college-setup.exe</code> to install the full standalone desktop application.
+                  
+                </div>
+                <div style={{ fontSize: '0.82rem', lineHeight: 1.5, flex: 1, color: '#334155' }}>
+                  <strong style={{ color: '#0f172a' }}>iPhone &amp; iPad (Apple iOS):</strong> Tap the <strong>Share icon (↑)</strong> on your Safari bottom bar, scroll down, and tap{' '}
+                  <strong style={{ color: '#2563eb' }}>&ldquo;Add to Home Screen (➕)&rdquo;</strong> to launch as a standalone app.
+                </div>
+              </div>
+
+              {/* 1-Click PWA for Mobile */}
+              {hasNativePrompt && onNativeInstallPrompt && (
+                <div
+                  style={{
+                    background: '#eff6ff',
+                    borderRadius: '14px',
+                    padding: '0.9rem 1.15rem',
+                    border: '1px solid #bfdbfe',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ fontSize: '0.8rem', color: '#1e40af', flex: 1 }}>
+                    <strong style={{ color: '#1d4ed8' }}>Direct Web Install:</strong> Add this portal directly to your home screen instantly without downloading a package file.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onNativeInstallPrompt()}
+                    style={{
+                      background: '#1d4ed8',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '0.55rem 1.1rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 6px rgba(29, 78, 216, 0.3)',
+                    }}
+                  >
+                    ⚡ Add to Home Screen
+                  </button>
                 </div>
               )}
             </div>
-
-            {/* Optional Browser Web App (PWA) on Laptop/Desktop */}
-            {hasNativePrompt && onNativeInstallPrompt && (
+          ) : (
+            /* ======================================================== */
+            /* TAB 2: LAPTOP & COMPUTER (WINDOWS / MAC / LINUX)         */
+            /* ======================================================== */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Primary Windows Desktop (.EXE) Card */}
               <div
                 style={{
-                  background: 'rgba(30, 41, 59, 0.8)',
-                  borderRadius: '14px',
-                  padding: '0.85rem 1rem',
-                  border: '1px dashed #475569',
+                  background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)',
+                  borderRadius: '16px',
+                  padding: '1.25rem',
+                  border: '1.5px solid #bfdbfe',
+                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.08)',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem',
-                  flexWrap: 'wrap',
+                  flexDirection: 'column',
+                  gap: '0.85rem',
                 }}
               >
-                <div style={{ fontSize: '0.78rem', color: '#cbd5e1', flex: 1 }}>
-                  <strong style={{ color: '#93c5fd' }}>Alternative (Browser Web App):</strong> Run inside Chrome/Edge without installing the desktop software.
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.3rem' }}>🪟</span>
+                      <strong style={{ fontSize: '0.98rem', color: '#1e3a8a', fontWeight: 900 }}>
+                        Windows PC Desktop Workstation (.EXE)
+                      </strong>
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '3px' }}>
+                      Compatible with Windows 11 &amp; Windows 10 (64-bit) • Dedicated Window &amp; Offline Cache
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      background: '#dbeafe',
+                      color: '#1d4ed8',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #93c5fd',
+                    }}
+                  >
+                    EXE Setup
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onNativeInstallPrompt()}
+
+                {/* Direct Download Action Button */}
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <a
+                    href={OFFICIAL_DESKTOP_URL}
+                    download="global-college-setup.exe"
+                    onClick={() => handleDownloadFeedback('exe')}
+                    style={{
+                      flex: 1,
+                      minWidth: '220px',
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '10px',
+                      fontSize: '0.88rem',
+                      fontWeight: 900,
+                      textDecoration: 'none',
+                      textAlign: 'center',
+                      boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <span>⬇️</span> Download Native Windows App (.exe)
+                  </a>
+                  <a
+                    href={LOCAL_DESKTOP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: '#ffffff',
+                      color: '#475569',
+                      border: '1.5px solid #cbd5e1',
+                      padding: '0.75rem 0.95rem',
+                      borderRadius: '10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                    title="Direct server download mirror"
+                  >
+                    <span>🌐</span> Server Link
+                  </a>
+                </div>
+
+                {downloadInitiated === 'exe' && (
+                  <div
+                    style={{
+                      background: '#eff6ff',
+                      color: '#1e40af',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      border: '1px solid #93c5fd',
+                    }}
+                  >
+                    ✓ Setup executable download initiated! Run <code>global-college-setup.exe</code> to launch your desktop terminal.
+                  </div>
+                )}
+              </div>
+
+              {/* Browser Web App Alternative */}
+              {hasNativePrompt && onNativeInstallPrompt && (
+                <div
                   style={{
-                    background: '#334155',
-                    color: '#f8fafc',
-                    border: '1px solid #64748b',
-                    padding: '0.45rem 0.85rem',
-                    borderRadius: '8px',
-                    fontWeight: 800,
-                    fontSize: '0.76rem',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    background: '#f8fafc',
+                    borderRadius: '14px',
+                    padding: '0.85rem 1.15rem',
+                    border: '1px dashed #cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    flexWrap: 'wrap',
                   }}
                 >
-                  Install Browser Webapp
-                </button>
-              </div>
-            )}
+                  <div style={{ fontSize: '0.8rem', color: '#475569', flex: 1 }}>
+                    <strong style={{ color: '#0f172a' }}>Alternative (Browser Web App):</strong> Run inside Chrome or Microsoft Edge without installing separate software.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onNativeInstallPrompt()}
+                    style={{
+                      background: '#0f172a',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '0.55rem 1rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.76rem',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Install Web App
+                  </button>
+                </div>
+              )}
 
-            {/* Browser Guide Cards */}
-            <div
-              style={{
-                background: '#1e293b',
-                borderRadius: '12px',
-                padding: '0.85rem 1rem',
-                border: '1px solid #334155',
-                fontSize: '0.82rem',
-                lineHeight: 1.45,
-              }}
-            >
-              <div style={{ fontWeight: 800, color: '#93c5fd', marginBottom: '3px' }}>
-                Chrome / Microsoft Edge (Windows, Mac, Linux):
+              {/* Chrome / Edge Guide Card */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  padding: '0.85rem 1.15rem',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '0.82rem',
+                  lineHeight: 1.5,
+                  color: '#334155',
+                }}
+              >
+                <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '3px' }}>
+                  Chrome / Microsoft Edge (Windows, Mac, Linux):
+                </div>
+                Click the <strong style={{ color: '#1d4ed8' }}>Install icon (⊕ / 💻)</strong> on the right side of your browser address bar, or open menu <strong>(⋮) → Cast, save, and share → Install Global College</strong>.
               </div>
-              Click the <strong style={{ color: '#93c5fd' }}>Install icon (⊕ / 💻)</strong> on the right side of your browser address bar, or open menu <strong>(⋮) → Cast, save, and share → Install Global College</strong>.
-            </div>
 
-            <div
-              style={{
-                background: '#1e293b',
-                borderRadius: '12px',
-                padding: '0.85rem 1rem',
-                border: '1px solid #334155',
-                fontSize: '0.82rem',
-                lineHeight: 1.45,
-              }}
-            >
-              <div style={{ fontWeight: 800, color: '#cbd5e1', marginBottom: '3px' }}>
-                Safari on MacBook / iMac:
+              {/* Mac Safari Guide Card */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  padding: '0.85rem 1.15rem',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '0.82rem',
+                  lineHeight: 1.5,
+                  color: '#334155',
+                }}
+              >
+                <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '3px' }}>
+                  Safari on macOS (MacBook / iMac):
+                </div>
+                Click <strong>File → Add to Dock…</strong> in your top macOS menu bar to install {schoolName} as a native desktop dock app.
               </div>
-              Click <strong>File → Add to Dock…</strong> in your top macOS menu bar to install {schoolName} as a standalone desktop app.
             </div>
+          )}
+
+          {/* Institutional Benefits Badge */}
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '0.85rem 1rem',
+              fontSize: '0.76rem',
+              color: '#475569',
+              lineHeight: 1.6,
+            }}
+          >
+            <div style={{ color: '#0f172a', fontWeight: 800, marginBottom: '3px' }}>Institutional App Advantages:</div>
+            <div>✓ <strong>Offline Verification:</strong> Instant fee verification, exam entry passes, and schedules without network lag.</div>
+            <div>✓ <strong>Dedicated Workstation:</strong> Distraction-free native window for Students, Teachers, Bursars &amp; Principals.</div>
+            <div>✓ <strong>Clean Multi-Page Printing:</strong> High-performance official PDF transcripts and report cards without page clipping.</div>
           </div>
-        )}
-
-        {/* Institutional Benefits Badge */}
-        <div
-          style={{
-            background: 'rgba(30, 41, 59, 0.7)',
-            border: '1px solid #334155',
-            borderRadius: '12px',
-            padding: '0.75rem 0.9rem',
-            fontSize: '0.76rem',
-            color: '#94a3b8',
-            marginBottom: '1.25rem',
-            lineHeight: 1.6,
-          }}
-        >
-          <div style={{ color: '#e2e8f0', fontWeight: 800, marginBottom: '2px' }}>Institutional App Advantages:</div>
-          <div>✓ Works offline for fee statement verification, exam entry passes, and timetables</div>
-          <div>✓ Dedicated distraction-free terminal for Students, Lecturers, Bursars &amp; Principals</div>
-          <div>✓ High-performance multi-page PDF generation without browser margin truncation</div>
         </div>
 
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
+        {/* Modal Footer */}
+        <div
           style={{
-            width: '100%',
-            background: primaryColor,
-            color: '#ffffff',
-            border: 'none',
-            padding: '0.75rem',
-            borderRadius: '12px',
-            fontWeight: 800,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            boxShadow: `0 4px 14px ${primaryColor}40`,
+            padding: '1rem 1.5rem',
+            borderTop: '1px solid #f1f5f9',
+            background: '#ffffff',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            flexShrink: 0,
           }}
         >
-          Close Download Center
-        </button>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: '#0f172a',
+              color: '#ffffff',
+              border: 'none',
+              padding: '0.65rem 1.5rem',
+              borderRadius: '10px',
+              fontWeight: 800,
+              fontSize: '0.86rem',
+              cursor: 'pointer',
+              transition: 'background 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#1e293b'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#0f172a'
+            }}
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   )
