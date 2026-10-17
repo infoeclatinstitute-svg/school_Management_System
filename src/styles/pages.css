@@ -3,21 +3,43 @@
    ============================================================ */
 
 /* =====================
-   DARK SECTION HEADING VISIBILITY FIX
-   Headings inside dark/hero sections must be white regardless of global h1 color rule
+   DARK SECTION HEADING & TEXT VISIBILITY FIX
+   Headings and paragraphs inside dark/hero sections must complement the dark background
    ===================== */
 .landing-hero-heading {
   color: #ffffff !important;
 }
 
-/* Any h1/h2/h3 inside a section that declares color: white should be white */
+/* Any h1/h2/h3/h4/p inside a section or div that declares color: white or has dark background */
 section[style*="color: #ffffff"] h1,
 section[style*="color: #ffffff"] h2,
 section[style*="color: #ffffff"] h3,
+section[style*="color: #ffffff"] h4,
 section[style*="color: white"] h1,
 section[style*="color: white"] h2,
-section[style*="color: white"] h3 {
+section[style*="color: white"] h3,
+section[style*="color: white"] h4,
+div[style*="color: #ffffff"] h1,
+div[style*="color: #ffffff"] h2,
+div[style*="color: #ffffff"] h3,
+div[style*="color: #ffffff"] h4,
+div[style*="color: white"] h1,
+div[style*="color: white"] h2,
+div[style*="color: white"] h3,
+div[style*="color: white"] h4,
+div[style*="background: linear-gradient"][style*="#0f172a"] h1,
+div[style*="background: linear-gradient"][style*="#0f172a"] h2,
+div[style*="background: linear-gradient"][style*="#0f172a"] h3,
+div[style*="background: linear-gradient"][style*="#0f172a"] h4 {
   color: #ffffff !important;
+}
+
+section[style*="color: #ffffff"] p,
+section[style*="color: white"] p,
+div[style*="color: #ffffff"] p,
+div[style*="color: white"] p,
+div[style*="background: linear-gradient"][style*="#0f172a"] p {
+  color: #e2e8f0 !important;
 }
 
 /* Any heading that explicitly has a white color inline style */

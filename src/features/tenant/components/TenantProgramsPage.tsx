@@ -194,7 +194,7 @@ export function TenantProgramsPage({
             <span
               style={{
                 background: 'rgba(255, 255, 255, 0.16)',
-                color: school.accent_color,
+                color: school.accent_color || '#38bdf8',
                 padding: '4px 12px',
                 borderRadius: '999px',
                 fontSize: '0.74rem',
@@ -205,16 +205,16 @@ export function TenantProgramsPage({
             >
               🎓 Academic Prospectus &amp; Programs
             </span>
-            <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>
+            <span style={{ fontSize: '0.75rem', opacity: 0.9, color: '#cbd5e1' }}>
               • {programs.length} Approved Programs Offered
             </span>
           </div>
 
-          <h1 style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: '0 0 0.5rem', lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: '0 0 0.5rem', lineHeight: 1.2, color: '#ffffff', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
             Programs Offered at {school.name}
           </h1>
 
-          <p style={{ fontSize: '1rem', opacity: 0.9, margin: '0 0 1.25rem', lineHeight: 1.55 }}>
+          <p style={{ fontSize: '1rem', color: '#e2e8f0', opacity: 0.95, margin: '0 0 1.25rem', lineHeight: 1.55 }}>
             Explore industry-aligned courses, diplomas, and certifications designed for practical competence and career leadership.
           </p>
 
