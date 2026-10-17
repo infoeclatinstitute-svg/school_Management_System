@@ -4,7 +4,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import type { Notification } from '@/lib/database.types'
 import { RoleBadge } from '@/components/ui/Badge'
-import { INSTITUTION_CONFIG } from '@/config/institution'
 import { dispatchSchoolBellAlert } from '@/components/shared/ClassBellReminderModal'
 import { formatDateTime } from '@/lib/utils'
 import { isNativeApp, isElectronApp } from '@/utils/platform'
@@ -14,6 +13,7 @@ import { schoolStore } from '@/lib/schoolData'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { licensingStore } from '@/lib/licensingStore'
 import { checkForOTAUpdates, clearAllWebCaches } from '@/lib/otaUpdater'
+import { AppLogo } from '@/components/common/AppLogo'
 
 export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { profile, signOut } = useAuth()
@@ -89,11 +89,8 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         ☰
       </button>
 
-      <Link to="/" className="navbar-brand">
-        <div>
-          <div className="navbar-school-name" style={{ fontFamily: 'var(--font-heading)', color: '#1e3a8a', letterSpacing: '0.04em', fontWeight: 800 }}>{INSTITUTION_CONFIG.name}</div>
-          <span className="navbar-tagline" style={{ color: '#64748b', letterSpacing: '0.08em', fontSize: '0.65rem', fontWeight: 600 }}>{INSTITUTION_CONFIG.tagline}</span>
-        </div>
+      <Link to="/" className="navbar-brand" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+        <AppLogo size="sm" variant="full" />
       </Link>
 
       <div className="navbar-spacer" />

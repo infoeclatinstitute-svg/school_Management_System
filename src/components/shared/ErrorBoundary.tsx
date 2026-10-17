@@ -1,4 +1,5 @@
 import { Component, type ReactNode, type ErrorInfo } from 'react'
+import { AppLogo } from '@/components/common/AppLogo'
 
 interface Props {
   children: ReactNode
@@ -41,7 +42,10 @@ export class ErrorBoundary extends Component<Props, State> {
           background: '#0f172a',
           color: '#f8fafc'
         }}>
-          <h1 style={{ fontSize: '1.8rem', color: '#60a5fa', marginBottom: '0.5rem' }}>Global College Portal</h1>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <AppLogo size={60} variant="icon" />
+          </div>
+          <h1 style={{ fontSize: '1.8rem', color: '#60a5fa', marginBottom: '0.5rem', fontWeight: 800 }}>Global College Portal</h1>
           <p style={{ color: '#94a3b8', maxWidth: '420px', marginBottom: '1.5rem', fontSize: '0.95rem', lineHeight: 1.5 }}>
             A temporary display error occurred. Please click below to refresh or restore your session.
           </p>

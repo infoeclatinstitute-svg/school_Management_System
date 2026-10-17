@@ -5,6 +5,7 @@ import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { MobileAppBottomNav } from '@/components/layout/MobileAppBottomNav'
 import { sanitizeInput } from '@/lib/utils'
 import { LockIcon, AlertTriangleIcon, UserIcon, ArrowRightIcon, SearchIcon } from '@/components/icons/AppIcons'
+import { AppLogo } from '@/components/common/AppLogo'
 
 export function Login() {
   const { signIn } = useAuthContext()
@@ -131,21 +132,8 @@ export function Login() {
             borderBottom: '1px solid #334155',
           }}
         >
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 0.85rem',
-              fontSize: '1.75rem',
-              boxShadow: '0 8px 20px rgba(37,99,235,0.35)',
-            }}
-          >
-            🏛️
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+            <AppLogo size={58} variant="icon" />
           </div>
           <h1
             style={{
