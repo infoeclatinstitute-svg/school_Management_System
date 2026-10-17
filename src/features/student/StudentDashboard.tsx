@@ -199,6 +199,10 @@ export function StudentDashboard() {
     <PageWrapper
       title={`Welcome, ${currentStudent?.full_name || profile?.full_name || 'Trainee'}! 👋`}
       subtitle={`Admission No: ${currentStudent?.admission_number || profile?.admission_number || 'N/A'} • ${currentStudent?.class_name || 'Enrolled Student'}`}
+      breadcrumbs={[
+        { label: 'Portal', href: '/' },
+        { label: 'Student Workspace' },
+      ]}
     >
       {showCertModal && (() => {
         const matchingUnit = schoolStore.getCourseUnits().find(
@@ -233,113 +237,197 @@ export function StudentDashboard() {
         )
       })()}
 
-      {/* Top Academic Status Card */}
+      {/* Top Academic Status Card — Canvas-grade Clean Institutional Design */}
       <div
-        className="card mb-6"
         style={{
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%)',
-          color: '#ffffff',
-          padding: '1.5rem 2rem',
-          border: 'none',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderLeft: '5px solid #2563eb',
           borderRadius: '12px',
+          padding: '1.25rem 1.75rem',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+          marginBottom: '1.5rem',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#93c5fd', fontWeight: 700 }}>
-              College Academic Standing: Active Short Course Cohort
+            <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#2563eb', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span>🎓</span>
+              <span>College Academic Standing: Active Short Course Cohort</span>
             </div>
-            <h2 style={{ color: '#ffffff', fontSize: '1.45rem', fontWeight: 800, margin: '0.25rem 0 0.4rem' }}>
+            <h2 style={{ color: '#0f172a', fontSize: '1.35rem', fontWeight: 800, margin: '0.35rem 0 0.35rem' }}>
               {studentTranscript ? `${studentTranscript.mean_grade} — Mean: ${studentTranscript.mean_percentage}%` : 'Enrolled — In Progress'}
             </h2>
-            <p style={{ color: '#cbd5e1', fontSize: '0.85rem', margin: 0 }}>
+            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
               {studentTranscript
                 ? `Rank #${studentTranscript.class_position} of ${studentTranscript.total_students_in_class} in Class`
                 : 'Modular practical assessments and final evaluation grades will appear here upon completion.'}
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
             {currentStudent?.certificate_granted ? (
               <button
                 type="button"
-                className="btn btn-sm"
                 onClick={() => setShowCertModal(true)}
-                style={{ background: '#d97706', color: '#ffffff', fontWeight: 800, border: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                style={{
+                  background: '#047857',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  boxShadow: '0 2px 8px rgba(4, 120, 87, 0.25)',
+                }}
                 title="Your Certificate has been officially granted and verified by the Academic Registrar."
               >
-                <span>Certificate of Completion (Granted)</span>
+                <span>📜 Certificate of Completion (Granted)</span>
               </button>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  disabled
-                  title="Certificate locked: Awaiting course evaluation and graduation clearance by the College Administrator."
-                  style={{
-                    background: '#f1f5f9',
-                    color: '#64748b',
-                    fontWeight: 700,
-                    border: '1px solid #cbd5e1',
-                    cursor: 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                  }}
-                >
-                  <span>Certificate (Pending Clearance)</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                disabled
+                title="Certificate locked: Awaiting course evaluation and graduation clearance by the College Administrator."
+                style={{
+                  background: '#f8fafc',
+                  color: '#64748b',
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  cursor: 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                }}
+              >
+                <span>🔒 Certificate (Pending Clearance)</span>
+              </button>
             )}
-            <Link to="/exams" className="btn btn-sm" style={{ background: '#ffffff', color: '#1e3a8a', fontWeight: 700, border: '1px solid #cbd5e1' }}>
-              <span>View Official Transcript</span>
+            <Link
+              to="/exams"
+              style={{
+                background: '#ffffff',
+                color: '#1e40af',
+                fontWeight: 600,
+                fontSize: '0.82rem',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                padding: '8px 14px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              }}
+            >
+              <span>📄 Official Transcript</span>
             </Link>
-            <Link to="/fees" className="btn btn-sm" style={{ background: '#16a34a', color: '#ffffff', fontWeight: 700 }}>
-              <span>Tuition Statement</span>
+            <Link
+              to="/fees"
+              style={{
+                background: '#2563eb',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 14px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+              }}
+            >
+              <span>💳 Tuition Statement</span>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Student Personal KPI Grid */}
+      {/* Student Personal KPI Grid — Standardized Canvas / Linear Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--color-primary)' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Lecture Attendance</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-primary)', marginTop: '0.25rem' }}>
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderTop: '3px solid #2563eb',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+          }}
+        >
+          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Lecture Attendance</div>
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginTop: '0.35rem' }}>
             {currentStudent ? `${currentStudent.attendance_rate || 0}%` : '0%'}
           </div>
-          <div style={{ fontSize: '0.75rem', color: (currentStudent?.attendance_rate || 0) >= 75 ? '#16a34a' : 'var(--color-text-secondary)', marginTop: '0.2rem' }}>
-            {(currentStudent?.attendance_rate || 0) >= 75 ? '✓ Meets Exam Minimum (75%)' : '0 Sessions Logged (Newly Enrolled)'}
+          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: (currentStudent?.attendance_rate || 0) >= 75 ? '#047857' : '#64748b', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>{(currentStudent?.attendance_rate || 0) >= 75 ? '✓ Meets Exam Minimum (75%)' : '0 Sessions Logged (Newly Enrolled)'}</span>
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.25rem', borderLeft: `4px solid ${isFeeCleared ? '#16a34a' : '#ea580c'}` }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Fee Clearance & Exam Card</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: isFeeCleared ? '#16a34a' : '#ea580c', marginTop: '0.25rem' }}>
-            {isFeeCleared ? '✓ Cleared' : (currentStudent ? `$${currentStudent.fee_balance.toLocaleString()}` : '$0')}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderTop: `3px solid ${isFeeCleared ? '#047857' : '#ea580c'}`,
+            borderRadius: '12px',
+            padding: '1.25rem',
+            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+          }}
+        >
+          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Fee Clearance & Exam Card</div>
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: isFeeCleared ? '#047857' : '#ea580c', marginTop: '0.35rem' }}>
+            {isFeeCleared ? '✓ Cleared' : (currentStudent ? `$${(currentStudent.fee_balance ?? 0).toLocaleString()}` : '$0')}
           </div>
-          <div style={{ fontSize: '0.75rem', color: isFeeCleared ? '#16a34a' : 'var(--color-text-secondary)', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: isFeeCleared ? '#047857' : '#64748b', marginTop: '0.35rem' }}>
             {isFeeCleared ? 'Exam Card Active • Lessons Unlocked' : 'Pay Online / Bursar'}
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #7c3aed' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Registered Course Units</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#7c3aed', marginTop: '0.25rem' }}>
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderTop: '3px solid #7c3aed',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+          }}
+        >
+          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Registered Course Units</div>
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginTop: '0.35rem' }}>
             {schoolStore.getRegisteredUnitsForStudent(currentStudent?.admission_number || profile?.admission_number || '').length} Units
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.2rem' }}>
+          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b', marginTop: '0.35rem' }}>
             {schoolStore.getRegistrationForStudent(currentStudent?.admission_number || profile?.admission_number || '') ? '✓ Formally Cleared' : 'Pending Registration'}
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #ea580c' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Merits & Conduct</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#ea580c', marginTop: '0.25rem' }}>
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderTop: '3px solid #d97706',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+          }}
+        >
+          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Merits & Conduct</div>
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginTop: '0.35rem' }}>
             ⭐ {currentStudent?.merits_count || 0} Merits
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.2rem' }}>Conduct Index: 100/100</div>
+          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#047857', marginTop: '0.35rem' }}>
+            Conduct Index: 100/100
+          </div>
         </div>
       </div>
 

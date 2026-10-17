@@ -9,6 +9,7 @@ import { hashPassword } from '@/lib/crypto'
 import { sanitizeInput } from '@/lib/utils'
 import { INSTITUTION_CONFIG } from '@/config/institution'
 import { OFFICIAL_COURSES } from '@/config/officialCourses'
+import { SlideOverDrawer } from '@/components/ui/SlideOverDrawer'
 
 export function StudentDirectory() {
   const [students, setStudents] = useState<StudentRecord[]>(() => schoolStore.getStudents())
@@ -596,7 +597,7 @@ export function StudentDirectory() {
       {/* Students Table */}
       <div className="card" style={{ overflow: 'hidden' }}>
         <div className="table-responsive">
-          <table className="table">
+          <table className="table table-striped">
             <thead>
               <tr>
                 <th>Adm No.</th>
@@ -807,47 +808,142 @@ export function StudentDirectory() {
         </div>
       </div>
 
-      {/* Student Profile Detailed Modal */}
-      {selectedStudent && (
-        <div className="modal-overlay" onClick={() => setSelectedStudent(null)}>
-          <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    background: 'var(--color-primary)',
-                    color: '#fff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.25rem',
-                    fontWeight: 700,
+      {/* Student Profile Detailed Slide-Over Inspection Drawer */}
+      <SlideOverDrawer
+        isOpen={Boolean(selectedStudent)}
+        onClose={() => setSelectedStudent(null)}
+        maxWidth="680px"
+        title={
+          selectedStudent ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: 'var(--color-primary)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.25rem',
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {selectedStudent.full_name.charAt(0)}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0f172a' }}>
+                  {selectedStudent.full_name}
+                </div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>
+                  Admission No: <strong style={{ color: '#0f172a' }}>{selectedStudent.admission_number}</strong> • {selectedStudent.class_name}
+                </div>
+              </div>
+            </div>
+          ) : null
+        }
+        footer={
+          selectedStudent ? (
+            <div style={{ display: 'flex', gap: '0.5rem', width: '100%', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => window.print()}
+                >
+                  🖨️ Print
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  onClick={() => {
+                    const cleanAdm = (selectedStudent.admission_number || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+                    let currentPass = 'Student@2026'
+                    try {
+                      const raw = localStorage.getItem('gc_v2_local_credentials') || localStorage.getItem('gc_local_credentials')
+                      if (raw) {
+                        const parsed = JSON.parse(raw)
+                        if (parsed[cleanAdm]?.password) {
+                          currentPass = parsed[cleanAdm].password
+                        }
+                      }
+                    } catch {}
+                    setCredentialsModalData({
+                      studentName: selectedStudent.full_name,
+                      admissionNumber: selectedStudent.admission_number,
+                      password: currentPass,
+                      program: selectedStudent.class_name,
+                      phone: selectedStudent.guardian?.phone || '',
+                      isNew: false,
+                    })
                   }}
                 >
-                  {selectedStudent.full_name.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="modal-title">{selectedStudent.full_name}</h3>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                    Admission No: <strong>{selectedStudent.admission_number}</strong> • {selectedStudent.class_name}
-                  </p>
-                </div>
+                  <KeyIcon size={14} />
+                  <span>Login Pass</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  style={{
+                    background: selectedStudent.fee_cleared ? '#f0fdf4' : '#fffbeb',
+                    color: selectedStudent.fee_cleared ? '#16a34a' : '#b45309',
+                    border: `1px solid ${selectedStudent.fee_cleared ? '#86efac' : '#fcd34d'}`,
+                    fontWeight: 700,
+                  }}
+                  onClick={() => handleQuickClearFees(selectedStudent)}
+                  title={selectedStudent.fee_cleared ? 'Tuition Fee 100% Cleared (Click to re-verify)' : 'Click to 100% Clear Tuition Fees & Unlock Lessons'}
+                >
+                  {selectedStudent.fee_cleared ? '⚡ Fees Cleared ✓' : '⚡ Clear Fees'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  style={{
+                    background: selectedStudent.certificate_granted ? '#fef3c7' : '#f8fafc',
+                    color: selectedStudent.certificate_granted ? '#b45309' : '#1e3a8a',
+                    border: selectedStudent.certificate_granted ? '1px solid #f59e0b' : '1px solid #cbd5e1',
+                    fontWeight: 700,
+                  }}
+                  onClick={async () => {
+                    const willGrant = !selectedStudent.certificate_granted
+                    await schoolStore.grantCertificate(selectedStudent.id, willGrant)
+                    const updatedList = schoolStore.getStudents()
+                    setStudents(updatedList)
+                    setSelectedStudent({ ...selectedStudent, certificate_granted: willGrant })
+                  }}
+                >
+                  {selectedStudent.certificate_granted ? '🎓 Revoke' : '🎓 Grant Cert'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    setEditingStudent(selectedStudent)
+                    setEditPasswordInput('')
+                    setSelectedStudent(null)
+                  }}
+                >
+                  ✏️ Edit
+                </button>
               </div>
               <button
                 type="button"
-                className="modal-close"
+                className="btn btn-secondary btn-sm"
                 onClick={() => setSelectedStudent(null)}
               >
-                ✕
+                Close
               </button>
             </div>
-
-            <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-              {/* Bio Details */}
-              <div className="card" style={{ padding: '1rem' }}>
+          ) : null
+        }
+      >
+        {selectedStudent && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Bio Details */}
+            <div className="card" style={{ padding: '1rem' }}>
                 <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--color-primary)' }}>
                   👤 Personal & Academic Bio
                 </h4>
@@ -1033,102 +1129,9 @@ export function StudentDirectory() {
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => window.print()}
-                >
-                  🖨️ Print Dossier
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                  onClick={() => {
-                    const cleanAdm = (selectedStudent.admission_number || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
-                    let currentPass = 'Student@2026'
-                    try {
-                      const raw = localStorage.getItem('gc_v2_local_credentials') || localStorage.getItem('gc_local_credentials')
-                      if (raw) {
-                        const parsed = JSON.parse(raw)
-                        if (parsed[cleanAdm]?.password) {
-                          currentPass = parsed[cleanAdm].password
-                        }
-                      }
-                    } catch {}
-                    setCredentialsModalData({
-                      studentName: selectedStudent.full_name,
-                      admissionNumber: selectedStudent.admission_number,
-                      password: currentPass,
-                      program: selectedStudent.class_name,
-                      phone: selectedStudent.guardian?.phone || '',
-                      isNew: false,
-                    })
-                  }}
-                >
-                  <KeyIcon size={14} />
-                  <span>View Login Pass</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  style={{
-                    background: selectedStudent.fee_cleared ? '#f0fdf4' : '#fffbeb',
-                    color: selectedStudent.fee_cleared ? '#16a34a' : '#b45309',
-                    border: `1px solid ${selectedStudent.fee_cleared ? '#86efac' : '#fcd34d'}`,
-                    fontWeight: 700,
-                  }}
-                  onClick={() => handleQuickClearFees(selectedStudent)}
-                  title={selectedStudent.fee_cleared ? 'Tuition Fee 100% Cleared (Click to re-verify)' : 'Click to 100% Clear Tuition Fees & Unlock Lessons'}
-                >
-                  {selectedStudent.fee_cleared ? '⚡ Fees 100% Cleared ✓' : '⚡ Clear Fees & Unlock'}
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  style={{
-                    background: selectedStudent.certificate_granted ? '#fef3c7' : '#f8fafc',
-                    color: selectedStudent.certificate_granted ? '#b45309' : '#1e3a8a',
-                    border: selectedStudent.certificate_granted ? '1px solid #f59e0b' : '1px solid #cbd5e1',
-                    fontWeight: 700,
-                  }}
-                  onClick={async () => {
-                    const willGrant = !selectedStudent.certificate_granted
-                    await schoolStore.grantCertificate(selectedStudent.id, willGrant)
-                    const updatedList = schoolStore.getStudents()
-                    setStudents(updatedList)
-                    setSelectedStudent({ ...selectedStudent, certificate_granted: willGrant })
-                  }}
-                >
-                  {selectedStudent.certificate_granted ? '🎓 Certificate Granted ✓ (Click to Revoke)' : '🎓 Grant Certificate'}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setEditingStudent(selectedStudent)
-                    setEditPasswordInput('')
-                    setSelectedStudent(null)
-                  }}
-                >
-                  ✏️ Edit Student Info
-                </button>
-              </div>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setSelectedStudent(null)}
-              >
-                Close Profile
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </SlideOverDrawer>
 
       {/* Edit Student Modal */}
       {editingStudent && (

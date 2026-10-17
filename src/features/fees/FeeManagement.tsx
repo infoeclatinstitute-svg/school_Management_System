@@ -577,7 +577,7 @@ export function FeeManagement() {
             <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0 }}>Official Payment Receipts</h3>
           </div>
           <div className="table-responsive">
-            <table className="table">
+            <table className="table table-striped">
               <thead>
                 <tr>
                   <th>Receipt No.</th>
@@ -877,7 +877,7 @@ export function FeeManagement() {
             </div>
           ) : (
             <div className="table-responsive">
-              <table className="table">
+              <table className="table table-striped">
                 <thead>
                   <tr>
                     <th>Invoice No.</th>
@@ -1028,7 +1028,7 @@ export function FeeManagement() {
             </div>
           ) : (
             <div className="table-responsive">
-              <table className="table">
+              <table className="table table-striped">
                 <thead>
                   <tr>
                     <th>Receipt #</th>
@@ -1226,7 +1226,7 @@ export function FeeManagement() {
               </div>
             ) : (
               <div className="table-responsive">
-                <table className="table">
+                <table className="table table-striped">
                   <thead>
                     <tr>
                       <th>Clearance Code</th>

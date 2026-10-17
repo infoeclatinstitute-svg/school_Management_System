@@ -821,31 +821,47 @@ tbody td { padding: var(--space-3) var(--space-4); color: var(--color-text-secon
 .table-responsive {
   width: 100%;
   overflow-x: auto;
+  max-height: 72vh;
+  scrollbar-width: thin;
+  position: relative;
 }
 .table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
 }
 .table th {
   padding: 0.75rem 1rem;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-secondary);
-  border-bottom: 1px solid var(--color-border);
+  letter-spacing: 0.06em;
+  color: #475569;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  white-space: nowrap;
 }
 .table td {
   padding: 0.85rem 1rem;
-  font-size: 0.875rem;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text);
+  font-size: 0.86rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
   vertical-align: middle;
+  background: #ffffff;
 }
-.table tbody tr:hover {
-  background: var(--color-bg-alt);
+.table tbody tr:hover td {
+  background: #f8fafc;
+}
+.table-striped tbody tr:nth-of-type(even) td {
+  background-color: #fafbfc;
+}
+.table-striped tbody tr:hover td {
+  background-color: #f1f5f9 !important;
 }
 
 [data-theme="dark"] thead { background: #f8fafc; color: #0f172a; }
@@ -1083,3 +1099,75 @@ tbody td { padding: var(--space-3) var(--space-4); color: var(--color-text-secon
     transform: translateY(0);
   }
 }
+
+/* ============================================================
+   SLIDE-OVER DRAWER ("PEEK" INSPECTION PANEL)
+   ============================================================ */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1050;
+  display: flex;
+  justify-content: flex-end;
+  animation: drawerFadeIn 0.2s ease-out;
+}
+
+.drawer-panel {
+  background: #ffffff;
+  width: 100%;
+  max-width: 620px;
+  height: 100%;
+  box-shadow: -4px 0 24px rgba(15, 23, 42, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: drawerSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+[data-theme="dark"] .drawer-panel {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.drawer-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.drawer-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.drawer-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+@keyframes drawerFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes drawerSlideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
