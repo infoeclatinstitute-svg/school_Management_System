@@ -133,7 +133,11 @@ export async function checkForOTAUpdates(force: boolean = false): Promise<boolea
     // Check if the cloud build is strictly newer than our current running build
     const isNewer = remoteBuildTime > baselineTime
 
-    if (isNewer || force) {
+    const isCapacitorLocal = typeof window !== 'undefined' &&
+      (Boolean((window as any).Capacitor?.isNativePlatform?.()) || window.location.protocol === 'capacitor:' || /Capacitor/i.test(navigator.userAgent)) &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+
+    if (isNewer || force || isCapacitorLocal) {
       localStorage.setItem(LOCAL_BUILD_TIME_KEY, remoteBuildTime.toString())
 
       // 1. Silently update web caches in the background
@@ -146,14 +150,22 @@ export async function checkForOTAUpdates(force: boolean = false): Promise<boolea
 
       pendingSilentUpdate = true
 
-      // 3. If tab is already in background / hidden, reload silently now
+      // 3. If running inside mobile Capacitor on local asset bundle, switch to live cloud deployment
+      if (isCapacitorLocal && navigator.onLine) {
+        isReloading = true
+        const cloudUrl = 'https://cloud.eclat.institute' + window.location.pathname + window.location.search + window.location.hash
+        window.location.href = cloudUrl
+        return true
+      }
+
+      // 4. If tab is already in background / hidden, reload silently now
       if (document.visibilityState === 'hidden' && !isReloading) {
         isReloading = true
         window.location.reload()
         return true
       }
 
-      // 4. If forced, reload now
+      // 5. If forced, reload now
       if (force && !isReloading) {
         isReloading = true
         setTimeout(() => {
@@ -162,7 +174,7 @@ export async function checkForOTAUpdates(force: boolean = false): Promise<boolea
         return true
       }
 
-      // 5. Schedule silent activation without popping up any banner
+      // 6. Schedule silent activation without popping up any banner
       scheduleSilentActivation()
     }
   } catch (err) {

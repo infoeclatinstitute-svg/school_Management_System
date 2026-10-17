@@ -4,7 +4,13 @@
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https"
+    "url": "https://cloud.eclat.institute",
+    "cleartext": true,
+    "androidScheme": "https",
+    "allowNavigation": [
+      "cloud.eclat.institute",
+      "*.eclat.institute"
+    ]
   },
   "android": {
     "allowMixedContent": true,
