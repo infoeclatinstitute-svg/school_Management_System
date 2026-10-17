@@ -453,17 +453,17 @@ export function SafariInstallModal({
               {/* Direct Download Action Button */}
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <a
-                  href={LOCAL_DESKTOP_URL}
+                  href={OFFICIAL_DESKTOP_URL}
                   download="global-college-setup.exe"
                   onClick={() => handleDownloadFeedback('exe')}
                   style={{
                     flex: 1,
-                    minWidth: '180px',
+                    minWidth: '220px',
                     background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                     color: '#ffffff',
-                    padding: '0.65rem 1rem',
+                    padding: '0.75rem 1.25rem',
                     borderRadius: '10px',
-                    fontSize: '0.86rem',
+                    fontSize: '0.88rem',
                     fontWeight: 900,
                     textDecoration: 'none',
                     textAlign: 'center',
@@ -471,20 +471,20 @@ export function SafariInstallModal({
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px',
+                    gap: '8px',
                   }}
                 >
-                  <span>⬇️</span> Download Windows App (.exe)
+                  <span>⬇️</span> Download Native Windows App (.exe)
                 </a>
                 <a
-                  href={OFFICIAL_DESKTOP_URL}
+                  href={LOCAL_DESKTOP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
                     background: '#1e293b',
                     color: '#94a3b8',
                     border: '1px solid #475569',
-                    padding: '0.65rem 0.85rem',
+                    padding: '0.75rem 0.85rem',
                     borderRadius: '10px',
                     fontSize: '0.78rem',
                     fontWeight: 700,
@@ -493,9 +493,9 @@ export function SafariInstallModal({
                     alignItems: 'center',
                     gap: '4px',
                   }}
-                  title="Alternative cloud download mirror"
+                  title="Direct server download mirror"
                 >
-                  <span>🌐</span> Mirror
+                  <span>🌐</span> Server Link
                 </a>
               </div>
 
@@ -504,26 +504,26 @@ export function SafariInstallModal({
                   style={{
                     background: '#172554',
                     color: '#bfdbfe',
-                    padding: '0.55rem 0.75rem',
+                    padding: '0.65rem 0.85rem',
                     borderRadius: '8px',
-                    fontSize: '0.76rem',
+                    fontSize: '0.78rem',
                     fontWeight: 700,
                     border: '1px solid #3b82f6',
                   }}
                 >
-                  ✓ Setup executable download started! Double-click <code>global-college-setup.exe</code> to launch your workstation.
+                  ✓ Setup executable download initiated! Run <code>global-college-setup.exe</code> to install the full standalone desktop application.
                 </div>
               )}
             </div>
 
-            {/* Instant Browser PWA Install on Laptop/Desktop */}
+            {/* Optional Browser Web App (PWA) on Laptop/Desktop */}
             {hasNativePrompt && onNativeInstallPrompt && (
               <div
                 style={{
-                  background: 'rgba(16, 185, 129, 0.12)',
+                  background: 'rgba(30, 41, 59, 0.8)',
                   borderRadius: '14px',
-                  padding: '0.9rem 1rem',
-                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  padding: '0.85rem 1rem',
+                  border: '1px dashed #475569',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -531,25 +531,25 @@ export function SafariInstallModal({
                   flexWrap: 'wrap',
                 }}
               >
-                <div style={{ fontSize: '0.8rem', color: '#a7f3d0', flex: 1 }}>
-                  <strong>Instant Desktop Install:</strong> Add {schoolName} directly to your taskbar/desktop with 1 click without downloading.
+                <div style={{ fontSize: '0.78rem', color: '#cbd5e1', flex: 1 }}>
+                  <strong style={{ color: '#93c5fd' }}>Alternative (Browser Web App):</strong> Run inside Chrome/Edge without installing the desktop software.
                 </div>
                 <button
                   type="button"
                   onClick={() => onNativeInstallPrompt()}
                   style={{
-                    background: '#10b981',
-                    color: '#052e16',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
+                    background: '#334155',
+                    color: '#f8fafc',
+                    border: '1px solid #64748b',
+                    padding: '0.45rem 0.85rem',
                     borderRadius: '8px',
-                    fontWeight: 900,
-                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    fontSize: '0.76rem',
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  ⚡ 1-Click Install
+                  Install Browser Webapp
                 </button>
               </div>
             )}

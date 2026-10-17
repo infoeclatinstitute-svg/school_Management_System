@@ -1,6 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/downloads/global-college-setup.exe",
+      "destination": "https://github.com/infoeclatinstitute-svg/school_Management_System/releases/latest/download/global-college-setup.exe",
+      "permanent": false
+    },
+    {
+      "source": "/downloads/global-college.apk",
+      "destination": "https://github.com/infoeclatinstitute-svg/school_Management_System/releases/latest/download/global-college.apk",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
