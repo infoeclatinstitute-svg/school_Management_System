@@ -4,7 +4,7 @@
 // Strategy: High-speed Stale-While-Revalidate & Cache-First for Hashed Chunks
 // ============================================================================
 
-const CACHE_NAME = 'global-college-pwa-v4';
+const CACHE_NAME = 'global-college-pwa-v5';
 const PRECACHE_ASSETS = [
   '/manifest.json',
   '/logo.png',

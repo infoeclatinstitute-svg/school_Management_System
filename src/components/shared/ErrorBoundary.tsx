@@ -48,9 +48,15 @@ export class ErrorBoundary extends Component<Props, State> {
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '1.5rem' }}>
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
+                try {
+                  if ('caches' in window) {
+                    const keys = await caches.keys()
+                    await Promise.all(keys.map((k) => caches.delete(k)))
+                  }
+                } catch {}
                 sessionStorage.clear()
-                window.location.reload()
+                window.location.href = window.location.pathname + '?_t=' + Date.now()
               }}
               style={{
                 padding: '0.75rem 1.5rem',
@@ -67,7 +73,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 try {
                   const keysToRemove: string[] = []
                   for (let i = 0; i < localStorage.length; i++) {
@@ -78,10 +84,12 @@ export class ErrorBoundary extends Component<Props, State> {
                   }
                   keysToRemove.forEach((k) => localStorage.removeItem(k))
                   sessionStorage.clear()
-                } catch {
-                  // ignore
-                }
-                window.location.href = '/login'
+                  if ('caches' in window) {
+                    const keys = await caches.keys()
+                    await Promise.all(keys.map((k) => caches.delete(k)))
+                  }
+                } catch {}
+                window.location.href = '/login?_t=' + Date.now()
               }}
               style={{
                 padding: '0.75rem 1.5rem',
@@ -98,8 +106,15 @@ export class ErrorBoundary extends Component<Props, State> {
             </button>
             <button
               type="button"
-              onClick={() => {
-                window.location.href = '/'
+              onClick={async () => {
+                try {
+                  if ('caches' in window) {
+                    const keys = await caches.keys()
+                    await Promise.all(keys.map((k) => caches.delete(k)))
+                  }
+                } catch {}
+                sessionStorage.clear()
+                window.location.href = '/?_t=' + Date.now()
               }}
               style={{
                 padding: '0.75rem 1.5rem',
