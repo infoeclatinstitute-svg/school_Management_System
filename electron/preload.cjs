@@ -14,7 +14,7 @@ try {
   contextBridge.exposeInMainWorld('electronAPI', {
     isElectron: true,
   });
-} catch (e) {
+} catch {
   // Fallback if contextIsolation is not enabled
   if (typeof window !== 'undefined') {
     window.desktopAPI = { isDesktop: true, platform: process.platform, version: '1.0.0' };

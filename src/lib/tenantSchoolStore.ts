@@ -2283,7 +2283,7 @@ class TenantSchoolStore {
     window.dispatchEvent(new CustomEvent('gc-tenant-notices-updated', { detail: this.notices }))
   }
 
-  public getNoticesBySchool(slug: string, activePeriodLabel?: string): TenantSchoolNotice[] {
+  public getNoticesBySchool(slug: string, _activePeriodLabel?: string): TenantSchoolNotice[] {
     if (this.notices.length === 0) this.loadNotices()
     const clean = slug.toLowerCase().trim()
     const schoolNotices = this.notices.filter((n) => n.school_slug.toLowerCase() === clean)

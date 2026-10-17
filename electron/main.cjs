@@ -210,14 +210,16 @@ async function createMainWindow() {
           click: () => {
             if (mainWindow) {
               const currentUrl = mainWindow.webContents.getURL();
-              try {
-                const urlObj = new URL(currentUrl);
-                urlObj.pathname = '/faq';
-                urlObj.searchParams.set('platform', 'desktop');
-                mainWindow.loadURL(urlObj.toString());
-              } catch {
-                mainWindow.loadURL(`http://127.0.0.1:${localServerPort}/faq?platform=desktop`);
+              let targetUrl = `http://127.0.0.1:${localServerPort}/faq?platform=desktop`;
+              if (currentUrl && (currentUrl.startsWith('http://') || currentUrl.startsWith('https://'))) {
+                try {
+                  const urlObj = new URL(currentUrl);
+                  urlObj.pathname = '/faq';
+                  urlObj.searchParams.set('platform', 'desktop');
+                  targetUrl = urlObj.toString();
+                } catch {}
               }
+              mainWindow.loadURL(targetUrl);
             }
           },
         },
@@ -232,24 +234,17 @@ async function createMainWindow() {
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
   if (devServerUrl) {
     mainWindow.loadURL(`${devServerUrl}?platform=desktop`);
+  } else if (hasLocalDist) {
+    // Instant workstation startup directly from local embedded high-speed production engine
+    mainWindow.loadURL(localUrl);
   } else {
-    // Check if cloud portal is online and responsive
-    const isCloudOnline = await checkCloudReachable(2000);
-    if (isCloudOnline) {
-      mainWindow.loadURL(CLOUD_PORTAL_URL);
-    } else if (hasLocalDist) {
-      mainWindow.loadURL(localUrl);
-    } else {
-      mainWindow.loadFile(path.join(__dirname, '../dist/index.html'), {
-        query: { platform: 'desktop' },
-      });
-    }
+    mainWindow.loadURL(CLOUD_PORTAL_URL);
   }
 
-  // Seamless offline fallback: if cloud fails to load, gracefully fall back to local workstation
+  // Seamless fallback: if remote URL fails to load, gracefully fall back to local workstation
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-    if (validatedURL && validatedURL.startsWith('https://cloud.eclat.institute') && hasLocalDist) {
-      console.warn(`[Desktop] Cloud load failed (${errorCode}: ${errorDescription}). Falling back to local workstation.`);
+    if (hasLocalDist && validatedURL && !validatedURL.includes(`127.0.0.1:${localServerPort}`)) {
+      console.warn(`[Desktop] Remote load failed (${errorCode}: ${errorDescription}). Falling back to local workstation.`);
       mainWindow.loadURL(localUrl);
     }
   });

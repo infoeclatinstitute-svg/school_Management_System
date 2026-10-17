@@ -472,6 +472,7 @@ test('Electron desktop entry point (electron/main.cjs) and PWA install UI compon
   assert.ok(pwaHook.includes('promptInstall'), 'usePWAInstall.ts must expose promptInstall()')
   assert.ok(pwaHook.includes('isNativeApp'), 'usePWAInstall.ts must detect native app platform synchronously')
   assert.ok(navbar.includes('usePWAInstall'), 'Navbar must integrate PWA install capability')
+  assert.ok(installModal.includes('SafariInstallModal'), 'SafariInstallModal component must be valid')
   assert.ok(tenantHub.includes('!isInstalled && !isNativeApp()'), 'TenantSchoolHub must suppress Install App buttons on desktop/installed environments')
 
   const electronMainContent = fs.readFileSync(electronMain, 'utf8')
