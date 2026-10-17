@@ -16,6 +16,9 @@ interface TenantBursarDeskProps {
   payrollList: TenantPayrollRecord[]
   feePaymentsList: TenantFeePayment[]
   sessionUser?: TenantSessionUser | null
+  isLicenseActive?: boolean
+  onOpenLicenseModal?: () => void
+  onNavigateToBilling?: () => void
   onReloadData: () => void
   onOpenPayslip: (payslip: TenantPayrollRecord) => void
   onOpenReceipt: (receipt: TenantFeePayment) => void
@@ -51,6 +54,9 @@ export function TenantBursarDesk({
   payrollList,
   feePaymentsList,
   sessionUser,
+  isLicenseActive = true,
+  onOpenLicenseModal,
+  onNavigateToBilling,
   onReloadData,
   onOpenPayslip,
   onOpenReceipt,
@@ -59,6 +65,16 @@ export function TenantBursarDesk({
   const primaryColor = school.primary_color || '#b45309'
   const currency = school.currency || 'KES'
   const activePeriod = school.active_period_name || 'Active Term'
+
+  const requireActivation = (actionName: string, callback?: () => void) => {
+    if (!isLicenseActive) {
+      if (onOpenLicenseModal) onOpenLicenseModal()
+      alert(`Institutional product key activation required. ${actionName} is disabled until your campus license is activated.`)
+      return false
+    }
+    if (callback) callback()
+    return true
+  }
 
   // Sub-tabs navigation
   const [bursarSubTab, setBursarSubTab] = useState<
@@ -188,6 +204,7 @@ export function TenantBursarDesk({
   // Handle Record Fee Payment
   const handleRecordPayment = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireActivation('Recording fee payment')) return
     if (!selectedStudentForPayment) {
       alert('Please select a valid student.')
       return
@@ -224,6 +241,7 @@ export function TenantBursarDesk({
   // Handle Cohort Batch Invoicing
   const handleExecuteBatchInvoice = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireActivation('Batch invoicing')) return
     const cohort = batchInvoiceForm.target_cohort
     if (!cohort) return
 
@@ -258,6 +276,7 @@ export function TenantBursarDesk({
   // Handle Individual Fee Adjustment
   const handleExecuteStudentFeeAdjustment = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireActivation('Fee adjustment')) return
     if (!selectedStudentForAdjustment) return
 
     const newTotal = Number(adjustedFeeTotalInput)
@@ -278,6 +297,7 @@ export function TenantBursarDesk({
 
   // Handle Disbursing Batch
   const handleExecuteBatchDisburse = () => {
+    if (!requireActivation('Disbursing payroll')) return
     tenantSchoolStore.disbursePayrollBatch(school.slug, selectedPayrollMonth, batchDisburseChannel)
     setShowDisburseBatchModal(false)
     onReloadData()
@@ -376,6 +396,92 @@ export function TenantBursarDesk({
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Product Key Activation Required Banner (Bursar Desk) */}
+      {!isLicenseActive && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+            border: '1.5px solid #fde68a',
+            borderRadius: '20px',
+            padding: '1.25rem 1.6rem',
+            marginBottom: '1.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 6px 20px rgba(245, 158, 11, 0.1)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                background: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                flexShrink: 0,
+              }}
+            >
+              🔑
+            </div>
+            <div>
+              <div style={{ fontSize: '0.96rem', fontWeight: 900, color: '#92400e' }}>
+                Institutional Product Key Activation Required
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
+                This institutional campus is awaiting license activation. Standard Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Financial and fee payment recording features on this desk are disabled until activated.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={onOpenLicenseModal}
+              style={{
+                background: '#92400e',
+                color: '#ffffff',
+                fontWeight: 800,
+                padding: '0.65rem 1.35rem',
+                borderRadius: '10px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.84rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(146, 64, 14, 0.3)',
+              }}
+            >
+              <span>🔑 Enter Product Key ➔</span>
+            </button>
+            {onNavigateToBilling && (
+              <button
+                type="button"
+                onClick={onNavigateToBilling}
+                style={{
+                  background: '#ffffff',
+                  color: '#92400e',
+                  fontWeight: 800,
+                  padding: '0.65rem 1.1rem',
+                  borderRadius: '10px',
+                  border: '1.5px solid #fde68a',
+                  cursor: 'pointer',
+                  fontSize: '0.84rem',
+                }}
+              >
+                Billing &amp; License ➔
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ============================================================ */}
       {/* TOP HEADER: INSTITUTIONAL TREASURY & BURSAR DESK */}
       {/* ============================================================ */}

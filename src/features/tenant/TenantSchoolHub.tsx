@@ -463,103 +463,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
     (school.subscription_status === 'active' || school.subscription_status === 'licensed')
   )
 
-  // Product Key License Required Fallback Card
-  const renderLicenseRequiredCard = (deskName: string) => (
-    <div
-      style={{
-        background: '#ffffff',
-        borderRadius: '24px',
-        padding: '3rem 2rem',
-        border: '1.5px solid #fde68a',
-        maxWidth: '680px',
-        margin: '2rem auto',
-        textAlign: 'center',
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.04)',
-      }}
-    >
-      <div
-        style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '20px',
-          background: '#fef3c7',
-          color: '#b45309',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 1.5rem',
-          fontSize: '1.8rem',
-        }}
-      >
-        🔑
-      </div>
 
-      <span
-        style={{
-          fontSize: '0.72rem',
-          fontWeight: 800,
-          color: '#b45309',
-          background: '#fef3c7',
-          padding: '3px 10px',
-          borderRadius: '6px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-        }}
-      >
-        Product Key Activation Required
-      </span>
-
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '0.75rem 0 0.5rem' }}>
-        License Key Required for {deskName}
-      </h2>
-
-      <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 1.5rem' }}>
-        {school.name} is currently awaiting institutional Product Key activation. To unlock the {deskName} and start using your digital campus, please enter your 19-character Product Key.
-      </p>
-
-      <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          onClick={() => {
-            setLicenseFeedback(null)
-            setShowLicenseModal(true)
-          }}
-          style={{
-            background: primaryColor,
-            color: '#ffffff',
-            fontWeight: 800,
-            padding: '0.75rem 1.75rem',
-            borderRadius: '12px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            boxShadow: `0 4px 16px ${primaryColor}40`,
-          }}
-        >
-          🔑 Enter Product Key ➔
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('billing')
-            navigate(getDeskRoute('billing'))
-          }}
-          style={{
-            background: '#f8fafc',
-            color: '#0f172a',
-            fontWeight: 800,
-            padding: '0.75rem 1.5rem',
-            borderRadius: '12px',
-            border: '1.5px solid #cbd5e1',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-          }}
-        >
-          💳 Open Billing &amp; Licensing Portal
-        </button>
-      </div>
-    </div>
-  )
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
@@ -1368,95 +1272,6 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         {/* VIEW 1: MAIN CAMPUS HUB */}
         {activeTab === 'hub' && (
           <div>
-            {/* License Activation Required Banner */}
-            {!isLicenseActive && (
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-                  border: '1.5px solid #fde68a',
-                  borderRadius: '20px',
-                  padding: '1.25rem 1.6rem',
-                  marginBottom: '1.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '1rem',
-                  boxShadow: '0 6px 20px rgba(245, 158, 11, 0.1)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div
-                    style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '12px',
-                      background: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.5rem',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                    }}
-                  >
-                    🔑
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.96rem', fontWeight: 900, color: '#92400e' }}>
-                      Institutional Product Key Activation Required
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
-                      This institutional campus is awaiting license activation. Standard Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Enter your 19-character key to unlock full SIS/LMS capability.
-                    </div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLicenseFeedback(null)
-                      setShowLicenseModal(true)
-                    }}
-                    style={{
-                      background: '#92400e',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      padding: '0.65rem 1.35rem',
-                      borderRadius: '10px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '0.84rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      boxShadow: '0 4px 12px rgba(146, 64, 14, 0.3)',
-                    }}
-                  >
-                    <span>🔑 Enter Product Key ➔</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('billing')
-                      navigate(getDeskRoute('billing'))
-                    }}
-                    style={{
-                      background: '#ffffff',
-                      color: '#92400e',
-                      fontWeight: 800,
-                      padding: '0.65rem 1.1rem',
-                      borderRadius: '10px',
-                      border: '1.5px solid #fde68a',
-                      cursor: 'pointer',
-                      fontSize: '0.84rem',
-                    }}
-                  >
-                    Billing &amp; License ➔
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Executive Campus Hero Presentation Banner */}
             <div
               style={{
@@ -2245,9 +2060,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
         {/* VIEW 3: STUDENT DESK */}
         {activeTab === 'student' && (
-          !isLicenseActive ? (
-            renderLicenseRequiredCard('Student Learning Portal')
-          ) : activeRole !== 'admin' && activeRole !== 'student' ? (
+          activeRole !== 'admin' && activeRole !== 'student' ? (
             renderRestrictedCard(
               'Student Learning Portal',
               'This workspace contains personalized course modules, lecture notes, timetable periods, attendance tracking, and individual report card results. Access is strictly scoped to enrolled students and executive administrators.',
@@ -2270,15 +2083,12 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               onOpenExamPass={(stu) => setSelectedExamPassStudent(stu)}
               onOpenAdmissionLetter={(stu) => setSelectedAdmissionSlip(stu)}
             />
-
           )
         )}
 
         {/* VIEW 4: TEACHER DESK */}
         {activeTab === 'teacher' && (
-          !isLicenseActive ? (
-            renderLicenseRequiredCard('Teacher & Faculty Workspace')
-          ) : activeRole !== 'admin' && activeRole !== 'teacher' ? (
+          activeRole !== 'admin' && activeRole !== 'teacher' ? (
             renderRestrictedCard(
               'Teacher & Faculty Workspace',
               'This workspace contains attendance registers, continuous assessment test (CAT) gradebooks, student examination marks entry, and curriculum materials. Only teaching faculty and executive administrators may enter.',
@@ -2298,9 +2108,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
         {/* VIEW 5: BURSAR DESK */}
         {activeTab === 'bursar' && (
-          !isLicenseActive ? (
-            renderLicenseRequiredCard('Bursar & Finance Office')
-          ) : activeRole !== 'admin' && activeRole !== 'bursar' ? (
+          activeRole !== 'admin' && activeRole !== 'bursar' ? (
             renderRestrictedCard(
               'Bursar & Finance Office',
               'This finance desk contains confidential institution revenue ledgers, student fee balances, tuition invoices, and receipt printing. Only bursars and executive administrators may enter.',
@@ -2314,20 +2122,26 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               payrollList={payrollList}
               feePaymentsList={feePaymentsList}
               sessionUser={currentSession}
+              isLicenseActive={isLicenseActive}
+              onOpenLicenseModal={() => {
+                setLicenseFeedback(null)
+                setShowLicenseModal(true)
+              }}
+              onNavigateToBilling={() => {
+                setActiveTab('billing')
+                navigate(getDeskRoute('billing'))
+              }}
               onReloadData={() => reloadSchoolData(school.slug)}
               onOpenPayslip={(p) => setSelectedPayslip(p)}
               onOpenReceipt={(r) => setSelectedReceipt(r)}
               onOpenInvoice={(stu) => setSelectedInvoiceStudent(stu)}
             />
-
           )
         )}
 
         {/* VIEW 6: PRINCIPAL DESK */}
         {activeTab === 'principal' && (
-          !isLicenseActive ? (
-            renderLicenseRequiredCard(`${school.principal_title} Executive Office`)
-          ) : activeRole !== 'admin' ? (
+          activeRole !== 'admin' ? (
             renderRestrictedCard(
               `${school.principal_title} Executive Office`,
               'Executive leadership tools, staff hiring, student admissions, login credential issuance, calendar system setup, and cloud LMS subscription management require Executive Administrator credentials.',
@@ -2339,6 +2153,15 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               staffList={staffList}
               studentList={studentList}
               payrollList={payrollList}
+              isLicenseActive={isLicenseActive}
+              onOpenLicenseModal={() => {
+                setLicenseFeedback(null)
+                setShowLicenseModal(true)
+              }}
+              onNavigateToBilling={() => {
+                setActiveTab('billing')
+                navigate(getDeskRoute('billing'))
+              }}
               onReloadData={() => reloadSchoolData(school.slug)}
               onOpenStaffSlip={(stf) => setSelectedStaffSlip(stf)}
               onOpenStaffOfferLetter={(stf) => setSelectedStaffOfferLetter(stf)}

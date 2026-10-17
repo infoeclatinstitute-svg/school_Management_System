@@ -17,6 +17,9 @@ export interface TenantPrincipalDeskProps {
   staffList: TenantStaffMember[]
   studentList: TenantStudentMember[]
   payrollList: TenantPayrollRecord[]
+  isLicenseActive?: boolean
+  onOpenLicenseModal?: () => void
+  onNavigateToBilling?: () => void
   onReloadData: () => void
   onOpenStaffSlip: (staff: TenantStaffMember) => void
   onOpenStaffOfferLetter?: (staff: TenantStaffMember) => void
@@ -39,6 +42,9 @@ export function TenantPrincipalDesk({
   staffList,
   studentList,
   payrollList,
+  isLicenseActive = true,
+  onOpenLicenseModal,
+  onNavigateToBilling,
   onReloadData,
   onOpenStaffSlip,
   onOpenStaffOfferLetter,
@@ -48,6 +54,16 @@ export function TenantPrincipalDesk({
   const primaryColor = school.primary_color || '#881337'
   const accentColor = school.accent_color || '#d4af37'
   const currency = school.currency || 'KES'
+
+  const requireActivation = (actionName: string, callback?: () => void) => {
+    if (!isLicenseActive) {
+      if (onOpenLicenseModal) onOpenLicenseModal()
+      alert(`Institutional product key activation required. ${actionName} is disabled until your campus license is activated.`)
+      return false
+    }
+    if (callback) callback()
+    return true
+  }
 
   // Dynamic Current Year and Month
   const currentYear = useMemo(() => new Date().getFullYear(), [])
@@ -332,6 +348,7 @@ export function TenantPrincipalDesk({
   }
 
   const handleConvertAndAdmitApplicant = (app: TenantAdmissionApplication) => {
+    if (!requireActivation('Admitting online applicant')) return
     setEditingStudentMember(null)
     setStudentForm({
       full_name: app.full_name,
@@ -354,6 +371,7 @@ export function TenantPrincipalDesk({
   }
 
   const handleDeleteApp = (app: TenantAdmissionApplication) => {
+    if (!requireActivation('Removing applicant')) return
     if (
       window.confirm(
         `Are you sure you want to remove the application for ${app.full_name} (${app.application_number})?`
@@ -368,6 +386,7 @@ export function TenantPrincipalDesk({
   // HANDLERS: STAFF HR
   // ==========================================
   const handleOpenAddStaff = () => {
+    if (!requireActivation('Faculty & staff onboarding')) return
     setEditingStaffMember(null)
     setStaffForm({
       full_name: '',
@@ -498,6 +517,7 @@ export function TenantPrincipalDesk({
   }
 
   const handleDeleteStaff = (staff: TenantStaffMember) => {
+    if (!requireActivation('Deleting faculty/staff record')) return
     if (window.confirm(`Are you sure you want to remove ${staff.full_name} from the staff directory?`)) {
       tenantSchoolStore.deleteStaffMember(staff.id)
       onReloadData()
@@ -506,6 +526,7 @@ export function TenantPrincipalDesk({
 
   const handleSaveStaffCredentials = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireActivation('Updating staff credentials')) return
     if (!editingStaffCreds) return
     tenantSchoolStore.updateStaffMember(editingStaffCreds.id, {
       username: editStaffUsername.trim() || editingStaffCreds.username,
@@ -519,6 +540,7 @@ export function TenantPrincipalDesk({
   // HANDLERS: STUDENT SIS & ADMISSIONS
   // ==========================================
   const handleOpenAdmitStudent = () => {
+    if (!requireActivation('Student admission enrollment')) return
     setEditingStudentMember(null)
     setStudentForm({
       full_name: '',
@@ -630,6 +652,7 @@ export function TenantPrincipalDesk({
   // HANDLERS: TIMETABLE
   // ==========================================
   const handleOpenAddPeriod = () => {
+    if (!requireActivation('Scheduling timetable period')) return
     setEditingPeriod(null)
     const nextPeriodNum =
       classTimetable.length > 0
@@ -649,6 +672,7 @@ export function TenantPrincipalDesk({
   }
 
   const handleOpenEditPeriod = (period: TenantTimetableEntry) => {
+    if (!requireActivation('Editing timetable period')) return
     setEditingPeriod(period)
     setTimetableForm({
       day_of_week: period.day_of_week,
@@ -664,6 +688,7 @@ export function TenantPrincipalDesk({
 
   const handleSaveTimetableEntry = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireActivation('Saving timetable period')) return
     if (!timetableForm.subject_name.trim()) return
 
     if (editingPeriod) {
@@ -695,6 +720,7 @@ export function TenantPrincipalDesk({
   }
 
   const handleDeletePeriod = (id: string) => {
+    if (!requireActivation('Deleting timetable period')) return
     if (window.confirm('Are you sure you want to delete this period from the schedule?')) {
       tenantSchoolStore.deleteTimetableEntry(id)
       onReloadData()
@@ -706,6 +732,7 @@ export function TenantPrincipalDesk({
   // ==========================================
   const handleAddClassCohort = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireActivation('Adding class cohort')) return
     const trimmed = newClassNameInput.trim()
     if (!trimmed) return
     if (!availableClasses.includes(trimmed)) {
@@ -717,6 +744,7 @@ export function TenantPrincipalDesk({
   }
 
   const handleRemoveClassCohort = (className: string) => {
+    if (!requireActivation('Removing class cohort')) return
     if (availableClasses.length <= 1) {
       alert('The school must have at least one active class cohort.')
       return
@@ -733,6 +761,7 @@ export function TenantPrincipalDesk({
 
   const handleAddDepartment = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireActivation('Adding faculty department')) return
     const trimmed = newDeptNameInput.trim()
     if (!trimmed) return
     if (!availableDepartments.includes(trimmed)) {
@@ -744,6 +773,7 @@ export function TenantPrincipalDesk({
   }
 
   const handleRemoveDepartment = (deptName: string) => {
+    if (!requireActivation('Removing department')) return
     if (availableDepartments.length <= 1) {
       alert('The school must have at least one active department.')
       return
@@ -759,6 +789,7 @@ export function TenantPrincipalDesk({
   // HANDLERS: PAYROLL
   // ==========================================
   const handleDisbursePayroll = () => {
+    if (!requireActivation('Disbursing payroll batch')) return
     const targetMonth = payrollMonthFilter === 'all' ? currentMonthYear : payrollMonthFilter
     if (
       window.confirm(
@@ -771,6 +802,7 @@ export function TenantPrincipalDesk({
   }
 
   const handleGeneratePayrollBatch = () => {
+    if (!requireActivation('Generating payroll batch')) return
     const targetMonth = payrollMonthFilter === 'all' ? currentMonthYear : payrollMonthFilter
     tenantSchoolStore.generateMonthlyPayroll(school.slug, targetMonth)
     onReloadData()
@@ -781,6 +813,7 @@ export function TenantPrincipalDesk({
   // ==========================================
   const handleSaveSchoolProfile = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireActivation('Saving campus identity profile')) return
     tenantSchoolStore.updateSchoolBranding(school.slug, {
       name: schoolProfileInput.name.trim() || school.name,
       motto: schoolProfileInput.motto.trim(),
@@ -798,6 +831,7 @@ export function TenantPrincipalDesk({
 
   const handleSaveCurrencySetting = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireActivation('Updating school currency')) return
     tenantSchoolStore.updateSchoolBranding(school.slug, {
       currency: currencySetting.trim().toUpperCase() || 'KES',
     })
@@ -865,6 +899,92 @@ export function TenantPrincipalDesk({
 
   return (
     <div style={{ maxWidth: '1160px', margin: '0 auto', color: '#0f172a' }}>
+      {/* Product Key Activation Required Banner (Principal Desk) */}
+      {!isLicenseActive && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+            border: '1.5px solid #fde68a',
+            borderRadius: '20px',
+            padding: '1.25rem 1.6rem',
+            marginBottom: '1.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 6px 20px rgba(245, 158, 11, 0.1)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                background: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.5rem',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                flexShrink: 0,
+              }}
+            >
+              🔑
+            </div>
+            <div>
+              <div style={{ fontSize: '0.96rem', fontWeight: 900, color: '#92400e' }}>
+                Institutional Product Key Activation Required
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
+                This institutional campus is awaiting license activation. Standard Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Administrative creation and editing features on this desk are disabled until activated.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={onOpenLicenseModal}
+              style={{
+                background: '#92400e',
+                color: '#ffffff',
+                fontWeight: 800,
+                padding: '0.65rem 1.35rem',
+                borderRadius: '10px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.84rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(146, 64, 14, 0.3)',
+              }}
+            >
+              <span>🔑 Enter Product Key ➔</span>
+            </button>
+            {onNavigateToBilling && (
+              <button
+                type="button"
+                onClick={onNavigateToBilling}
+                style={{
+                  background: '#ffffff',
+                  color: '#92400e',
+                  fontWeight: 800,
+                  padding: '0.65rem 1.1rem',
+                  borderRadius: '10px',
+                  border: '1.5px solid #fde68a',
+                  cursor: 'pointer',
+                  fontSize: '0.84rem',
+                }}
+              >
+                Billing &amp; License ➔
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ========================================== */}
       {/* EXECUTIVE HEADER & TELEMETRY BANNER        */}
       {/* ========================================== */}
