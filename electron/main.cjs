@@ -6,7 +6,6 @@
 const { app, BrowserWindow, shell, nativeImage, Menu } = require('electron');
 const path = require('path');
 const http = require('http');
-const https = require('https');
 const fs = require('fs');
 
 // Ensure Windows taskbar correctly groups and displays the Global College application icon
@@ -91,19 +90,6 @@ function startEmbeddedProductionServer(distDir, preferredPort = 42888) {
     };
 
     tryListen();
-  });
-}
-
-function checkCloudReachable(timeoutMs = 2500) {
-  return new Promise((resolve) => {
-    const req = https.get('https://cloud.eclat.institute/version.json', { timeout: timeoutMs }, (res) => {
-      resolve(res.statusCode === 200);
-    });
-    req.on('error', () => resolve(false));
-    req.on('timeout', () => {
-      req.destroy();
-      resolve(false);
-    });
   });
 }
 
