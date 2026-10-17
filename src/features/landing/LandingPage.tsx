@@ -170,7 +170,7 @@ export function LandingPage() {
               whiteSpace: 'nowrap',
             }}
           >
-            Admin Sign In
+            Sign In
           </button>
 
           <button
