@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuthContext } from '@/features/auth/AuthContext'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { MobileAppBottomNav } from '@/components/layout/MobileAppBottomNav'
 import { sanitizeInput } from '@/lib/utils'
-import { LockIcon, AlertTriangleIcon, UserIcon, ArrowRightIcon } from '@/components/icons/AppIcons'
+import { LockIcon, AlertTriangleIcon, UserIcon, ArrowRightIcon, SearchIcon } from '@/components/icons/AppIcons'
 
 export function Login() {
   const { signIn } = useAuthContext()
@@ -21,6 +21,19 @@ export function Login() {
 
   // Dynamic registered schools from tenant store (no hardcoded schools)
   const [schools, setSchools] = useState(() => tenantSchoolStore.getSchools())
+  const [schoolSearchQuery, setSchoolSearchQuery] = useState('')
+
+  // Filter matching schools strictly based on search query (do not list publicly by default)
+  const matchingSchools = useMemo(() => {
+    const q = schoolSearchQuery.trim().toLowerCase()
+    if (!q) return []
+    return schools.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.slug.toLowerCase().includes(q) ||
+        (s.motto && s.motto.toLowerCase().includes(q))
+    )
+  }, [schools, schoolSearchQuery])
 
   useEffect(() => {
     const handleSync = () => setSchools(tenantSchoolStore.getSchools())
@@ -336,61 +349,189 @@ export function Login() {
             </button>
           </form>
 
-          {/* Dynamic Partner School Hub Selector */}
-          {schools.length > 0 && (
-            <div
-              style={{
-                marginTop: '1.5rem',
-                paddingTop: '1.25rem',
-                borderTop: '1px solid #e2e8f0',
-                fontSize: '0.78rem',
-                color: '#64748b',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
-                🏛️ Dedicated Partner School Portals
+          {/* Institutional School Portal Search */}
+          <div
+            style={{
+              marginTop: '1.5rem',
+              paddingTop: '1.25rem',
+              borderTop: '1px solid #e2e8f0',
+              fontSize: '0.82rem',
+              color: '#64748b',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.82rem' }}>
+                🔍 Find Your School Portal
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate('/register-school')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#2563eb',
+                  fontSize: '0.76rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline',
+                }}
+              >
+                + Register Campus
+              </button>
+            </div>
+
+            {/* School Search Input */}
+            <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <SearchIcon size={14} color="#94a3b8" />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {schools.slice(0, 4).map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => navigate(`/s/${s.slug}`)}
-                    style={{
-                      background: '#eff6ff',
-                      color: '#1d4ed8',
-                      border: '1px solid #bfdbfe',
-                      borderRadius: '8px',
-                      padding: '4px 10px',
-                      fontSize: '0.76rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                    title={`Open ${s.name}`}
-                  >
-                    {s.name} (/s/{s.slug})
-                  </button>
-                ))}
+              <input
+                type="text"
+                value={schoolSearchQuery}
+                onChange={(e) => setSchoolSearchQuery(e.target.value)}
+                placeholder="Search school by name (e.g. Nairobi, Springfield)..."
+                aria-label="Search school by name"
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '8px 30px 8px 30px',
+                  borderRadius: '8px',
+                  border: '1.5px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#0f172a',
+                  fontSize: '0.82rem',
+                  outline: 'none',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = '#2563eb'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.15)'
+                  e.currentTarget.style.background = '#ffffff'
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = '#cbd5e1'
+                  e.currentTarget.style.boxShadow = 'none'
+                  if (!schoolSearchQuery) e.currentTarget.style.background = '#f8fafc'
+                }}
+              />
+              {schoolSearchQuery && (
                 <button
                   type="button"
-                  onClick={() => navigate('/register-school')}
+                  onClick={() => setSchoolSearchQuery('')}
+                  aria-label="Clear school search"
                   style={{
-                    background: '#f8fafc',
-                    color: '#475569',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '8px',
-                    padding: '4px 10px',
-                    fontSize: '0.76rem',
-                    fontWeight: 700,
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: '#e2e8f0',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     cursor: 'pointer',
+                    fontSize: '10px',
+                    color: '#475569',
+                    lineHeight: 1,
                   }}
                 >
-                  + Register New School
+                  ✕
                 </button>
-              </div>
+              )}
             </div>
-          )}
+
+            {/* Search Results Display (Only shows when user searches) */}
+            {schoolSearchQuery.trim() !== '' && (
+              <div
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+                  overflow: 'hidden',
+                  marginTop: '0.5rem',
+                }}
+              >
+                {matchingSchools.length > 0 ? (
+                  <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                    {matchingSchools.map((s) => (
+                      <div
+                        key={s.id}
+                        onClick={() => navigate(`/s/${s.slug}`)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') navigate(`/s/${s.slug}`)
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          borderBottom: '1px solid #f1f5f9',
+                          cursor: 'pointer',
+                          transition: 'background 0.15s ease',
+                          textAlign: 'left',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#eff6ff')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <div style={{ minWidth: 0, flex: 1, marginRight: '8px' }}>
+                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>🏛️</span>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                            /s/{s.slug} {s.motto ? `• ${s.motto}` : ''}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            background: '#2563eb',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 8px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                          }}
+                        >
+                          Open Portal ➔
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: '12px',
+                      fontSize: '0.76rem',
+                      color: '#64748b',
+                      textAlign: 'center',
+                      background: '#f8fafc',
+                    }}
+                  >
+                    No school campus found matching &quot;{schoolSearchQuery}&quot;.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Encryption Footer */}
           <div
