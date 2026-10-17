@@ -29,6 +29,7 @@ import { TenantBursarDesk } from './components/TenantBursarDesk'
 import { TenantTeacherDesk } from './components/TenantTeacherDesk'
 import { TenantStudentDesk } from './components/TenantStudentDesk'
 import { TenantCampusNoticeboard } from './components/TenantCampusNoticeboard'
+import { TenantPublicShowcase } from './components/TenantPublicShowcase'
 import { TenantApplyAdmissionModal } from './components/TenantApplyAdmissionModal'
 import { TenantSchoolLoginModal } from './components/TenantSchoolLoginModal'
 import { TenantProfilePage } from './components/TenantProfilePage'
@@ -1680,6 +1681,16 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 </div>
               </div>
             </div>
+
+            {/* Institutional Public Showcase: About Us, Programs Catalog, Admissions & Campus Infrastructure */}
+            <TenantPublicShowcase
+              school={school}
+              primaryColor={primaryColor}
+              accentColor={accentColor}
+              onOpenAdmissions={handleOpenApplyModal}
+              onOpenLogin={() => setShowLoginModal(true)}
+              currentSession={currentSession}
+            />
 
             {/* Campus Noticeboard & Senate Announcements (Dynamic & Role-Governed) */}
             <TenantCampusNoticeboard

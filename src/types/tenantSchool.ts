@@ -42,10 +42,12 @@ export interface InstitutionProgram {
   id: string
   school_slug: string
   title: string
+  code?: string // Course or program code e.g. "DIT-101", "BBIT-200"
   department: string
   level: 'Certificate' | 'Diploma' | 'Higher Diploma' | 'Degree' | 'Postgraduate' | 'Artisan / Short Course' | 'High School / Secondary'
   duration: string // e.g. "2 Years (6 Semesters)", "1 Year", "6 Months"
   tuition_fee: number // e.g. 35000
+  fee_per_term?: number // alternative alias for tuition_fee
   fee_currency: string // e.g. "KES"
   intake_period: string // e.g. "January, May & September Intakes"
   requirements: string // e.g. "KCSE Mean Grade C- or Equivalent Certificate"
@@ -87,6 +89,12 @@ export interface PartnerSchoolTenant {
   principal_name: string
   principal_title: string // e.g. "Principal", "Head of School", "Dean", "Director"
   principal_email: string
+  about_us?: string // Institutional history & profile overview
+  mission_statement?: string // Official institutional mission
+  vision_statement?: string // Official institutional vision
+  core_values?: string[] // Core institutional guiding values
+  principal_welcome_message?: string // Executive welcome message for public page
+  campus_facilities?: string[] // Notable campus facilities & infrastructure
   admin_username?: string
   admin_password?: string
   subscription_tier?: 'starter' | 'growth' | 'enterprise'
@@ -143,6 +151,12 @@ export interface CreateTenantSchoolInput {
   principal_name: string
   principal_title?: string
   principal_email?: string
+  about_us?: string
+  mission_statement?: string
+  vision_statement?: string
+  core_values?: string[]
+  principal_welcome_message?: string
+  campus_facilities?: string[]
   admin_username?: string
   admin_password?: string
   custom_domain?: string

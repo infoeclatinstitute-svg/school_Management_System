@@ -216,6 +216,11 @@ export function TenantPrincipalDesk({
     contact_email: school.contact_email || '',
     contact_phone: school.contact_phone || '',
     address: school.address || '',
+    about_us: school.about_us || '',
+    mission_statement: school.mission_statement || '',
+    vision_statement: school.vision_statement || '',
+    principal_welcome_message: school.principal_welcome_message || '',
+    campus_facilities: (school.campus_facilities || []).join(', '),
   })
   const [schoolProfileSaved, setSchoolProfileSaved] = useState(false)
 
@@ -868,6 +873,13 @@ export function TenantPrincipalDesk({
       contact_email: schoolProfileInput.contact_email.trim(),
       contact_phone: schoolProfileInput.contact_phone.trim(),
       address: schoolProfileInput.address.trim(),
+      about_us: schoolProfileInput.about_us.trim() || undefined,
+      mission_statement: schoolProfileInput.mission_statement.trim() || undefined,
+      vision_statement: schoolProfileInput.vision_statement.trim() || undefined,
+      principal_welcome_message: schoolProfileInput.principal_welcome_message.trim() || undefined,
+      campus_facilities: schoolProfileInput.campus_facilities
+        ? schoolProfileInput.campus_facilities.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined,
     })
     setSchoolProfileSaved(true)
     setShowEditSchoolModal(false)
@@ -3070,6 +3082,11 @@ export function TenantPrincipalDesk({
                     contact_email: school.contact_email || '',
                     contact_phone: school.contact_phone || '',
                     address: school.address || '',
+                    about_us: school.about_us || '',
+                    mission_statement: school.mission_statement || '',
+                    vision_statement: school.vision_statement || '',
+                    principal_welcome_message: school.principal_welcome_message || '',
+                    campus_facilities: (school.campus_facilities || []).join(', '),
                   })
                   setShowEditSchoolModal(true)
                 }}
@@ -4126,7 +4143,7 @@ export function TenantPrincipalDesk({
               boxSizing: 'border-box',
               background: '#ffffff',
               borderRadius: '20px',
-              maxWidth: '600px',
+              maxWidth: '680px',
               width: '100%',
               padding: '2rem',
               border: `2px solid ${primaryColor}`,
@@ -4231,6 +4248,87 @@ export function TenantPrincipalDesk({
                   onChange={(e) => setSchoolProfileInput({ ...schoolProfileInput, address: e.target.value })}
                   style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                 />
+              </div>
+
+              {/* Public Showcase & Institutional Presentation (Published on Public Landing Page) */}
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.85rem' }}>
+                  <span style={{ fontSize: '1rem' }}>🌐</span>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 900, color: '#0f172a' }}>
+                      Public Page Showcase (About Us, Mission, Vision & Facilities)
+                    </h4>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#64748b' }}>
+                      These details are displayed on your institution's public landing page for prospective scholars and guardians.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px', color: '#1e293b' }}>
+                    About Us / Institutional History
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Provide a comprehensive narrative about your institution's founding, academic philosophy, and achievements..."
+                    value={schoolProfileInput.about_us}
+                    onChange={(e) => setSchoolProfileInput({ ...schoolProfileInput, about_us: e.target.value })}
+                    style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px', color: '#1e293b' }}>
+                      Mission Statement
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. To foster transformative learning and ethical leadership..."
+                      value={schoolProfileInput.mission_statement}
+                      onChange={(e) => setSchoolProfileInput({ ...schoolProfileInput, mission_statement: e.target.value })}
+                      style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px', color: '#1e293b' }}>
+                      Vision Statement
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. To be a premier global center of academic and technical excellence..."
+                      value={schoolProfileInput.vision_statement}
+                      onChange={(e) => setSchoolProfileInput({ ...schoolProfileInput, vision_statement: e.target.value })}
+                      style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px', color: '#1e293b' }}>
+                    Executive Principal's Welcome Address
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Welcome message from the Principal or Vice-Chancellor greeting applicants, parents, and students..."
+                    value={schoolProfileInput.principal_welcome_message}
+                    onChange={(e) => setSchoolProfileInput({ ...schoolProfileInput, principal_welcome_message: e.target.value })}
+                    style={{ width: '100%', padding: '0.65rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.84rem', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px', color: '#1e293b' }}>
+                    Campus Facilities &amp; Amenities (Comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Modern Computer Suites, High-Speed Wi-Fi, Digital Science Labs, Olympic Sports Field, Student Hostel"
+                    value={schoolProfileInput.campus_facilities}
+                    onChange={(e) => setSchoolProfileInput({ ...schoolProfileInput, campus_facilities: e.target.value })}
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
