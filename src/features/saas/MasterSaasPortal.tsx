@@ -4,7 +4,8 @@ import { licensingStore, DEFAULT_CAMPUS_RATE_KES } from '@/lib/licensingStore'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import type { ProductKeyLicense, SaasCampusInvoice, LicenseDurationType, MasterLicensingMetrics } from '@/types/licensing'
 import type { PartnerSchoolTenant } from '@/types/tenantSchool'
-import { ShieldCheckIcon, SearchIcon } from '@/components/icons/AppIcons'
+import { SearchIcon } from '@/components/icons/AppIcons'
+import { AppLogo } from '@/components/common/AppLogo'
 
 export function MasterSaasPortal() {
   const formId = useId()
@@ -16,8 +17,9 @@ export function MasterSaasPortal() {
   const [passcode, setPasscode] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
 
-  // Navigation Tabs: 'keys' | 'institutions' | 'invoices'
-  const [activeTab, setActiveTab] = useState<'keys' | 'institutions' | 'invoices'>('keys')
+  // Navigation Tabs: 'keys' | 'institutions' | 'invoices' | 'mobile_apks'
+  const [activeTab, setActiveTab] = useState<'keys' | 'institutions' | 'invoices' | 'mobile_apks'>('keys')
+  const [copiedShareMsg, setCopiedShareMsg] = useState(false)
 
   // Data States
   const [schools, setSchools] = useState<PartnerSchoolTenant[]>(() =>
@@ -196,6 +198,32 @@ export function MasterSaasPortal() {
     setMpesaRefInput('')
   }
 
+  // Handle WhatsApp Sharing & APK distribution
+  const handleShareWhatsApp = (flavor: 'saasAdmin' | 'sms') => {
+    const isSaas = flavor === 'saasAdmin'
+    const apkUrl = `${window.location.origin}/downloads/${isSaas ? 'GlobalCollege-SaaSAdmin.apk' : 'GlobalCollege-SMS.apk'}`
+    const msg = isSaas
+      ? `👑 *Global College — SaaS Admin Dedicated Mobile APK*\n\n📲 *Download APK:* ${apkUrl}\n\n🔐 *Role:* Platform Owner Directorate\n💼 *Campus Billing:* KES 2,500/campus\n\n*Features Included:*\n• Direct startup to Master Security Gate\n• Instant Campus Activation & Product Key Generation\n• Multi-Campus Subscription & MRR Management\n• M-Pesa Transaction Verification (0740027346)\n• Institution Admin Password Reset\n\n*Quick Android Install:*\n1. Download the APK file from the link above.\n2. Tap the file in Downloads & click "Install" (enable "Install unknown apps" if prompted).\n3. Open app & enter your Master Access Passcode.`
+      : `🎓 *Global College — School Management System Mobile APK*\n\n📲 *Download APK:* ${apkUrl}\n\n*Features:*\n• Student Portal & Course Materials\n• Faculty & Teacher Desks\n• Bursar Fee Collection & Receipts\n• E-Library & Timetables\n\n*Installation:*\n1. Tap the link to download the APK.\n2. Tap "Install" on your Android device.`
+
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`
+    window.open(waUrl, '_blank')
+  }
+
+  const handleCopyShareMsg = (flavor: 'saasAdmin' | 'sms') => {
+    const isSaas = flavor === 'saasAdmin'
+    const apkUrl = `${window.location.origin}/downloads/${isSaas ? 'GlobalCollege-SaaSAdmin.apk' : 'GlobalCollege-SMS.apk'}`
+    const msg = isSaas
+      ? `👑 Global College — SaaS Admin Dedicated Mobile APK\nDownload APK: ${apkUrl}\n\nFeatures:\n• Direct startup to Master Passcode Terminal\n• Instant Campus Activation & Product Key Generation\n• Multi-Campus Subscription & MRR Management\n• M-Pesa Transaction Verification (0740027346)\n• Institution Admin Password Reset\n\nInstallation:\n1. Download the APK file from: ${apkUrl}\n2. Tap to Install on Android.\n3. Open & enter Master Passcode.`
+      : `🎓 Global College — School Management System Mobile APK\nDownload APK: ${apkUrl}`
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(msg)
+      setCopiedShareMsg(true)
+      setTimeout(() => setCopiedShareMsg(false), 2500)
+    }
+  }
+
   // =========================================================================
   // Master Security Gate (Password Prompt)
   // =========================================================================
@@ -227,19 +255,13 @@ export function MasterSaasPortal() {
         >
           <div
             style={{
-              width: '68px',
-              height: '68px',
-              borderRadius: '20px',
-              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-              color: '#ffffff',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '1.25rem',
-              boxShadow: '0 8px 24px rgba(37, 99, 235, 0.35)',
             }}
           >
-            <ShieldCheckIcon size={36} />
+            <AppLogo size="xl" variant="icon" />
           </div>
 
           <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: '0 0 0.4rem', letterSpacing: '-0.02em' }}>
@@ -356,21 +378,7 @@ export function MasterSaasPortal() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                fontWeight: 900,
-              }}
-            >
-              👑
-            </div>
+            <AppLogo size="md" variant="icon" />
             <div>
               <div style={{ fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>Global College SaaS Command</span>
@@ -488,6 +496,111 @@ export function MasterSaasPortal() {
           </div>
         </div>
 
+        {/* Quick Mobile Access & WhatsApp Share Bar */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.4) 0%, rgba(19, 27, 46, 0.95) 100%)',
+            border: '1px solid #059669',
+            borderRadius: '18px',
+            padding: '1.25rem 1.5rem',
+            marginBottom: '2rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                background: '#059669',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.4rem',
+                flexShrink: 0,
+              }}
+            >
+              📱
+            </div>
+            <div>
+              <div style={{ fontSize: '1rem', fontWeight: 900, color: '#ecfdf5', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>SaaS Admin Dedicated Android APK</span>
+                <span style={{ fontSize: '0.68rem', background: '#10b981', color: '#064e3b', padding: '1px 7px', borderRadius: '999px', fontWeight: 900 }}>
+                  STANDALONE
+                </span>
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                Standalone package for Platform Owners — instant Master Passcode startup, billing &amp; key generator.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <a
+              href="/downloads/GlobalCollege-SaaSAdmin.apk"
+              download="GlobalCollege-SaaSAdmin.apk"
+              style={{
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                color: '#ffffff',
+                padding: '0.55rem 1.1rem',
+                borderRadius: '10px',
+                fontSize: '0.84rem',
+                fontWeight: 800,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
+              }}
+            >
+              <span>📥 Download APK</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => handleShareWhatsApp('saasAdmin')}
+              style={{
+                background: '#25D366',
+                color: '#075E54',
+                padding: '0.55rem 1.1rem',
+                borderRadius: '10px',
+                fontSize: '0.84rem',
+                fontWeight: 900,
+                border: 'none',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
+              }}
+            >
+              <span>💬 Send to WhatsApp</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('mobile_apks')}
+              style={{
+                background: '#1e293b',
+                color: '#94a3b8',
+                padding: '0.55rem 0.9rem',
+                borderRadius: '10px',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                border: '1px solid #334155',
+                cursor: 'pointer',
+              }}
+            >
+              View APK Details →
+            </button>
+          </div>
+        </div>
+
         {/* Tab Navigation Controls */}
         <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.75rem', marginBottom: '2rem' }}>
           <button
@@ -548,6 +661,26 @@ export function MasterSaasPortal() {
             }}
           >
             <span>💳 Invoices &amp; M-Pesa Log ({invoices.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('mobile_apks')}
+            style={{
+              background: activeTab === 'mobile_apks' ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)' : '#131b2e',
+              color: activeTab === 'mobile_apks' ? '#ffffff' : '#94a3b8',
+              border: '1px solid #1e293b',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '12px',
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>📱 Mobile APKs &amp; WhatsApp Share</span>
           </button>
         </div>
 
@@ -1294,6 +1427,242 @@ export function MasterSaasPortal() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {/* =========================================================================
+            TAB 4: MOBILE APKS & WHATSAPP DISTRIBUTION
+        ========================================================================= */}
+        {activeTab === 'mobile_apks' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {/* SaaS Admin Standalone APK Hero Card */}
+            <div
+              style={{
+                background: '#131b2e',
+                borderRadius: '24px',
+                padding: '2rem',
+                border: '2px solid #059669',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                  <img
+                    src="/logo-saas-admin.png"
+                    alt="SaaS Admin Logo"
+                    style={{ width: '72px', height: '72px', borderRadius: '18px', boxShadow: '0 8px 24px rgba(5, 150, 105, 0.35)' }}
+                  />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#f8fafc', margin: 0 }}>
+                        Global College SaaS Admin (Android APK)
+                      </h3>
+                      <span style={{ fontSize: '0.72rem', background: '#059669', color: '#ecfdf5', padding: '2px 10px', borderRadius: '999px', fontWeight: 800 }}>
+                        v1.0.0 • DEDICATED
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '4px' }}>
+                      Package ID: <code style={{ color: '#38bdf8', background: '#0a0f1d', padding: '2px 6px', borderRadius: '6px' }}>com.globalcollege.saasadmin</code> • Platform Owner Directorate
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <a
+                    href="/downloads/GlobalCollege-SaaSAdmin.apk"
+                    download="GlobalCollege-SaaSAdmin.apk"
+                    style={{
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      padding: '0.75rem 1.4rem',
+                      borderRadius: '12px',
+                      fontSize: '0.9rem',
+                      fontWeight: 800,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)',
+                    }}
+                  >
+                    <span>📥 Download SaaS Admin APK</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => handleShareWhatsApp('saasAdmin')}
+                    style={{
+                      background: '#25D366',
+                      color: '#075E54',
+                      padding: '0.75rem 1.4rem',
+                      borderRadius: '12px',
+                      fontSize: '0.9rem',
+                      fontWeight: 900,
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 16px rgba(37, 211, 102, 0.35)',
+                    }}
+                  >
+                    <span>💬 Share via WhatsApp</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopyShareMsg('saasAdmin')}
+                    style={{
+                      background: '#1e293b',
+                      color: copiedShareMsg ? '#10b981' : '#cbd5e1',
+                      padding: '0.75rem 1.25rem',
+                      borderRadius: '12px',
+                      fontSize: '0.88rem',
+                      fontWeight: 800,
+                      border: '1px solid #334155',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span>{copiedShareMsg ? '✓ Message Copied!' : '📋 Copy WhatsApp Text'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Feature Highlights Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', background: '#0a0f1d', borderRadius: '16px', padding: '1.25rem', border: '1px solid #1e293b' }}>
+                <div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Direct Launch Route</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#38bdf8', marginTop: '2px' }}>⚡ Starts directly on Master Directorate</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Bypasses student &amp; public landing screens</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Billing &amp; Rate Engine</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>💰 KES 2,500 / Campus / Month</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Generate 1-mo, 3-mo, 1-yr keys &amp; receipts</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Security &amp; Passcode</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#f59e0b', marginTop: '2px' }}>🔒 Master Access Passcode Gate</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Device authentication and session protection</div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Offline &amp; Standalone</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#a855f7', marginTop: '2px' }}>📦 Local Embedded Assets</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Works offline with local cache synchronization</div>
+                </div>
+              </div>
+            </div>
+
+            {/* School Management System (SMS) Full Suite APK Card */}
+            <div
+              style={{
+                background: '#131b2e',
+                borderRadius: '24px',
+                padding: '1.75rem',
+                border: '1px solid #1e293b',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                  <img
+                    src="/logo.png"
+                    alt="Global College SMS Logo"
+                    style={{ width: '60px', height: '60px', borderRadius: '16px' }}
+                  />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 900, color: '#f8fafc', margin: 0 }}>
+                        Global College SMS (Institutional App APK)
+                      </h3>
+                      <span style={{ fontSize: '0.7rem', background: '#1e3a8a', color: '#93c5fd', padding: '2px 8px', borderRadius: '999px', fontWeight: 800 }}>
+                        FULL SUITE
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '4px' }}>
+                      Package ID: <code style={{ color: '#38bdf8', background: '#0a0f1d', padding: '2px 6px', borderRadius: '6px' }}>com.globalcollege.sms</code> • For Students, Teachers, Bursars &amp; Principals
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <a
+                    href="/downloads/GlobalCollege-SMS.apk"
+                    download="GlobalCollege-SMS.apk"
+                    style={{
+                      background: '#1e293b',
+                      color: '#cbd5e1',
+                      padding: '0.65rem 1.25rem',
+                      borderRadius: '10px',
+                      fontSize: '0.86rem',
+                      fontWeight: 800,
+                      textDecoration: 'none',
+                      border: '1px solid #334155',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>📥 Download SMS App APK</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => handleShareWhatsApp('sms')}
+                    style={{
+                      background: 'rgba(37, 211, 102, 0.15)',
+                      color: '#4ade80',
+                      border: '1px solid #16a34a',
+                      padding: '0.65rem 1.25rem',
+                      borderRadius: '10px',
+                      fontSize: '0.86rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>💬 Share SMS via WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Android Phone Installation & WhatsApp Sharing Guide */}
+            <div style={{ background: '#0a0f1d', borderRadius: '20px', padding: '1.75rem', border: '1px solid #1e293b' }}>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#f8fafc', margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📲 How to Install &amp; Share via WhatsApp to Your Phone</span>
+              </h4>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                <div style={{ background: '#131b2e', borderRadius: '14px', padding: '1.25rem', border: '1px solid #1e293b' }}>
+                  <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>1️⃣</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc' }}>Click "Share via WhatsApp"</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px', lineHeight: 1.5 }}>
+                    Clicking the green WhatsApp button opens WhatsApp with the pre-formatted download link and instructions. Select your own contact ("Message Yourself") or share to team members.
+                  </div>
+                </div>
+
+                <div style={{ background: '#131b2e', borderRadius: '14px', padding: '1.25rem', border: '1px solid #1e293b' }}>
+                  <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>2️⃣</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc' }}>Tap the Link on Android Phone</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px', lineHeight: 1.5 }}>
+                    Open WhatsApp on your Android phone, tap the link to download the <code>.apk</code> file directly into your phone's Downloads directory.
+                  </div>
+                </div>
+
+                <div style={{ background: '#131b2e', borderRadius: '14px', padding: '1.25rem', border: '1px solid #1e293b' }}>
+                  <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>3️⃣</div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc' }}>Install &amp; Unlock Terminal</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px', lineHeight: 1.5 }}>
+                    Tap the downloaded file and choose <strong>Install</strong>. If prompted, toggle <em>"Allow from this source"</em>. Launch the app and enter your Master Passcode to manage the platform on the go!
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

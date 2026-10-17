@@ -71,6 +71,7 @@ async function createMainWindow() {
     minHeight: 680,
     title: 'Global College — School Management System',
     backgroundColor: '#0f172a',
+    icon: path.join(__dirname, '../public/logo.png'),
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,

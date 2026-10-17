@@ -93,6 +93,14 @@ function RootEntryRouter() {
   const { profile, loading } = useAuth()
   if (loading) return <LoadingScreen message="Opening Portal..." />
 
+  // 0. If requested with target=saas-admin (e.g. from SaaS Admin standalone APK)
+  if (typeof window !== 'undefined') {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('target') === 'saas-admin' || window.location.hash.includes('saas-admin')) {
+      return <Navigate to="/saas-admin" replace />
+    }
+  }
+
   // 1. If on a school subdomain → show that school's hub
   if (typeof window !== 'undefined') {
     const detected = detectTenantFromHost(window.location.hostname, tenantSchoolStore.getSchools())
@@ -195,16 +203,14 @@ export function App() {
         <Route path="/schools/:schoolSlug" element={<TenantSchoolHub />} />
         <Route path="/schools/:schoolSlug/:subview" element={<TenantSchoolHub />} />
 
-        {/* Platform Owner SaaS Portal — strictly restricted to Platform Admin */}
+        {/* Platform Owner SaaS Portal — protected by Master Passcode Security Gate */}
         <Route
           path="/saas-admin"
           element={
-            <RequireAuth allowedRoles={['admin']}>
-              <TenantSubdomainRouteOrCentral
-                subview="billing"
-                centralElement={<MasterSaasPortal />}
-              />
-            </RequireAuth>
+            <TenantSubdomainRouteOrCentral
+              subview="billing"
+              centralElement={<MasterSaasPortal />}
+            />
           }
         />
         {/* Open Portal Routes with App Layout */}

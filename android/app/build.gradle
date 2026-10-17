@@ -16,6 +16,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    flavorDimensions = ["appType"]
+    productFlavors {
+        sms {
+            dimension "appType"
+            applicationId "com.globalcollege.sms"
+        }
+        saasAdmin {
+            dimension "appType"
+            applicationId "com.globalcollege.saasadmin"
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
