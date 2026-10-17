@@ -11,6 +11,18 @@ import type {
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { TenantAcademicCalendarView } from './TenantAcademicCalendarView'
 import { TenantCampusNoticeboard } from './TenantCampusNoticeboard'
+import { TenantProgramsPage } from './TenantProgramsPage'
+
+export type PrincipalSubTab =
+  | 'overview'
+  | 'staff'
+  | 'admissions'
+  | 'programs'
+  | 'timetable'
+  | 'payroll'
+  | 'calendar'
+  | 'notices'
+  | 'governance'
 
 export interface TenantPrincipalDeskProps {
   school: PartnerSchoolTenant
@@ -25,17 +37,9 @@ export interface TenantPrincipalDeskProps {
   onOpenStaffOfferLetter?: (staff: TenantStaffMember) => void
   onOpenAdmissionSlip: (student: TenantStudentMember) => void
   onOpenDomainSettings: () => void
+  onOpenApplyModal?: (programTitle?: string) => void
+  initialSubTab?: PrincipalSubTab
 }
-
-type PrincipalSubTab =
-  | 'overview'
-  | 'staff'
-  | 'admissions'
-  | 'timetable'
-  | 'payroll'
-  | 'calendar'
-  | 'notices'
-  | 'governance'
 
 export function TenantPrincipalDesk({
   school,
@@ -50,6 +54,8 @@ export function TenantPrincipalDesk({
   onOpenStaffOfferLetter,
   onOpenAdmissionSlip,
   onOpenDomainSettings,
+  onOpenApplyModal,
+  initialSubTab,
 }: TenantPrincipalDeskProps) {
   const primaryColor = school.primary_color || '#881337'
   const accentColor = school.accent_color || '#d4af37'
@@ -72,7 +78,13 @@ export function TenantPrincipalDesk({
     []
   )
 
-  const [principalSubTab, setPrincipalSubTab] = useState<PrincipalSubTab>('overview')
+  const [principalSubTab, setPrincipalSubTab] = useState<PrincipalSubTab>(initialSubTab || 'overview')
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setPrincipalSubTab(initialSubTab)
+    }
+  }, [initialSubTab])
 
   // Dynamic Class Cohorts
   const availableClasses = useMemo(() => {
@@ -1150,6 +1162,7 @@ export function TenantPrincipalDesk({
             { id: 'overview', label: 'Command Center', icon: '📊' },
             { id: 'staff', label: `Staff & HR (${staffList.length})`, icon: '👥' },
             { id: 'admissions', label: `Admissions (${studentList.length})`, icon: '🎓' },
+            { id: 'programs', label: 'Programs & Courses', icon: '📚' },
             { id: 'timetable', label: 'Class Timetables', icon: '🗓️' },
             { id: 'payroll', label: 'Payroll Oversight', icon: '💼' },
             { id: 'calendar', label: 'Academic Calendar', icon: '📅' },
@@ -1558,6 +1571,46 @@ export function TenantPrincipalDesk({
               </h4>
               <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
                 Review monthly gross and statutory withholding schedules and execute batch wire disbursements.
+              </p>
+            </div>
+
+            <div
+              onClick={() => setPrincipalSubTab('programs')}
+              style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                border: '1px solid #e2e8f0',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>📚</div>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                Academic Programs &amp; Courses
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
+                Curate degree, diploma &amp; certificate offerings, manage curriculum structures, course codes, and department allocations.
+              </p>
+            </div>
+
+            <div
+              onClick={() => setPrincipalSubTab('calendar')}
+              style={{
+                background: '#ffffff',
+                borderRadius: '16px',
+                padding: '1.25rem',
+                border: '1px solid #e2e8f0',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>📅</div>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.98rem', fontWeight: 800, color: '#0f172a' }}>
+                Academic Calendar &amp; Schedule
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: 1.4 }}>
+                Schedule semester term dates, examination weeks, senate recesses, registration deadlines, and campus events.
               </p>
             </div>
           </div>
@@ -2894,6 +2947,23 @@ export function TenantPrincipalDesk({
             </table>
           </div>
         </div>
+      )}
+
+      {/* ========================================== */}
+      {/* SUBTAB: ACADEMIC PROGRAMS & COURSES        */}
+      {/* ========================================== */}
+      {principalSubTab === 'programs' && (
+        <TenantProgramsPage
+          school={school}
+          isAdmin={true}
+          onOpenAdmissions={(programTitle) => {
+            if (onOpenApplyModal) {
+              onOpenApplyModal(programTitle)
+            } else {
+              setPrincipalSubTab('admissions')
+            }
+          }}
+        />
       )}
 
       {/* ========================================== */}

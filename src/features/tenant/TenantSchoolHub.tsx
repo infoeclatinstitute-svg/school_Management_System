@@ -24,12 +24,10 @@ import {
 } from '@/components/icons/AppIcons'
 
 // Dedicated Modular School Desks
-import { TenantPrincipalDesk } from './components/TenantPrincipalDesk'
+import { TenantPrincipalDesk, type PrincipalSubTab } from './components/TenantPrincipalDesk'
 import { TenantBursarDesk } from './components/TenantBursarDesk'
 import { TenantTeacherDesk } from './components/TenantTeacherDesk'
 import { TenantStudentDesk } from './components/TenantStudentDesk'
-import { TenantProgramsPage } from './components/TenantProgramsPage'
-import { TenantAcademicCalendarView } from './components/TenantAcademicCalendarView'
 import { TenantCampusNoticeboard } from './components/TenantCampusNoticeboard'
 import { TenantApplyAdmissionModal } from './components/TenantApplyAdmissionModal'
 import { TenantSchoolLoginModal } from './components/TenantSchoolLoginModal'
@@ -124,18 +122,24 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
     return 'public'
   })()
 
-  // Active Tab: Hub, Programs, Calendar, Student, Teacher, Bursar, Principal, Profile
-  const [activeTab, setActiveTab] = useState<'hub' | 'programs' | 'calendar' | 'student' | 'teacher' | 'bursar' | 'principal' | 'billing' | 'profile'>(() => {
+  // Active Tab: Hub, Student, Teacher, Bursar, Principal, Billing, Profile
+  const [activeTab, setActiveTab] = useState<'hub' | 'student' | 'teacher' | 'bursar' | 'principal' | 'billing' | 'profile'>(() => {
     const s = forcedSubview || subview
-    if (s === 'programs' || s === 'courses') return 'programs'
     if (s === 'student' || s === 'parent') return 'student'
     if (s === 'teacher') return 'teacher'
     if (s === 'bursar') return 'bursar'
-    if (s === 'principal' || s === 'admin') return 'principal'
-    if (s === 'calendar') return 'calendar'
+    if (s === 'principal' || s === 'admin' || s === 'programs' || s === 'courses' || s === 'calendar') return 'principal'
     if (s === 'billing' || s === 'license' || s === 'subscription') return 'billing'
     if (s === 'profile') return 'profile'
     return 'hub'
+  })
+
+  // Principal Office Initial SubTab (for deep linking /programs or /calendar into Principal Desk)
+  const [principalInitialSubTab, setPrincipalInitialSubTab] = useState<PrincipalSubTab>(() => {
+    const s = forcedSubview || subview
+    if (s === 'programs' || s === 'courses') return 'programs'
+    if (s === 'calendar') return 'calendar'
+    return 'overview'
   })
 
   // Hamburger / Drawer state
@@ -176,15 +180,28 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   // Synchronize route subview
   useEffect(() => {
     const s = forcedSubview || subview
-    if (s === 'programs' || s === 'courses') setActiveTab('programs')
-    else if (s === 'student' || s === 'parent') setActiveTab('student')
-    else if (s === 'teacher') setActiveTab('teacher')
-    else if (s === 'bursar') setActiveTab('bursar')
-    else if (s === 'principal' || s === 'admin') setActiveTab('principal')
-    else if (s === 'calendar') setActiveTab('calendar')
-    else if (s === 'billing' || s === 'license' || s === 'subscription') setActiveTab('billing')
-    else if (s === 'profile') setActiveTab('profile')
-    else setActiveTab('hub')
+    if (s === 'programs' || s === 'courses') {
+      setActiveTab('principal')
+      setPrincipalInitialSubTab('programs')
+    } else if (s === 'calendar') {
+      setActiveTab('principal')
+      setPrincipalInitialSubTab('calendar')
+    } else if (s === 'student' || s === 'parent') {
+      setActiveTab('student')
+    } else if (s === 'teacher') {
+      setActiveTab('teacher')
+    } else if (s === 'bursar') {
+      setActiveTab('bursar')
+    } else if (s === 'principal' || s === 'admin') {
+      setActiveTab('principal')
+      setPrincipalInitialSubTab('overview')
+    } else if (s === 'billing' || s === 'license' || s === 'subscription') {
+      setActiveTab('billing')
+    } else if (s === 'profile') {
+      setActiveTab('profile')
+    } else {
+      setActiveTab('hub')
+    }
   }, [forcedSubview, subview])
 
   // Reload School Data Helper
@@ -846,8 +863,6 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
             <div style={{ flex: 1, paddingBottom: '1.5rem' }}>
               {sectionLabel('Campus Overview')}
               {item('hub', '🏫', 'School Campus Hub')}
-              {item('programs', '📚', 'Programs & Courses')}
-              {item('calendar', '📅', 'Academic Calendar')}
 
               {divider('d1')}
               {sectionLabel('Role Workspaces')}
@@ -1292,8 +1307,6 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           {(
             [
               { tab: 'hub', icon: '🏫', label: 'Campus Hub' },
-              { tab: 'programs', icon: '📚', label: 'Programs' },
-              { tab: 'calendar', icon: '📅', label: 'Calendar' },
               ...(activeRole === 'admin' ? [{ tab: 'principal', icon: '🛡️', label: 'Principal Office' }] : []),
               ...(activeRole === 'bursar' ? [{ tab: 'bursar', icon: '💳', label: 'Bursar Desk' }] : []),
               ...(activeRole === 'teacher' ? [{ tab: 'teacher', icon: '📖', label: 'Teacher Portal' }] : []),
@@ -2106,28 +2119,6 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           </div>
         )}
 
-        {/* VIEW: PROGRAMS & COURSES CATALOG (ADMIN CONTROLLED) */}
-        {activeTab === 'programs' && (
-          <TenantProgramsPage
-            school={school}
-            isAdmin={activeRole === 'admin'}
-            onOpenAdmissions={handleOpenApplyModal}
-          />
-        )}
-
-        {/* VIEW 2: DYNAMIC & EDITABLE ACADEMIC CALENDAR */}
-        {activeTab === 'calendar' && (
-          <TenantAcademicCalendarView
-            school={school}
-            isAdmin={activeRole === 'admin'}
-            primaryColor={primaryColor}
-            accentColor={accentColor}
-            onSchoolUpdate={(updated) => {
-              setSchool(updated)
-            }}
-          />
-        )}
-
         {/* VIEW 3: STUDENT DESK */}
         {activeTab === 'student' && (
           activeRole !== 'student' ? (
@@ -2227,7 +2218,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           activeRole !== 'admin' ? (
             renderRestrictedCard(
               `${school.principal_title} Executive Office`,
-              'Executive leadership tools, staff hiring, student admissions, login credential issuance, calendar system setup, and cloud LMS subscription management require Executive Administrator credentials.',
+              'Executive leadership tools, curriculum programs & courses, staff hiring, student admissions, login credential issuance, academic calendar setup, and cloud LMS subscription management require Executive Administrator credentials.',
               'Executive Admin Only'
             )
           ) : (
@@ -2237,6 +2228,8 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               studentList={studentList}
               payrollList={payrollList}
               isLicenseActive={isLicenseActive}
+              initialSubTab={principalInitialSubTab}
+              onOpenApplyModal={handleOpenApplyModal}
               onOpenLicenseModal={() => {
                 setLicenseFeedback(null)
                 setShowLicenseModal(true)
