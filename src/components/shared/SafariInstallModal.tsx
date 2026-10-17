@@ -254,7 +254,7 @@ export function SafariInstallModal({
               {/* Direct Download Action Button */}
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <a
-                  href={LOCAL_APK_URL}
+                  href={OFFICIAL_APK_URL}
                   download="global-college.apk"
                   onClick={() => handleDownloadFeedback('apk')}
                   style={{
@@ -278,7 +278,7 @@ export function SafariInstallModal({
                   <span>⬇️</span> Download Android APK
                 </a>
                 <a
-                  href={OFFICIAL_APK_URL}
+                  href={LOCAL_APK_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
