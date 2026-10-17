@@ -205,15 +205,20 @@ async function createMainWindow() {
       label: 'Help',
       submenu: [
         {
-          label: 'Global College Official Portal',
+          label: 'FAQ',
+          accelerator: 'F1',
           click: () => {
-            shell.openExternal('https://cloud.eclat.institute');
-          },
-        },
-        {
-          label: 'Documentation & Guides',
-          click: () => {
-            shell.openExternal('https://cloud.eclat.institute/help');
+            if (mainWindow) {
+              const currentUrl = mainWindow.webContents.getURL();
+              try {
+                const urlObj = new URL(currentUrl);
+                urlObj.pathname = '/faq';
+                urlObj.searchParams.set('platform', 'desktop');
+                mainWindow.loadURL(urlObj.toString());
+              } catch {
+                mainWindow.loadURL(`http://127.0.0.1:${localServerPort}/faq?platform=desktop`);
+              }
+            }
           },
         },
       ],

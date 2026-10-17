@@ -23,6 +23,7 @@ const ChangePassword = lazy(() => import('@/features/auth/ChangePassword').then(
 const TenantSchoolHub = lazy(() => import('@/features/tenant/TenantSchoolHub').then((m) => ({ default: m.TenantSchoolHub })))
 const SchoolRegistrationPage = lazy(() => import('@/features/tenant/SchoolRegistrationPage').then((m) => ({ default: m.SchoolRegistrationPage })))
 const MasterSaasPortal = lazy(() => import('@/features/saas/MasterSaasPortal').then((m) => ({ default: m.MasterSaasPortal })))
+const FAQPage = lazy(() => import('@/features/help/FAQPage').then((m) => ({ default: m.FAQPage })))
 
 // Lazy-loaded Student Pages
 const StudentDashboard = lazy(() => import('@/features/student/StudentDashboard').then((m) => ({ default: m.StudentDashboard })))
@@ -197,6 +198,9 @@ export function App() {
         <Route path="/change-password" element={<ChangePassword />} />
         {/* Public School Self-Registration */}
         <Route path="/register-school" element={<SchoolRegistrationPage />} />
+        {/* Help & FAQ Knowledge Base */}
+        <Route path="/faq" element={<FAQPage />} />
+        <Route path="/help" element={<Navigate to="/faq" replace />} />
         {/* School Hub — accessible via subdomain or direct /schools/:slug path */}
         <Route path="/s/:schoolSlug" element={<TenantSchoolHub />} />
         <Route path="/s/:schoolSlug/:subview" element={<TenantSchoolHub />} />

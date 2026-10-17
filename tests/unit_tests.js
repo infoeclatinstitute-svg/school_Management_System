@@ -472,8 +472,13 @@ test('Electron desktop entry point (electron/main.cjs) and PWA install UI compon
   assert.ok(pwaHook.includes('promptInstall'), 'usePWAInstall.ts must expose promptInstall()')
   assert.ok(pwaHook.includes('isNativeApp'), 'usePWAInstall.ts must detect native app platform synchronously')
   assert.ok(navbar.includes('usePWAInstall'), 'Navbar must integrate PWA install capability')
-  assert.ok(installModal.includes('Laptop &amp; Computer') && installModal.includes('Phone (Android / iOS)'), 'Install modal must guide both Laptop/Desktop and Phone users')
   assert.ok(tenantHub.includes('!isInstalled && !isNativeApp()'), 'TenantSchoolHub must suppress Install App buttons on desktop/installed environments')
+
+  const electronMainContent = fs.readFileSync(electronMain, 'utf8')
+  assert.ok(electronMainContent.includes("label: 'FAQ'"), 'electron/main.cjs Help menu must contain FAQ item')
+  assert.equal(electronMainContent.includes('Documentation & Guides'), false, 'electron/main.cjs Help menu must not contain old Documentation & Guides item')
+  assert.equal(electronMainContent.includes('Global College Official Portal'), false, 'electron/main.cjs Help menu must not contain old Global College Official Portal item')
+  assert.ok(fs.existsSync(path.join(ROOT_DIR, 'src', 'features', 'help', 'FAQPage.tsx')), 'FAQPage.tsx must exist')
 })
 
 test('Login.tsx is a clean SaaS admin-only login — no public portal selection, no self-registration, no auto-filled school credentials', () => {

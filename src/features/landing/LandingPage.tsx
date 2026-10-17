@@ -525,7 +525,23 @@ export function LandingPage() {
       {/* FOOTER */}
       <footer style={{ background: '#0a0f1d', color: '#64748b', padding: '2rem 1.5rem', textAlign: 'center', fontSize: '0.82rem', borderTop: '1px solid #1e293b' }}>
         <div style={{ marginBottom: '0.5rem', fontWeight: 700, color: '#94a3b8' }}>
-          Global College &bull; Cloud School Management System & Educational Infrastructure
+          Global College &bull; Cloud School Management System & Educational Infrastructure &bull;{' '}
+          <button
+            type="button"
+            onClick={() => navigate('/faq')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#38bdf8',
+              cursor: 'pointer',
+              fontWeight: 800,
+              fontSize: 'inherit',
+              padding: 0,
+              textDecoration: 'underline',
+            }}
+          >
+            FAQ &amp; Help Desk
+          </button>
         </div>
         <div>
           &copy; {new Date().getFullYear()} Global College SMS. 256-Bit SSL Encrypted Campus Network.
