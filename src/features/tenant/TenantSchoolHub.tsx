@@ -54,7 +54,7 @@ export interface TenantSchoolHubProps {
 }
 
 export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubProps = {}) {
-  const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall } = usePWAInstall()
+  const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall, promptNativeInstall, hasNativePrompt } = usePWAInstall()
   const { schoolSlug: routeSlug, subview: routeSubview } = useParams<{ schoolSlug: string; subview?: string }>()
   const schoolSlug = forcedSlug || routeSlug
   const subview = forcedSubview || routeSubview
@@ -1212,30 +1212,28 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
           {/* Right side: Session status + Profile avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexShrink: 0 }}>
-            {!isInstalled && (
-              <button
-                type="button"
-                onClick={() => promptInstall()}
-                style={{
-                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                  color: '#ffffff',
-                  border: '1px solid #334155',
-                  padding: '5px 12px',
-                  borderRadius: '999px',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                }}
-                title="Install School Web App on Phone or Computer"
-              >
-                <span>📲</span>
-                <span className="hide-on-mobile">Install App</span>
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => promptInstall()}
+              style={{
+                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                color: '#ffffff',
+                border: '1px solid #334155',
+                padding: '5px 12px',
+                borderRadius: '999px',
+                fontSize: '0.78rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+              }}
+              title={`Download & Install ${school.name} Mobile App (.apk) or Desktop (.exe)`}
+            >
+              <span>📲</span>
+              <span className="hide-on-mobile">Install App</span>
+            </button>
             {currentSession ? (
               <button
                 type="button"
@@ -2906,11 +2904,16 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         }}
       />
 
-      {/* Cross-Platform PWA Installation Modal (Phone & Laptop/PC) */}
+      {/* Cross-Platform PWA & Native App Download Center (Phone & Laptop/PC) */}
       <SafariInstallModal
         isOpen={showInstallGuide}
         onClose={() => setShowInstallGuide(false)}
         isIOS={isIOS}
+        schoolName={school.name}
+        schoolLogo={school.logo_url}
+        primaryColor={primaryColor}
+        hasNativePrompt={hasNativePrompt}
+        onNativeInstallPrompt={promptNativeInstall}
       />
     </div>
   )

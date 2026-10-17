@@ -18,7 +18,7 @@ import { checkForOTAUpdates, clearAllWebCaches } from '@/lib/otaUpdater'
 export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
-  const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall } = usePWAInstall()
+  const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall, promptNativeInstall, hasNativePrompt } = usePWAInstall()
 
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [showNotifs, setShowNotifs] = useState(false)
@@ -341,6 +341,8 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         isOpen={showInstallGuide}
         onClose={() => setShowInstallGuide(false)}
         isIOS={isIOS}
+        hasNativePrompt={hasNativePrompt}
+        onNativeInstallPrompt={promptNativeInstall}
       />
     </nav>
   )

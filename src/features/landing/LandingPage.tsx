@@ -4,7 +4,7 @@ import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
 
 export function LandingPage() {
   const navigate = useNavigate()
-  const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall } = usePWAInstall()
+  const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall, promptNativeInstall, hasNativePrompt } = usePWAInstall()
 
   const features = [
     { icon: '🏫', title: 'Multi-Campus Management', desc: 'Each school gets its own branded URL and dedicated portal — e.g. eg.cloud.eclat.institute or cloud.eclat.institute/s/eg' },
@@ -156,6 +156,8 @@ export function LandingPage() {
         isOpen={showInstallGuide}
         onClose={() => setShowInstallGuide(false)}
         isIOS={isIOS}
+        hasNativePrompt={hasNativePrompt}
+        onNativeInstallPrompt={promptNativeInstall}
       />
     </div>
   )

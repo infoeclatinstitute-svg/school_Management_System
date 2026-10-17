@@ -94,7 +94,7 @@ export function usePWAInstall() {
     }
   }, [])
 
-  const promptInstall = async (): Promise<boolean> => {
+  const promptNativeInstall = async (): Promise<boolean> => {
     const activePrompt = deferredPrompt || (typeof window !== 'undefined' ? (window as any).__deferredPWAInstallPrompt : null)
     if (activePrompt) {
       try {
@@ -105,17 +105,20 @@ export function usePWAInstall() {
           setIsInstalled(true)
           setIsInstallable(false)
           setDeferredPrompt(null)
+          setShowInstallGuide(false)
           return true
         }
       } catch (err) {
-        console.warn('Install prompt error:', err)
-        setShowInstallGuide(true)
+        console.warn('Native install prompt error:', err)
       }
-    } else {
-      // Open interactive installation modal for Phone (iOS/Android) & Laptop/Desktop (Windows/macOS/Linux)
-      setShowInstallGuide(true)
     }
     return false
+  }
+
+  const promptInstall = async (): Promise<boolean> => {
+    // Open comprehensive installation & app download hub for Phone (Android APK / iOS) & Desktop (Windows .exe / macOS)
+    setShowInstallGuide(true)
+    return true
   }
 
   return {
@@ -126,5 +129,7 @@ export function usePWAInstall() {
     showInstallGuide,
     setShowInstallGuide,
     promptInstall,
+    promptNativeInstall,
+    hasNativePrompt: Boolean(deferredPrompt || (typeof window !== 'undefined' && (window as any).__deferredPWAInstallPrompt)),
   }
 }

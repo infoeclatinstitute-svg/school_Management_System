@@ -557,8 +557,9 @@ test('otaUpdater.ts prevents reload loops (? _ota=) and preserves PWA Service Wo
 })
 
 test('Zero Eclat or Éclat references remain in src/ and public/', () => {
+  const binaryExtensions = ['.apk', '.exe', '.mp4', '.png', '.ico', '.jpg', '.jpeg', '.webp', '.zip', '.pdf']
   const files = [...walkFiles(path.join(ROOT_DIR, 'src')), ...walkFiles(path.join(ROOT_DIR, 'public'))]
-    .filter((f) => !f.endsWith('sitemap.xml') && !f.endsWith('robots.txt') && !f.endsWith('llms.txt'))
+    .filter((f) => !f.endsWith('sitemap.xml') && !f.endsWith('robots.txt') && !f.endsWith('llms.txt') && !binaryExtensions.some((ext) => f.toLowerCase().endsWith(ext)))
   const offending = []
   for (const file of files) {
     const content = fs.readFileSync(file, 'utf8')

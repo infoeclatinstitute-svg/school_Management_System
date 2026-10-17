@@ -58,7 +58,7 @@ export const OFFICIAL_APK_URL = 'https://github.com/infoeclatinstitute-svg/schoo
 export const OFFICIAL_APKPURE_URL = 'https://apkpure.com/p/com.globalcollege.sms'
 export const LOCAL_APK_URL = '/downloads/global-college.apk'
 export const OFFICIAL_DESKTOP_URL = 'https://github.com/infoeclatinstitute-svg/school_Management_System/releases/latest/download/global-college-setup.exe'
-export const LOCAL_DESKTOP_URL = '/global-college-setup.exe'
+export const LOCAL_DESKTOP_URL = '/downloads/global-college-setup.exe'
 
 export function getFriendlyDeviceName(): string {
   if (typeof window === 'undefined') return 'Authorized Device'
