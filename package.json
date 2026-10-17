@@ -32,6 +32,7 @@
       "public/**/*"
     ],
     "win": {
+      "icon": "public/favicon.ico",
       "target": [
         "appx",
         "nsis",

@@ -3,10 +3,15 @@
 // Supports Windows, macOS, and Linux Desktop Workstations
 // ============================================================================
 
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, nativeImage } = require('electron');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
+
+// Ensure Windows taskbar correctly groups and displays the Global College application icon
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.globalcollege.sms');
+}
 
 let mainWindow = null;
 let localServer = null;
@@ -64,14 +69,19 @@ function startEmbeddedProductionServer(distDir) {
 }
 
 async function createMainWindow() {
+  const icoPath = path.join(__dirname, '../public/favicon.ico');
+  const pngPath = path.join(__dirname, '../public/logo.png');
+  const iconPath = process.platform === 'win32' && fs.existsSync(icoPath) ? icoPath : pngPath;
+  const appIcon = nativeImage.createFromPath(iconPath);
+
   mainWindow = new BrowserWindow({
     width: 1366,
     height: 860,
     minWidth: 1024,
     minHeight: 680,
-    title: 'Global College — School Management System',
+    title: 'Global College — School Management System & Portals',
     backgroundColor: '#0f172a',
-    icon: path.join(__dirname, '../public/logo.png'),
+    icon: appIcon,
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
@@ -79,6 +89,10 @@ async function createMainWindow() {
       spellcheck: true,
     },
   });
+
+  if (mainWindow.setIcon) {
+    mainWindow.setIcon(appIcon);
+  }
 
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
   if (devServerUrl) {

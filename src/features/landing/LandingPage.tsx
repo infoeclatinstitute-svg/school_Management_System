@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
+import { AppLogo } from '@/components/common/AppLogo'
 
 export function LandingPage() {
   const navigate = useNavigate()
@@ -26,15 +27,19 @@ export function LandingPage() {
 
       {/* NAV */}
       <nav style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #e2e8f0', padding: '0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px' }}>
-        <div style={{ fontWeight: 900, fontSize: '1.1rem', color: '#0f172a', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          🏛️ SchoolCloud
+        <div
+          onClick={() => navigate('/')}
+          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          title="Global College — School Management System & Portals"
+        >
+          <AppLogo size="sm" showTagline={true} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
           {!isInstalled && (
             <button
               onClick={() => promptInstall()}
               style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '0.45rem 0.85rem', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-              title="Install SchoolCloud Web App"
+              title="Install Global College App"
             >
               <span>📲</span>
               <span>Install App</span>
