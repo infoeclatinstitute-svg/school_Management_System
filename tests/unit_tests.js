@@ -430,6 +430,24 @@ test('public/sw.js Service Worker implements install, activate, and fetch handle
   assert.ok(swContent.includes("addEventListener('fetch'"), 'sw.js must handle fetch event (required for PWA installability)')
   assert.ok(swContent.includes('skipWaiting'), 'sw.js must call skipWaiting()')
   assert.ok(swContent.includes('clients.claim'), 'sw.js must call clients.claim()')
+  assert.ok(swContent.includes("addEventListener('push'"), 'sw.js must handle push event')
+  assert.ok(swContent.includes("addEventListener('notificationclick'"), 'sw.js must handle notificationclick event')
+})
+
+test('SaaS Admin Push Notification Engine and Broadcast Service are fully configured', () => {
+  const servicePath = path.join(ROOT_DIR, 'src', 'lib', 'pushNotificationService.ts')
+  assert.ok(fs.existsSync(servicePath), 'pushNotificationService.ts must exist')
+  const serviceContent = fs.readFileSync(servicePath, 'utf8')
+  assert.ok(serviceContent.includes('broadcastNotification'), 'pushNotificationService must implement broadcastNotification')
+  assert.ok(serviceContent.includes('sendDeviceNotification'), 'pushNotificationService must implement sendDeviceNotification')
+
+  const managerPath = path.join(ROOT_DIR, 'src', 'features', 'saas', 'components', 'SaasPushNotificationManager.tsx')
+  assert.ok(fs.existsSync(managerPath), 'SaasPushNotificationManager.tsx must exist')
+
+  const masterPortalPath = path.join(ROOT_DIR, 'src', 'features', 'saas', 'MasterSaasPortal.tsx')
+  const masterContent = fs.readFileSync(masterPortalPath, 'utf8')
+  assert.ok(masterContent.includes('SaasPushNotificationManager'), 'MasterSaasPortal must include SaasPushNotificationManager')
+  assert.ok(masterContent.includes("'notifications'"), 'MasterSaasPortal must support notifications tab')
 })
 
 test('index.html links /manifest.json, registers /sw.js, and captures beforeinstallprompt', () => {

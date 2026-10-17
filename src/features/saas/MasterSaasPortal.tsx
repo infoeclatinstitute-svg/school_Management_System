@@ -16,6 +16,8 @@ import {
 import type { PartnerSchoolTenant } from '@/types/tenantSchool'
 import { SearchIcon } from '@/components/icons/AppIcons'
 import { AppLogo } from '@/components/common/AppLogo'
+import { SaasPushNotificationManager } from './components/SaasPushNotificationManager'
+import { pushNotificationService } from '@/lib/pushNotificationService'
 
 export function MasterSaasPortal() {
   const formId = useId()
@@ -27,9 +29,23 @@ export function MasterSaasPortal() {
   const [passcode, setPasscode] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
 
-  // Navigation Tabs: 'keys' | 'institutions' | 'invoices' | 'mobile_apks'
-  const [activeTab, setActiveTab] = useState<'keys' | 'institutions' | 'invoices' | 'mobile_apks'>('keys')
+  // Navigation Tabs: 'keys' | 'institutions' | 'invoices' | 'mobile_apks' | 'notifications'
+  const [activeTab, setActiveTab] = useState<'keys' | 'institutions' | 'invoices' | 'mobile_apks' | 'notifications'>('keys')
   const [copiedShareMsg, setCopiedShareMsg] = useState(false)
+  const [notificationCount, setNotificationCount] = useState<number>(() =>
+    pushNotificationService.getHistory().length
+  )
+  const [pushPermStatus, setPushPermStatus] = useState<string>(() =>
+    pushNotificationService.getPermissionStatus()
+  )
+
+  useEffect(() => {
+    const unsub = pushNotificationService.subscribe(() => {
+      setNotificationCount(pushNotificationService.getHistory().length)
+      setPushPermStatus(pushNotificationService.getPermissionStatus())
+    })
+    return () => unsub()
+  }, [])
 
   // Data States
   const [schools, setSchools] = useState<PartnerSchoolTenant[]>(() =>
@@ -437,6 +453,37 @@ export function MasterSaasPortal() {
             </Link>
             <button
               type="button"
+              onClick={() => setActiveTab('notifications')}
+              style={{
+                background: activeTab === 'notifications' ? 'rgba(124, 58, 237, 0.3)' : '#1e293b',
+                color: activeTab === 'notifications' ? '#c084fc' : '#cbd5e1',
+                padding: '0.5rem 0.9rem',
+                borderRadius: '10px',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                border: activeTab === 'notifications' ? '1px solid #a855f7' : '1px solid #334155',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span>🔔 Push Alerts</span>
+              <span
+                style={{
+                  background: pushPermStatus === 'granted' ? '#10b981' : '#f59e0b',
+                  color: '#064e3b',
+                  fontSize: '0.68rem',
+                  padding: '1px 6px',
+                  borderRadius: '999px',
+                  fontWeight: 900,
+                }}
+              >
+                {notificationCount}
+              </span>
+            </button>
+            <button
+              type="button"
               onClick={handleLogout}
               style={{
                 background: '#450a0a',
@@ -693,6 +740,26 @@ export function MasterSaasPortal() {
             }}
           >
             <span>📱 Mobile APKs &amp; WhatsApp Share</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('notifications')}
+            style={{
+              background: activeTab === 'notifications' ? 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)' : '#131b2e',
+              color: activeTab === 'notifications' ? '#ffffff' : '#94a3b8',
+              border: '1px solid #1e293b',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '12px',
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>🔔 Push Notifications ({notificationCount})</span>
           </button>
         </div>
 
@@ -1829,6 +1896,13 @@ export function MasterSaasPortal() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* =========================================================================
+            TAB 5: PUSH NOTIFICATIONS BROADCAST ENGINE
+        ========================================================================= */}
+        {activeTab === 'notifications' && (
+          <SaasPushNotificationManager schools={schools} />
         )}
 
         {/* Modal: Record Direct M-Pesa / Bank Payment */}
