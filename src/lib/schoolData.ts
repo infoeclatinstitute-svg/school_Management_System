@@ -583,11 +583,25 @@ class SchoolDataStore {
 
   private get<T>(key: string, fallback: T): T {
     if (this.memCache.has(key)) {
-      return this.memCache.get(key)
+      const cached = this.memCache.get(key)
+      if (cached !== null && cached !== undefined) {
+        if (Array.isArray(fallback) && !Array.isArray(cached)) {
+          return fallback
+        }
+        return cached
+      }
     }
     try {
       const stored = localStorage.getItem(`gc_v2_school_${key}`)
       const val = stored ? JSON.parse(stored) : fallback
+      if (val === null || val === undefined) {
+        this.memCache.set(key, fallback)
+        return fallback
+      }
+      if (Array.isArray(fallback) && !Array.isArray(val)) {
+        this.memCache.set(key, fallback)
+        return fallback
+      }
       this.memCache.set(key, val)
       return val
     } catch {
@@ -1053,12 +1067,13 @@ class SchoolDataStore {
 
   // --- Timetable CRUD (ACID Protected) ---
   getTimetable(classFilter?: string, dayFilter?: string): TimetablePeriod[] {
-    let list = this.get<TimetablePeriod[]>('timetable', INITIAL_TIMETABLE)
+    const raw = this.get<TimetablePeriod[]>('timetable', INITIAL_TIMETABLE)
+    let list = (Array.isArray(raw) ? raw : INITIAL_TIMETABLE) || []
     if (classFilter && classFilter !== 'All') {
-      list = list.filter((p) => p.class_name.toLowerCase().includes(classFilter.toLowerCase()) || p.class_id === classFilter)
+      list = list.filter((p) => p && (p.class_name?.toLowerCase().includes(classFilter.toLowerCase()) || p.class_id === classFilter))
     }
     if (dayFilter && dayFilter !== 'All') {
-      list = list.filter((p) => p.day_of_week.toLowerCase() === dayFilter.toLowerCase())
+      list = list.filter((p) => p && p.day_of_week?.toLowerCase() === dayFilter.toLowerCase())
     }
     return list
   }
@@ -1123,12 +1138,16 @@ class SchoolDataStore {
     const rawStudents = this.get<StudentRecord[]>('students', INITIAL_STUDENTS)
     const receipts = this.getReceipts()
 
-    const invoiceList = [...rawInvoices]
-    for (const std of rawStudents) {
+    const invoiceList = Array.isArray(rawInvoices) ? [...rawInvoices] : []
+    const studentList = Array.isArray(rawStudents) ? rawStudents : []
+    for (const std of studentList) {
+      if (!std) continue
+      const stdAdmClean = (std.admission_number || '').toLowerCase()
       const hasInv = invoiceList.some(
         (inv) =>
-          (inv.student_id && inv.student_id === std.id) ||
-          (inv.admission_number && inv.admission_number.toLowerCase() === std.admission_number.toLowerCase())
+          inv &&
+          ((inv.student_id && inv.student_id === std.id) ||
+          (inv.admission_number && inv.admission_number.toLowerCase() === stdAdmClean))
       )
       if (!hasInv) {
         const billed = Number(std.term_fee_total) || 60
@@ -1297,7 +1316,8 @@ class SchoolDataStore {
   }
 
   getReceipts(): FeePaymentReceipt[] {
-    return this.get<FeePaymentReceipt[]>('receipts', INITIAL_RECEIPTS)
+    const list = this.get<FeePaymentReceipt[]>('receipts', INITIAL_RECEIPTS)
+    return (Array.isArray(list) ? list : INITIAL_RECEIPTS) || []
   }
 
   async recordPayment(receipt: FeePaymentReceipt): Promise<void> {
@@ -1500,7 +1520,8 @@ class SchoolDataStore {
 
   // --- Secretary Inquiries ---
   getInquiries(): SecretaryInquiry[] {
-    return this.get<SecretaryInquiry[]>('inquiries', INITIAL_INQUIRIES)
+    const list = this.get<SecretaryInquiry[]>('inquiries', INITIAL_INQUIRIES)
+    return (Array.isArray(list) ? list : INITIAL_INQUIRIES) || []
   }
 
   async addInquiry(inquiry: SecretaryInquiry): Promise<void> {
@@ -1518,7 +1539,8 @@ class SchoolDataStore {
 
   // --- Notices CRUD ---
   getNotices(): SchoolNotice[] {
-    return this.get<SchoolNotice[]>('notices', INITIAL_NOTICES)
+    const list = this.get<SchoolNotice[]>('notices', INITIAL_NOTICES)
+    return (Array.isArray(list) ? list : INITIAL_NOTICES) || []
   }
 
   async addNotice(notice: SchoolNotice): Promise<void> {
@@ -1727,7 +1749,8 @@ class SchoolDataStore {
   // --- Course Units & Curriculum Builder (ACID Protected) ---
   getCourseUnits(): CourseUnit[] {
     const raw = this.get<CourseUnit[]>('course_units', INITIAL_COURSE_UNITS)
-    return raw
+    const list = (Array.isArray(raw) ? raw : INITIAL_COURSE_UNITS) || []
+    return list
       .filter((u) => (
         u &&
         typeof u.id === 'string' &&

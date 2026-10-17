@@ -68,7 +68,7 @@ export function StudentDashboard() {
       )
     })
 
-  const studentReceipts = schoolStore.getReceipts().filter((r) => {
+  const studentReceipts = (schoolStore.getReceipts() || []).filter((r) => {
     if (!r) return false
     const rAdmClean = (r.admission_number || '').trim().toLowerCase()
     const rAdmAlpha = rAdmClean.replace(/[^a-z0-9]/g, '')
@@ -81,7 +81,7 @@ export function StudentDashboard() {
     )
   })
 
-  const studentInvoices = schoolStore.getInvoices().filter((i) => {
+  const studentInvoices = (schoolStore.getInvoices() || []).filter((i) => {
     if (!i) return false
     const iAdmClean = (i.admission_number || '').trim().toLowerCase()
     const iAdmAlpha = iAdmClean.replace(/[^a-z0-9]/g, '')
@@ -145,9 +145,8 @@ export function StudentDashboard() {
     ? new Date().toLocaleDateString('en-US', { weekday: 'long' })
     : 'Monday'
 
-  const todayPeriods = schoolStore
-    .getTimetable()
-    .filter((p) => p.day_of_week === currentDayOfWeek)
+  const todayPeriods = (schoolStore.getTimetable() || [])
+    .filter((p) => p && p.day_of_week === currentDayOfWeek)
     .slice(0, 3)
 
   // Fetch enrollments with course details from Supabase (if online)
@@ -169,8 +168,8 @@ export function StudentDashboard() {
   const { data: announcements } = useQuery({
     queryKey: ['announcements-student'],
     queryFn: async () => {
-      const notices = schoolStore.getNotices().filter(
-        (n) => n.target_audience === 'All' || n.target_audience === 'Students'
+      const notices = (schoolStore.getNotices() || []).filter(
+        (n) => n && (n.target_audience === 'All' || n.target_audience === 'Students')
       )
       return notices.slice(0, 2).map((n) => ({
         id: n.id,
@@ -514,7 +513,7 @@ export function StudentDashboard() {
       {(() => {
         const studentIdentifier = currentStudent?.admission_number || profile?.admission_number || profile?.id || ''
         const studentUnits = schoolStore.getRegisteredUnitsForStudent(studentIdentifier)
-        const allPublished = schoolStore.getCourseUnits().filter((u) => u.is_published !== false)
+        const allPublished = (schoolStore.getCourseUnits() || []).filter((u) => u && u.is_published !== false)
         const myUnits = studentUnits.length > 0 ? studentUnits : allPublished.slice(0, 1)
 
         return (

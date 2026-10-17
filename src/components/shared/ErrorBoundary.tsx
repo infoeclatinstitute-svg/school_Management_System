@@ -66,8 +66,14 @@ export class ErrorBoundary extends Component<Props, State> {
               type="button"
               onClick={() => {
                 try {
-                  localStorage.removeItem('gc_students')
-                  localStorage.removeItem('gc-school-data')
+                  const keysToRemove: string[] = []
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i)
+                    if (key && (key.startsWith('gc_') || key.startsWith('gc-'))) {
+                      keysToRemove.push(key)
+                    }
+                  }
+                  keysToRemove.forEach((k) => localStorage.removeItem(k))
                   sessionStorage.clear()
                 } catch {
                   // ignore
