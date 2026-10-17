@@ -5,6 +5,7 @@ import type {
   TenantStudentMember,
   TenantPayrollRecord,
   TenantFeePayment,
+  TenantGradeRecord,
 } from '@/types/tenantSchool'
 
 interface PrintableModalProps {
@@ -25,6 +26,7 @@ export function StudentAdmissionLetterModal({
 
   return (
     <div
+      className="printable-modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -39,6 +41,7 @@ export function StudentAdmissionLetterModal({
       }}
     >
       <div
+        className="printable-modal-card"
         style={{ margin: 'auto',
           background: '#ffffff',
           borderRadius: '20px',
@@ -347,6 +350,7 @@ export function StaffLoginSlipModal({
 
   return (
     <div
+      className="printable-modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -361,6 +365,7 @@ export function StaffLoginSlipModal({
       }}
     >
       <div
+        className="printable-modal-card"
         style={{ margin: 'auto',
           background: '#ffffff',
           borderRadius: '20px',
@@ -604,6 +609,7 @@ export function StaffPayslipModal({
 
   return (
     <div
+      className="printable-modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -618,6 +624,7 @@ export function StaffPayslipModal({
       }}
     >
       <div
+        className="printable-modal-card"
         style={{ margin: 'auto',
           background: '#ffffff',
           borderRadius: '20px',
@@ -860,6 +867,7 @@ export function FeeReceiptModal({
 
   return (
     <div
+      className="printable-modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -874,6 +882,7 @@ export function FeeReceiptModal({
       }}
     >
       <div
+        className="printable-modal-card"
         style={{ margin: 'auto',
           background: '#ffffff',
           borderRadius: '20px',
@@ -1068,3 +1077,1250 @@ export function FeeReceiptModal({
     </div>
   )
 }
+
+// ============================================================
+// 5. OFFICIAL STUDENT ACADEMIC TRANSCRIPT & PERFORMANCE REPORT
+// ============================================================
+export function StudentTranscriptModal({
+  school,
+  student,
+  grades,
+  periodName,
+  onClose,
+}: PrintableModalProps & {
+  student: TenantStudentMember
+  grades: TenantGradeRecord[]
+  periodName: string
+}) {
+  const primaryColor = school.primary_color || '#881337'
+  const accentColor = school.accent_color || '#d4af37'
+
+  const meanScore = grades.length > 0
+    ? Math.round((grades.reduce((acc, g) => acc + (g.total_score || 0), 0) / grades.length) * 10) / 10
+    : 0
+
+  const getMeanGrade = (score: number) => {
+    if (score >= 80) return { grade: 'A', remarks: 'First Class Distinction' }
+    if (score >= 70) return { grade: 'B', remarks: 'Upper Credit / Very Good' }
+    if (score >= 60) return { grade: 'C', remarks: 'Credit / Good' }
+    if (score >= 50) return { grade: 'D', remarks: 'Pass / Satisfactory' }
+    return { grade: 'F', remarks: 'Supplementary Required' }
+  }
+
+  const standing = getMeanGrade(meanScore)
+
+  return (
+    <div
+      className="printable-modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(5px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: '1.5rem',
+        overflowY: 'auto',
+      }}
+    >
+      <div
+        className="printable-modal-card"
+        style={{
+          margin: 'auto',
+          background: '#ffffff',
+          borderRadius: '20px',
+          maxWidth: '860px',
+          width: '100%',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          border: `2px solid ${primaryColor}`,
+        }}
+      >
+        {/* Actions Toolbar */}
+        <div
+          className="no-print"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '1rem 1.5rem',
+            background: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            borderTopLeftRadius: '18px',
+            borderTopRightRadius: '18px',
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
+            Official Institutional Transcript • Registry Ref: TRN-{student.admission_number}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{
+                background: primaryColor,
+                color: '#ffffff',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              🖨️ Print / Save Transcript PDF
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+
+        {/* Printable Body */}
+        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: `2.5px solid ${primaryColor}`,
+              paddingBottom: '1.5rem',
+              marginBottom: '1.75rem',
+              gap: '1.5rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+              <div
+                style={{
+                  width: '72px',
+                  height: '72px',
+                  borderRadius: '16px',
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2.2rem',
+                  fontWeight: 900,
+                  border: `2px solid ${accentColor}`,
+                }}
+              >
+                {school.name.charAt(0)}
+              </div>
+              <div>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 900, margin: '0 0 3px', color: '#0f172a' }}>
+                  {school.name}
+                </h1>
+                <div style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600 }}>
+                  {school.motto || 'Excellence in Higher Learning & Professional Mastery'}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+                  {school.address || `${school.city}, ${school.country}`} • {school.contact_email} • {school.contact_phone}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div
+                style={{
+                  display: 'inline-block',
+                  background: `${primaryColor}15`,
+                  color: primaryColor,
+                  fontWeight: 900,
+                  fontSize: '0.78rem',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                OFFICIAL ACADEMIC TRANSCRIPT
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px', fontWeight: 700 }}>
+                {periodName}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 800 }}>
+                ✓ Certified Institutional Record
+              </div>
+            </div>
+          </div>
+
+          {/* Student Profile Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '1rem',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '1.25rem',
+              marginBottom: '1.75rem',
+              fontSize: '0.82rem',
+            }}
+          >
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>STUDENT NAME</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{student.full_name}</div>
+            </div>
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>ADMISSION NUMBER</div>
+              <div style={{ fontWeight: 900, color: primaryColor, marginTop: '2px', fontFamily: 'monospace' }}>
+                {student.admission_number}
+              </div>
+            </div>
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>CLASS / PROGRAM COHORT</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{student.grade_class}</div>
+            </div>
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>ACADEMIC CYCLE</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{periodName}</div>
+            </div>
+          </div>
+
+          {/* Subject Grades Table */}
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '0.82rem',
+              marginBottom: '1.75rem',
+            }}
+          >
+            <thead>
+              <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>#</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>Course / Unit Title</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 1 (/20)</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 2 (/20)</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Exam (/60)</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Total (/100)</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Grade</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>Remark</th>
+              </tr>
+            </thead>
+            <tbody>
+              {grades.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                    No recorded continuous assessments or examination scores for this session yet.
+                  </td>
+                </tr>
+              ) : (
+                grades.map((g, idx) => (
+                  <tr key={g.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
+                    <td style={{ padding: '0.65rem 0.5rem', fontWeight: 700, color: '#0f172a' }}>{g.subject_name}</td>
+                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>{g.cat1_score ?? '-'}</td>
+                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>{g.cat2_score ?? '-'}</td>
+                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>{g.exam_score ?? '-'}</td>
+                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>
+                      {g.total_score}%
+                    </td>
+                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          fontWeight: 900,
+                          fontSize: '0.78rem',
+                          background: g.total_score >= 70 ? '#dcfce7' : g.total_score >= 50 ? '#fef3c7' : '#fee2e2',
+                          color: g.total_score >= 70 ? '#166534' : g.total_score >= 50 ? '#92400e' : '#991b1b',
+                        }}
+                      >
+                        {g.grade || 'P'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.65rem 0.5rem', color: '#475569', fontSize: '0.78rem' }}>
+                      {g.remarks || 'Satisfactory'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+
+          {/* Performance Summary Banner */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: '#f8fafc',
+              border: `1.5px solid ${primaryColor}40`,
+              borderRadius: '12px',
+              padding: '1rem 1.5rem',
+              marginBottom: '1.75rem',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>ACADEMIC STANDING</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: primaryColor, marginTop: '2px' }}>
+                {standing.remarks}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>OVERALL MEAN SCORE</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                {meanScore}% • Grade {standing.grade}
+              </div>
+            </div>
+          </div>
+
+          {/* Grading Legend & Signatures */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.2fr 1fr',
+              gap: '2rem',
+              paddingTop: '1.5rem',
+              borderTop: '2px solid #e2e8f0',
+              fontSize: '0.75rem',
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>KEY TO GRADING SCALE:</div>
+              <div style={{ color: '#64748b', lineHeight: 1.5 }}>
+                A (80–100%) Distinction • B (70–79%) Credit • C (60–69%) Good • D (50–59%) Pass • F (&lt;50%) Fail.
+              </div>
+              <div style={{ color: '#94a3b8', marginTop: '6px' }}>
+                This transcript is issued without alteration or erasure under institutional authority.
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '2rem', textAlign: 'center' }}>
+              <div>
+                <div style={{ height: '36px', borderBottom: '1px dotted #94a3b8', width: '130px', margin: '0 auto' }} />
+                <div style={{ marginTop: '4px', fontWeight: 700, color: '#0f172a' }}>Dean of Academics</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Faculty Verification</div>
+              </div>
+              <div>
+                <div style={{ height: '36px', borderBottom: '1px dotted #94a3b8', width: '130px', margin: '0 auto' }} />
+                <div style={{ marginTop: '4px', fontWeight: 700, color: '#0f172a' }}>Academic Registrar</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Official Registry Seal</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// 6. OFFICIAL STUDENT FEE INVOICE & STATEMENT OF ACCOUNT
+// ============================================================
+export function StudentFeeInvoiceModal({
+  school,
+  student,
+  payments,
+  onClose,
+}: PrintableModalProps & {
+  student: TenantStudentMember
+  payments: TenantFeePayment[]
+}) {
+  const primaryColor = school.primary_color || '#881337'
+  const accentColor = school.accent_color || '#d4af37'
+  const currency = school.currency || 'KES'
+
+  const totalInvoiced = student.fee_total || 45000
+  const totalPaid = payments.reduce((acc, p) => acc + (p.amount || 0), 0) || student.fee_paid || 0
+  const balanceDue = Math.max(0, totalInvoiced - totalPaid)
+
+  return (
+    <div
+      className="printable-modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(5px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: '1.5rem',
+        overflowY: 'auto',
+      }}
+    >
+      <div
+        className="printable-modal-card"
+        style={{
+          margin: 'auto',
+          background: '#ffffff',
+          borderRadius: '20px',
+          maxWidth: '860px',
+          width: '100%',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          border: `2px solid ${primaryColor}`,
+        }}
+      >
+        <div
+          className="no-print"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '1rem 1.5rem',
+            background: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            borderTopLeftRadius: '18px',
+            borderTopRightRadius: '18px',
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
+            Fee Statement &amp; Tuition Invoice • Ref: INV-{student.admission_number}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{
+                background: primaryColor,
+                color: '#ffffff',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              🖨️ Print / Save Invoice PDF
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: `2.5px solid ${primaryColor}`,
+              paddingBottom: '1.5rem',
+              marginBottom: '1.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+              <div
+                style={{
+                  width: '68px',
+                  height: '68px',
+                  borderRadius: '16px',
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2rem',
+                  fontWeight: 900,
+                  border: `2px solid ${accentColor}`,
+                }}
+              >
+                {school.name.charAt(0)}
+              </div>
+              <div>
+                <h1 style={{ fontSize: '1.45rem', fontWeight: 900, margin: '0 0 3px', color: '#0f172a' }}>
+                  {school.name}
+                </h1>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                  Office of the Bursar &amp; Directorate of Financial Affairs
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                  {school.address || `${school.city}, ${school.country}`} • {school.contact_email}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div
+                style={{
+                  display: 'inline-block',
+                  background: balanceDue === 0 ? '#dcfce7' : '#fee2e2',
+                  color: balanceDue === 0 ? '#166534' : '#991b1b',
+                  fontWeight: 900,
+                  fontSize: '0.8rem',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                {balanceDue === 0 ? '✓ FULLY CLEARED' : 'PENDING BALANCE'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                Issued: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </div>
+            </div>
+          </div>
+
+          {/* Student Account Summary */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '1rem',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '1.25rem',
+              marginBottom: '1.75rem',
+              fontSize: '0.82rem',
+            }}
+          >
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>STUDENT ACCOUNT</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{student.full_name}</div>
+              <div style={{ color: primaryColor, fontWeight: 700, fontFamily: 'monospace' }}>{student.admission_number}</div>
+            </div>
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>ACADEMIC PROGRAM &amp; COHORT</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{student.grade_class}</div>
+              <div style={{ color: '#64748b' }}>Curriculum: {school.curriculum_type}</div>
+            </div>
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>GUARDIAN / SPONSOR</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{student.guardian_name || 'Self-Sponsored'}</div>
+              <div style={{ color: '#64748b' }}>{student.guardian_phone || student.phone || '-'}</div>
+            </div>
+          </div>
+
+          {/* Invoiced Components Table */}
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.6rem' }}>
+            Itemized Tuition &amp; Statutory Assessment Fees
+          </h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.5rem' }}>
+            <thead>
+              <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
+                <th style={{ padding: '0.65rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Fee Item</th>
+                <th style={{ padding: '0.65rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Billing Schedule</th>
+                <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>Amount ({currency})</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Academic Tuition &amp; Faculty Instruction</td>
+                <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Core Term Instruction</td>
+                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.75).toLocaleString()}</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Examinations &amp; Continuous Assessment</td>
+                <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Assessment Registry</td>
+                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.12).toLocaleString()}</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>ICT, Cloud LMS &amp; Digital Library Portal</td>
+                <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Digital Campus Access</td>
+                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.08).toLocaleString()}</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Activity &amp; Institutional Amenities</td>
+                <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Annual Registration</td>
+                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.05).toLocaleString()}</td>
+              </tr>
+              <tr style={{ background: '#f8fafc', fontWeight: 900 }}>
+                <td colSpan={2} style={{ padding: '0.75rem', textAlign: 'right' }}>Total Invoiced Charges:</td>
+                <td style={{ padding: '0.75rem', textAlign: 'right', color: '#0f172a' }}>{currency} {totalInvoiced.toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Payment Receipts Record */}
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.6rem' }}>
+            Payments Credited to Date
+          </h3>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.75rem' }}>
+            <thead>
+              <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Receipt #</th>
+                <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Date</th>
+                <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Channel</th>
+                <th style={{ padding: '0.55rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>Amount Paid ({currency})</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>
+                    No recorded payments on this statement.
+                  </td>
+                </tr>
+              ) : (
+                payments.map((p) => (
+                  <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.55rem 0.75rem', fontFamily: 'monospace', fontWeight: 800, color: primaryColor }}>{p.receipt_number}</td>
+                    <td style={{ padding: '0.55rem 0.75rem', color: '#334155' }}>{p.date}</td>
+                    <td style={{ padding: '0.55rem 0.75rem', color: '#334155' }}>{p.payment_method}</td>
+                    <td style={{ padding: '0.55rem 0.75rem', textAlign: 'right', fontWeight: 800, color: '#16a34a' }}>
+                      {currency} {p.amount.toLocaleString()}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+
+          {/* Statement Balance Due Banner */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: balanceDue === 0 ? '#f0fdf4' : '#fffbeb',
+              border: `2px solid ${balanceDue === 0 ? '#86efac' : '#fde68a'}`,
+              borderRadius: '12px',
+              padding: '1.25rem 1.75rem',
+              marginBottom: '1.75rem',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800 }}>TOTAL AMOUNT CREDITED</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>
+                {currency} {totalPaid.toLocaleString()}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800 }}>OUTSTANDING BALANCE DUE</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: balanceDue === 0 ? '#16a34a' : '#b91c1c', marginTop: '2px' }}>
+                {currency} {balanceDue.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          {/* Settlement Details & Signature */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.2fr 1fr',
+              gap: '2rem',
+              paddingTop: '1.5rem',
+              borderTop: '2px solid #e2e8f0',
+              fontSize: '0.75rem',
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>OFFICIAL PAYMENT SETTLEMENT DETAILS:</div>
+              <div style={{ color: '#64748b', lineHeight: 1.5 }}>
+                • Bank: Kenya Commercial Bank (KCB) / Standard Chartered • Account: {school.name} General Collections
+              </div>
+              <div style={{ color: '#64748b', lineHeight: 1.5 }}>
+                • M-Pesa Paybill: 522522 • Account Number: {student.admission_number}
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Authorized Signatory:</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                Bursary &amp; Accounts Department
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 800, marginTop: '4px' }}>
+                Verified Official Ledger
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// 7. OFFICIAL EXAMINATION ENTRY CLEARANCE & BIOMETRIC PASS
+// ============================================================
+export function ExamClearancePassModal({
+  school,
+  student,
+  subjects,
+  onClose,
+}: PrintableModalProps & {
+  student: TenantStudentMember
+  subjects?: string[]
+}) {
+  const primaryColor = school.primary_color || '#881337'
+  const accentColor = school.accent_color || '#d4af37'
+  const currency = school.currency || 'KES'
+
+  const isFeeCleared = (student.fee_balance || 0) <= 0
+  const isBiometricVerified = true
+
+  return (
+    <div
+      className="printable-modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(5px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: '1.5rem',
+        overflowY: 'auto',
+      }}
+    >
+      <div
+        className="printable-modal-card"
+        style={{
+          margin: 'auto',
+          background: '#ffffff',
+          borderRadius: '20px',
+          maxWidth: '820px',
+          width: '100%',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          border: `2px solid ${primaryColor}`,
+        }}
+      >
+        <div
+          className="no-print"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '1rem 1.5rem',
+            background: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            borderTopLeftRadius: '18px',
+            borderTopRightRadius: '18px',
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
+            Official Examination Hall Clearance Pass • Serial: EXAM-{student.admission_number}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{
+                background: primaryColor,
+                color: '#ffffff',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              🖨️ Print Exam Clearance Pass
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: `2.5px solid ${primaryColor}`,
+              paddingBottom: '1.25rem',
+              marginBottom: '1.5rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '16px',
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2rem',
+                  fontWeight: 900,
+                  border: `2px solid ${accentColor}`,
+                }}
+              >
+                {school.name.charAt(0)}
+              </div>
+              <div>
+                <h1 style={{ fontSize: '1.45rem', fontWeight: 900, margin: '0 0 2px', color: '#0f172a' }}>
+                  {school.name}
+                </h1>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                  Directorate of Examination &amp; Academic Assessment
+                </div>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div
+                style={{
+                  display: 'inline-block',
+                  background: isFeeCleared ? '#dcfce7' : '#fee2e2',
+                  color: isFeeCleared ? '#166534' : '#991b1b',
+                  fontWeight: 900,
+                  fontSize: '0.8rem',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                {isFeeCleared ? '✓ ADMIT TO EXAM HALL' : '⚠️ CONDITIONAL CLEARANCE'}
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
+                Academic Session: {school.active_period_name || 'Active Term'}
+              </div>
+            </div>
+          </div>
+
+          {/* Student Candidate Bio Card with Barcode */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '1.25rem 1.5rem',
+              marginBottom: '1.5rem',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>EXAMINATION CANDIDATE</div>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                {student.full_name}
+              </div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: primaryColor, fontFamily: 'monospace', marginTop: '2px' }}>
+                ADMISSION #: {student.admission_number}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '4px' }}>
+                Cohort: <strong>{student.grade_class}</strong> • Curriculum: <strong>{school.curriculum_type}</strong>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div
+                style={{
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  display: 'inline-block',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ fontFamily: 'monospace', fontSize: '1.2rem', letterSpacing: '3px', fontWeight: 900, color: '#0f172a' }}>
+                  ||| | |||| | ||||| | |||
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, marginTop: '2px' }}>
+                  {student.admission_number}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Clearances Status Table */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '1rem',
+              marginBottom: '1.5rem',
+            }}
+          >
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '1rem',
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>BURSARY FEE CLEARANCE</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: isFeeCleared ? '#166534' : '#b91c1c', marginTop: '3px' }}>
+                {isFeeCleared ? '✓ Tuition Balance: 0 (Fully Cleared)' : `⚠️ Outstanding: ${currency} ${student.fee_balance?.toLocaleString()}`}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                Authorized by College Bursary Accounts
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                padding: '1rem',
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>BIOMETRIC IDENTITY CLEARANCE</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: isBiometricVerified ? '#166534' : '#b91c1c', marginTop: '3px' }}>
+                {isBiometricVerified ? '✓ Fingerprint / Passkey Verified' : '⚠️ Pending Sensor Verification'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                Digital Sensor Template ID: {student.id.slice(0, 8).toUpperCase()}
+              </div>
+            </div>
+          </div>
+
+          {/* Scheduled Units / Examination Modules */}
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+            Authorized Examination Papers &amp; Modules
+          </h3>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '0.5rem',
+              marginBottom: '1.5rem',
+              fontSize: '0.8rem',
+            }}
+          >
+            {(subjects && subjects.length > 0 ? subjects : [
+              'Paper 1: Core Theory & Conceptual Foundations',
+              'Paper 2: Applied Laboratory & Practical Assessment',
+              'Paper 3: Quantitative Methods & Analytics',
+              'Paper 4: Professional Case Analysis',
+            ]).map((subj, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '0.6rem 0.85rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>{subj}</span>
+                <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 800 }}>Cleared ✓</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Hall Instructions & Signatures */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.2fr 1fr',
+              gap: '2rem',
+              paddingTop: '1.25rem',
+              borderTop: '2px solid #e2e8f0',
+              fontSize: '0.74rem',
+            }}
+          >
+            <div style={{ color: '#64748b', lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '3px' }}>EXAMINATION REGULATIONS:</div>
+              1. Candidate must display this pass and college student badge throughout all exam sessions.<br />
+              2. Mobile devices, smartwatches, and programmable memory devices are strictly prohibited in the exam hall.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1.5rem', textAlign: 'center' }}>
+              <div>
+                <div style={{ height: '32px', borderBottom: '1px dotted #94a3b8', width: '120px', margin: '0 auto' }} />
+                <div style={{ marginTop: '4px', fontWeight: 700, color: '#0f172a' }}>Chief Invigilator</div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Exam Hall Control</div>
+              </div>
+              <div>
+                <div style={{ height: '32px', borderBottom: '1px dotted #94a3b8', width: '120px', margin: '0 auto' }} />
+                <div style={{ marginTop: '4px', fontWeight: 700, color: '#0f172a' }}>Academic Registrar</div>
+                <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Official Seal</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================================
+// 8. FORMAL FACULTY APPOINTMENT & EMPLOYMENT OFFER LETTER
+// ============================================================
+export function StaffAppointmentOfferLetterModal({
+  school,
+  staff,
+  onClose,
+}: PrintableModalProps & { staff: TenantStaffMember }) {
+  const primaryColor = school.primary_color || '#881337'
+  const accentColor = school.accent_color || '#d4af37'
+  const currency = school.currency || 'KES'
+
+  return (
+    <div
+      className="printable-modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        backdropFilter: 'blur(5px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: '1.5rem',
+        overflowY: 'auto',
+      }}
+    >
+      <div
+        className="printable-modal-card"
+        style={{
+          margin: 'auto',
+          background: '#ffffff',
+          borderRadius: '20px',
+          maxWidth: '820px',
+          width: '100%',
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          border: `2px solid ${primaryColor}`,
+        }}
+      >
+        <div
+          className="no-print"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '1rem 1.5rem',
+            background: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0',
+            borderTopLeftRadius: '18px',
+            borderTopRightRadius: '18px',
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
+            Official Appointment Letter • HR Ref: HR-OFFER-{staff.id.slice(0, 8).toUpperCase()}
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              style={{
+                background: primaryColor,
+                color: '#ffffff',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              🖨️ Print Offer Letter
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: `2.5px solid ${primaryColor}`,
+              paddingBottom: '1.5rem',
+              marginBottom: '1.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+              <div
+                style={{
+                  width: '68px',
+                  height: '68px',
+                  borderRadius: '16px',
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2rem',
+                  fontWeight: 900,
+                  border: `2px solid ${accentColor}`,
+                }}
+              >
+                {school.name.charAt(0)}
+              </div>
+              <div>
+                <h1 style={{ fontSize: '1.45rem', fontWeight: 900, margin: '0 0 2px', color: '#0f172a' }}>
+                  {school.name}
+                </h1>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                  Office of the Principal &amp; Human Resources Directorate
+                </div>
+                <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                  {school.address || `${school.city}, ${school.country}`} • {school.contact_email}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div
+                style={{
+                  display: 'inline-block',
+                  background: `${primaryColor}15`,
+                  color: primaryColor,
+                  fontWeight: 900,
+                  fontSize: '0.78rem',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                OFFER OF APPOINTMENT
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '4px' }}>
+                Date: {staff.joined_date || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </div>
+            </div>
+          </div>
+
+          {/* Letter Body */}
+          <div style={{ fontSize: '0.85rem', lineHeight: 1.7, color: '#334155' }}>
+            <p>
+              Dear <strong>{staff.full_name}</strong>,
+            </p>
+            <p>
+              On behalf of the Governing Board of <strong>{school.name}</strong>, it gives me great pleasure to formally
+              offer you the appointment to the position of <strong>{staff.title || 'Faculty Member / Instructor'}</strong> in
+              the <strong>{staff.department || 'Academic Faculty'}</strong> department.
+            </p>
+
+            {/* Compensation & Structure Box */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '1.25rem',
+                margin: '1.25rem 0',
+              }}
+            >
+              <h4 style={{ margin: '0 0 0.5rem', color: '#0f172a', fontWeight: 800 }}>Terms of Remuneration &amp; Allowance Package:</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', fontSize: '0.82rem' }}>
+                <div>
+                  <span style={{ color: '#64748b' }}>Base Monthly Salary:</span>
+                  <div style={{ fontWeight: 800, color: '#0f172a' }}>{currency} {(staff.salary_base || 65000).toLocaleString()}</div>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b' }}>Housing &amp; Travel Stipend:</span>
+                  <div style={{ fontWeight: 800, color: '#0f172a' }}>{currency} {((staff.salary_housing || 0) + (staff.salary_transport || 0)).toLocaleString()}</div>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b' }}>Net Monthly Compensation:</span>
+                  <div style={{ fontWeight: 900, color: '#16a34a' }}>{currency} {(staff.net_salary || 65000).toLocaleString()}</div>
+                </div>
+              </div>
+            </div>
+
+            <p>
+              In this role, you will be assigned to instruct courses within your specialization, oversee academic assessments,
+              maintain student attendance rosters, and uphold the academic standards and values of our institution.
+            </p>
+            <p>
+              Your official college LMS portal username has been provisioned as <strong>{staff.username}</strong>.
+            </p>
+          </div>
+
+          {/* Signatures */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '2rem',
+              marginTop: '2.5rem',
+              paddingTop: '1.5rem',
+              borderTop: '2px solid #e2e8f0',
+              fontSize: '0.78rem',
+            }}
+          >
+            <div>
+              <div style={{ height: '40px', borderBottom: '1px dotted #94a3b8', width: '180px' }} />
+              <div style={{ marginTop: '6px', fontWeight: 800, color: '#0f172a' }}>
+                {school.principal_name || 'Prof. Harrison Odhiambo'}
+              </div>
+              <div style={{ color: '#64748b' }}>{school.principal_title || 'Principal & CEO'}, {school.name}</div>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ height: '40px', borderBottom: '1px dotted #94a3b8', width: '180px', marginLeft: 'auto' }} />
+              <div style={{ marginTop: '6px', fontWeight: 800, color: '#0f172a' }}>
+                Candidate Acceptance Signature
+              </div>
+              <div style={{ color: '#64748b' }}>Date of Acceptance: __________________</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+

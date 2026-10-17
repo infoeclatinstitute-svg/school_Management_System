@@ -9,13 +9,6 @@ import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
 import type { AttendanceStatus, Profile } from '@/lib/database.types'
 
-interface RosterStudent {
-  id: string
-  full_name: string
-  admission_number: string
-  class_name?: string
-}
-
 export function AttendanceTracker() {
   const { profile } = useAuth()
 

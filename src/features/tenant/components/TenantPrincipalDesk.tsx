@@ -19,6 +19,7 @@ export interface TenantPrincipalDeskProps {
   payrollList: TenantPayrollRecord[]
   onReloadData: () => void
   onOpenStaffSlip: (staff: TenantStaffMember) => void
+  onOpenStaffOfferLetter?: (staff: TenantStaffMember) => void
   onOpenAdmissionSlip: (student: TenantStudentMember) => void
   onOpenDomainSettings: () => void
 }
@@ -40,6 +41,7 @@ export function TenantPrincipalDesk({
   payrollList,
   onReloadData,
   onOpenStaffSlip,
+  onOpenStaffOfferLetter,
   onOpenAdmissionSlip,
   onOpenDomainSettings,
 }: TenantPrincipalDeskProps) {
@@ -230,11 +232,11 @@ export function TenantPrincipalDesk({
     () => studentList.filter((s) => (s.fee_balance || 0) <= 0).length,
     [studentList]
   )
-  const studentsPartialCount = useMemo(
+  const _studentsPartialCount = useMemo(
     () => studentList.filter((s) => (s.fee_balance || 0) > 0 && (s.fee_paid || 0) > 0).length,
     [studentList]
   )
-  const studentsUnpaidCount = useMemo(
+  const _studentsUnpaidCount = useMemo(
     () => studentList.filter((s) => (s.fee_paid || 0) === 0 && (s.fee_total || 0) > 0).length,
     [studentList]
   )
@@ -1151,7 +1153,7 @@ export function TenantPrincipalDesk({
             {collectionRate}%
           </div>
           <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 600 }}>
-            {currency} {totalTuitionCollected.toLocaleString()} of {currency} {totalTuitionBilled.toLocaleString()}
+            {currency} {totalTuitionCollected.toLocaleString()} collected • {currency} {totalTuitionOutstanding.toLocaleString()} due
           </div>
         </div>
 
@@ -1612,21 +1614,42 @@ export function TenantPrincipalDesk({
                         {currency} {s.net_salary.toLocaleString()}
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={() => onOpenStaffSlip(s)}
-                          style={{
-                            background: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            padding: '0.35rem 0.65rem',
-                            borderRadius: '6px',
-                            fontSize: '0.74rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          🖨️ Login Slip
-                        </button>
+                        <div style={{ display: 'inline-flex', gap: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => onOpenStaffSlip(s)}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              padding: '0.35rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                            title="Print Portal Login Slip"
+                          >
+                            🖨️ Login Slip
+                          </button>
+                          {onOpenStaffOfferLetter && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenStaffOfferLetter(s)}
+                              style={{
+                                background: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                padding: '0.35rem 0.55rem',
+                                borderRadius: '6px',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                              title="Print Formal Offer of Employment Contract"
+                            >
+                              📜 Offer Letter
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>

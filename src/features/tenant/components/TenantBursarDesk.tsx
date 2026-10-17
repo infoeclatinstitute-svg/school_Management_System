@@ -19,6 +19,7 @@ interface TenantBursarDeskProps {
   onReloadData: () => void
   onOpenPayslip: (payslip: TenantPayrollRecord) => void
   onOpenReceipt: (receipt: TenantFeePayment) => void
+  onOpenInvoice?: (student: TenantStudentMember) => void
 }
 
 // Client-side CSV Exporter Utility
@@ -45,7 +46,7 @@ function downloadCSV(filename: string, headers: string[], rows: (string | number
 
 export function TenantBursarDesk({
   school,
-  staffList,
+  staffList: _staffList,
   studentList,
   payrollList,
   feePaymentsList,
@@ -53,6 +54,7 @@ export function TenantBursarDesk({
   onReloadData,
   onOpenPayslip,
   onOpenReceipt,
+  onOpenInvoice,
 }: TenantBursarDeskProps) {
   const primaryColor = school.primary_color || '#b45309'
   const currency = school.currency || 'KES'
@@ -1358,6 +1360,30 @@ export function TenantBursarDesk({
                               </a>
                             )}
 
+                            {/* Official Statement / Fee Invoice PDF */}
+                            {onOpenInvoice && (
+                              <button
+                                type="button"
+                                onClick={() => onOpenInvoice(s)}
+                                style={{
+                                  background: '#ffffff',
+                                  color: '#0f172a',
+                                  border: '1px solid #cbd5e1',
+                                  padding: '0.35rem 0.65rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                                title="Print Official Fee Invoice & Account Statement"
+                              >
+                                <span>📄</span> Invoice
+                              </button>
+                            )}
+
                             {/* Record Quick Payment for this student */}
                             <button
                               type="button"
@@ -1776,7 +1802,7 @@ export function TenantBursarDesk({
       {/* SUBTAB 4: COHORT FEE SCHEDULES & DYNAMIC BILLING */}
       {/* ============================================================ */}
       {bursarSubTab === 'structure' && (() => {
-        const schoolPrograms = tenantSchoolStore.getProgramsBySchool(school.slug)
+        const _schoolPrograms = tenantSchoolStore.getProgramsBySchool(school.slug)
 
         return (
           <div style={{ background: '#ffffff', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0' }}>

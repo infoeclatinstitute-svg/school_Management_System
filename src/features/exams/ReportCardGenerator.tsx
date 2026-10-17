@@ -12,9 +12,9 @@ export function ReportCardGenerator({ reportCard, onClose }: ReportCardGenerator
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
+    <div className="modal-overlay printable-modal-overlay" onClick={onClose} style={{ zIndex: 1100 }}>
       <div
-        className="modal-content modal-lg"
+        className="modal-content modal-lg printable-modal-card"
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: '880px', maxHeight: '92vh', overflowY: 'auto', padding: 0 }}
       >

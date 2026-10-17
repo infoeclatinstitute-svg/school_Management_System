@@ -5,7 +5,7 @@ import type {
   AcademicCalendarPeriod,
   AcademicCalendarSystem,
 } from '@/types/tenantSchool'
-import { CalendarIcon, PlusIcon, LockIcon } from '@/components/icons/AppIcons'
+import { PlusIcon } from '@/components/icons/AppIcons'
 
 interface TenantAcademicCalendarViewProps {
   school: PartnerSchoolTenant
@@ -19,7 +19,7 @@ export function TenantAcademicCalendarView({
   school,
   isAdmin = false,
   primaryColor = '#1e3a8a',
-  accentColor = '#0284c7',
+  accentColor: _accentColor = '#0284c7',
   onSchoolUpdate,
 }: TenantAcademicCalendarViewProps) {
   const [calendarPeriods, setCalendarPeriods] = useState<AcademicCalendarPeriod[]>(

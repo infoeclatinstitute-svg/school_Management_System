@@ -6,7 +6,6 @@
  */
 
 const LOCAL_BUILD_TIME_KEY = 'gc_ota_build_timestamp'
-const RELOAD_ATTEMPT_KEY = 'gc_ota_reload_attempt'
 let isCheckingUpdate = false
 let isReloading = false
 

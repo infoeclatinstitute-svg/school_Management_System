@@ -4,10 +4,7 @@ import type {
   TenantStudentMember,
   TenantGradeRecord,
   TenantLessonNote,
-  TenantTimetableEntry,
-  TenantStaffMember,
   TenantSessionUser,
-  TenantAttendanceSession,
   TenantAttendanceRecord,
 } from '@/types/tenantSchool'
 import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
@@ -30,8 +27,8 @@ export function TenantTeacherDesk({
   onReloadData,
 }: TenantTeacherDeskProps) {
   const primaryColor = school.primary_color || '#059669'
-  const accentColor = school.accent_color || '#d97706'
-  const currency = school.currency || 'KES'
+  const _accentColor = school.accent_color || '#d97706'
+  const _currency = school.currency || 'KES'
 
   // ==========================================
   // DYNAMIC CLASSES, SUBJECTS & STAFF (ZERO HARDCODING)
@@ -386,6 +383,10 @@ export function TenantTeacherDesk({
     document.body.removeChild(link)
     triggerToast('Gradebook exported to CSV successfully!')
   }
+
+  // Printable Document Modals
+  const [showPrintableGradeSheet, setShowPrintableGradeSheet] = useState(false)
+  const [showPrintableAttendanceSheet, setShowPrintableAttendanceSheet] = useState(false)
 
   // ==========================================
   // TAB 3: STUDY NOTES & MATERIALS
@@ -984,6 +985,25 @@ export function TenantTeacherDesk({
               </button>
               <button
                 type="button"
+                onClick={() => setShowPrintableAttendanceSheet(true)}
+                style={{
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  border: '1px solid #cbd5e1',
+                  padding: '0.5rem 0.95rem',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>🖨️</span> Print Roll-Call Sheet (PDF)
+              </button>
+              <button
+                type="button"
                 onClick={handleSaveAttendanceSession}
                 style={{
                   background: primaryColor,
@@ -1391,6 +1411,25 @@ export function TenantTeacherDesk({
                 }}
               >
                 <span>📊</span> Export Grade Sheet (CSV)
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPrintableGradeSheet(true)}
+                style={{
+                  background: primaryColor,
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>🖨️</span> Print Marksheet (PDF)
               </button>
             </div>
           </div>
@@ -2090,7 +2129,7 @@ export function TenantTeacherDesk({
                       <div>
                         <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '1rem' }}>{student.full_name}</div>
                         <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
-                          Adm: <strong>{student.admission_number}</strong> • Cohort: <strong>{student.grade_class}</strong>
+                          Adm: <strong>{student.admission_number}</strong> • Cohort: <strong>{student.grade_class}</strong> • Mean Mark: <strong>{avgGrade}%</strong> • Attendance: <strong>{attendance}%</strong>
                         </div>
                       </div>
                       <span
@@ -2461,6 +2500,477 @@ export function TenantTeacherDesk({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL 2: PRINTABLE CLASS BROADSHEET & GRADE MARKSHEET (PDF) */}
+      {/* ============================================================ */}
+      {showPrintableGradeSheet && (
+        <div
+          className="printable-modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            overflowY: 'auto',
+          }}
+        >
+          <div
+            className="printable-modal-card"
+            style={{
+              margin: 'auto',
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '920px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              border: `2px solid ${primaryColor}`,
+            }}
+          >
+            <div
+              className="no-print"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem 1.5rem',
+                background: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                borderTopLeftRadius: '18px',
+                borderTopRightRadius: '18px',
+              }}
+            >
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
+                Official Faculty Marksheet • Cohort: {selectedClassForGradebook} • Subject: {selectedSubjectForGradebook}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  style={{
+                    background: primaryColor,
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.5rem 1.25rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  🖨️ Print Marksheet PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPrintableGradeSheet(false)}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✕ Close
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: `2.5px solid ${primaryColor}`,
+                  paddingBottom: '1.25rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <div>
+                  <h1 style={{ fontSize: '1.45rem', fontWeight: 900, margin: '0 0 2px', color: '#0f172a' }}>
+                    {school.name}
+                  </h1>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                    Directorate of Academic Quality &amp; Examination Records
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div
+                    style={{
+                      display: 'inline-block',
+                      background: `${primaryColor}15`,
+                      color: primaryColor,
+                      fontWeight: 900,
+                      fontSize: '0.78rem',
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    CONTINUOUS ASSESSMENT &amp; EXAM BROADSHEET
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '3px' }}>
+                    Session: {school.active_period_name || 'Active Term'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Details Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '1rem',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem',
+                  fontSize: '0.8rem',
+                }}
+              >
+                <div>
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>CLASS COHORT:</span>
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{selectedClassForGradebook}</div>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>SUBJECT / MODULE:</span>
+                  <div style={{ fontWeight: 800, color: primaryColor, marginTop: '2px' }}>{selectedSubjectForGradebook}</div>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>FACULTY INSTRUCTOR:</span>
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{sessionUser?.name || 'Assigned Instructor'}</div>
+                </div>
+              </div>
+
+              {/* Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.5rem' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>#</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Admission #</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Candidate Name</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 1 (/20)</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 2 (/20)</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Exam (/60)</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Total (/100)</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Grade</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Remarks</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gradebookStudents.map((s, idx) => {
+                    const gradeRec = gradeList.find(
+                      (g) =>
+                        g.student_id === s.id &&
+                        g.subject_name.toLowerCase() === selectedSubjectForGradebook.toLowerCase()
+                    )
+                    return (
+                      <tr key={s.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '0.6rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
+                        <td style={{ padding: '0.6rem 0.5rem', fontFamily: 'monospace', fontWeight: 700, color: primaryColor }}>
+                          {s.admission_number}
+                        </td>
+                        <td style={{ padding: '0.6rem 0.5rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
+                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#334155' }}>{gradeRec?.cat1_score ?? '-'}</td>
+                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#334155' }}>{gradeRec?.cat2_score ?? '-'}</td>
+                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#334155' }}>{gradeRec?.exam_score ?? '-'}</td>
+                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', fontWeight: 900, color: '#0f172a' }}>
+                          {gradeRec?.total_score ?? '-'}%
+                        </td>
+                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }}>
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontWeight: 900,
+                              fontSize: '0.78rem',
+                              background: (gradeRec?.total_score || 0) >= 70 ? '#dcfce7' : '#f1f5f9',
+                              color: (gradeRec?.total_score || 0) >= 70 ? '#166534' : '#334155',
+                            }}
+                          >
+                            {gradeRec?.grade || 'P'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.6rem 0.5rem', color: '#64748b', fontSize: '0.75rem' }}>
+                          {gradeRec?.remarks || 'In Progress'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+
+              {/* Signatures */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '2rem',
+                  paddingTop: '1.5rem',
+                  borderTop: '2px solid #e2e8f0',
+                  fontSize: '0.76rem',
+                }}
+              >
+                <div>
+                  <div style={{ height: '35px', borderBottom: '1px dotted #94a3b8', width: '160px' }} />
+                  <div style={{ marginTop: '4px', fontWeight: 800, color: '#0f172a' }}>Course Instructor Signature</div>
+                  <div style={{ color: '#64748b' }}>Date: ________________________</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ height: '35px', borderBottom: '1px dotted #94a3b8', width: '160px', marginLeft: 'auto' }} />
+                  <div style={{ marginTop: '4px', fontWeight: 800, color: '#0f172a' }}>Head of Academic Department</div>
+                  <div style={{ color: '#64748b' }}>Official Certification Seal</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL 3: PRINTABLE DAILY ROLL-CALL ATTENDANCE REGISTER (PDF)  */}
+      {/* ============================================================ */}
+      {showPrintableAttendanceSheet && (
+        <div
+          className="printable-modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            overflowY: 'auto',
+          }}
+        >
+          <div
+            className="printable-modal-card"
+            style={{
+              margin: 'auto',
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '860px',
+              width: '100%',
+              maxHeight: '92vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              border: `2px solid ${primaryColor}`,
+            }}
+          >
+            <div
+              className="no-print"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem 1.5rem',
+                background: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                borderTopLeftRadius: '18px',
+                borderTopRightRadius: '18px',
+              }}
+            >
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
+                Official Attendance Register • Cohort: {selectedClassForAttendance} • Date: {attendanceDate}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  style={{
+                    background: primaryColor,
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.5rem 1.25rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  🖨️ Print Register PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPrintableAttendanceSheet(false)}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ✕ Close
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: `2.5px solid ${primaryColor}`,
+                  paddingBottom: '1.25rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <div>
+                  <h1 style={{ fontSize: '1.45rem', fontWeight: 900, margin: '0 0 2px', color: '#0f172a' }}>
+                    {school.name}
+                  </h1>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                    Official Attendance &amp; Classroom Registry Sheet
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div
+                    style={{
+                      display: 'inline-block',
+                      background: `${primaryColor}15`,
+                      color: primaryColor,
+                      fontWeight: 900,
+                      fontSize: '0.78rem',
+                      padding: '4px 12px',
+                      borderRadius: '6px',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    DAILY ROLL-CALL REGISTER
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '3px' }}>
+                    Date: {attendanceDate}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cohort Details */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '1rem',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem',
+                  fontSize: '0.8rem',
+                }}
+              >
+                <div>
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>CLASS COHORT:</span>
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{selectedClassForAttendance}</div>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>SUBJECT / MODULE:</span>
+                  <div style={{ fontWeight: 800, color: primaryColor, marginTop: '2px' }}>{selectedSubjectForAttendance}</div>
+                </div>
+                <div>
+                  <span style={{ color: '#64748b', fontWeight: 700 }}>INSTRUCTOR:</span>
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{sessionUser?.name || 'Class Teacher'}</div>
+                </div>
+              </div>
+
+              {/* Attendance Table */}
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.5rem' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>#</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Admission #</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Candidate Full Name</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Roll-Call Status</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Candidate Signature</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classStudents.map((s, idx) => {
+                    const rec = rollCallMap[s.id]
+                    return (
+                      <tr key={s.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '0.6rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
+                        <td style={{ padding: '0.6rem 0.5rem', fontFamily: 'monospace', fontWeight: 700, color: primaryColor }}>
+                          {s.admission_number}
+                        </td>
+                        <td style={{ padding: '0.6rem 0.5rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
+                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 10px',
+                              borderRadius: '6px',
+                              fontWeight: 800,
+                              fontSize: '0.74rem',
+                              background:
+                                rec?.status === 'present'
+                                  ? '#dcfce7'
+                                  : rec?.status === 'late'
+                                  ? '#fef3c7'
+                                  : '#fee2e2',
+                              color:
+                                rec?.status === 'present'
+                                  ? '#166534'
+                                  : rec?.status === 'late'
+                                  ? '#92400e'
+                                  : '#991b1b',
+                            }}
+                          >
+                            {rec?.status?.toUpperCase() || 'PRESENT'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#94a3b8' }}>
+                          _______________________
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+
+              {/* Signatures */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '2rem',
+                  paddingTop: '1.5rem',
+                  borderTop: '2px solid #e2e8f0',
+                  fontSize: '0.76rem',
+                }}
+              >
+                <div>
+                  <div style={{ height: '35px', borderBottom: '1px dotted #94a3b8', width: '160px' }} />
+                  <div style={{ marginTop: '4px', fontWeight: 800, color: '#0f172a' }}>Instructor Roll-Call Signature</div>
+                  <div style={{ color: '#64748b' }}>Certified Attendance Register</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ height: '35px', borderBottom: '1px dotted #94a3b8', width: '160px', marginLeft: 'auto' }} />
+                  <div style={{ marginTop: '4px', fontWeight: 800, color: '#0f172a' }}>Dean of Students</div>
+                  <div style={{ color: '#64748b' }}>Compliance Registry Seal</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

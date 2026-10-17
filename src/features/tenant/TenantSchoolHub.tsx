@@ -40,6 +40,10 @@ import {
   StaffLoginSlipModal,
   StaffPayslipModal,
   FeeReceiptModal,
+  StudentTranscriptModal,
+  StudentFeeInvoiceModal,
+  ExamClearancePassModal,
+  StaffAppointmentOfferLetterModal,
 } from './components/TenantPrintableDocuments'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
@@ -90,9 +94,13 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   // Modal Dialogs for Printable Official Records
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [selectedStaffSlip, setSelectedStaffSlip] = useState<TenantStaffMember | null>(null)
+  const [selectedStaffOfferLetter, setSelectedStaffOfferLetter] = useState<TenantStaffMember | null>(null)
   const [selectedAdmissionSlip, setSelectedAdmissionSlip] = useState<TenantStudentMember | null>(null)
   const [selectedPayslip, setSelectedPayslip] = useState<TenantPayrollRecord | null>(null)
   const [selectedReceipt, setSelectedReceipt] = useState<TenantFeePayment | null>(null)
+  const [selectedTranscriptStudent, setSelectedTranscriptStudent] = useState<TenantStudentMember | null>(null)
+  const [selectedInvoiceStudent, setSelectedInvoiceStudent] = useState<TenantStudentMember | null>(null)
+  const [selectedExamPassStudent, setSelectedExamPassStudent] = useState<TenantStudentMember | null>(null)
   const [activeStudent, setActiveStudent] = useState<TenantStudentMember | null>(null)
   const [showApplyModal, setShowApplyModal] = useState(false)
   const [applyProgramTitle, setApplyProgramTitle] = useState('')
@@ -2258,6 +2266,10 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               onSelectStudent={(s) => setActiveStudent(s)}
               onReloadData={() => reloadSchoolData(school.slug)}
               onOpenReceipt={(r) => setSelectedReceipt(r)}
+              onOpenTranscript={(stu) => setSelectedTranscriptStudent(stu)}
+              onOpenInvoice={(stu) => setSelectedInvoiceStudent(stu)}
+              onOpenExamPass={(stu) => setSelectedExamPassStudent(stu)}
+              onOpenAdmissionLetter={(stu) => setSelectedAdmissionSlip(stu)}
             />
 
           )
@@ -2306,6 +2318,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               onReloadData={() => reloadSchoolData(school.slug)}
               onOpenPayslip={(p) => setSelectedPayslip(p)}
               onOpenReceipt={(r) => setSelectedReceipt(r)}
+              onOpenInvoice={(stu) => setSelectedInvoiceStudent(stu)}
             />
 
           )
@@ -2329,6 +2342,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               payrollList={payrollList}
               onReloadData={() => reloadSchoolData(school.slug)}
               onOpenStaffSlip={(stf) => setSelectedStaffSlip(stf)}
+              onOpenStaffOfferLetter={(stf) => setSelectedStaffOfferLetter(stf)}
               onOpenAdmissionSlip={(stu) => setSelectedAdmissionSlip(stu)}
               onOpenDomainSettings={() => setShowDomainModal(true)}
             />
@@ -2601,6 +2615,45 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           school={school}
           receipt={selectedReceipt}
           onClose={() => setSelectedReceipt(null)}
+        />
+      )}
+
+      {/* MODAL: STUDENT ACADEMIC TRANSCRIPT */}
+      {selectedTranscriptStudent && (
+        <StudentTranscriptModal
+          school={school}
+          student={selectedTranscriptStudent}
+          grades={gradeList.filter((g) => g.student_id === selectedTranscriptStudent.id)}
+          periodName={school.active_period_name || 'Active Academic Session'}
+          onClose={() => setSelectedTranscriptStudent(null)}
+        />
+      )}
+
+      {/* MODAL: STUDENT FEE INVOICE & STATEMENT */}
+      {selectedInvoiceStudent && (
+        <StudentFeeInvoiceModal
+          school={school}
+          student={selectedInvoiceStudent}
+          payments={feePaymentsList.filter((p) => p.student_id === selectedInvoiceStudent.id)}
+          onClose={() => setSelectedInvoiceStudent(null)}
+        />
+      )}
+
+      {/* MODAL: EXAMINATION CLEARANCE & BIOMETRIC PASS */}
+      {selectedExamPassStudent && (
+        <ExamClearancePassModal
+          school={school}
+          student={selectedExamPassStudent}
+          onClose={() => setSelectedExamPassStudent(null)}
+        />
+      )}
+
+      {/* MODAL: STAFF APPOINTMENT & OFFER LETTER */}
+      {selectedStaffOfferLetter && (
+        <StaffAppointmentOfferLetterModal
+          school={school}
+          staff={selectedStaffOfferLetter}
+          onClose={() => setSelectedStaffOfferLetter(null)}
         />
       )}
 

@@ -20,6 +20,10 @@ interface TenantStudentDeskProps {
   onSelectStudent: (student: TenantStudentMember) => void
   onReloadData?: () => void
   onOpenReceipt: (receipt: TenantFeePayment) => void
+  onOpenTranscript?: (student: TenantStudentMember) => void
+  onOpenInvoice?: (student: TenantStudentMember) => void
+  onOpenExamPass?: (student: TenantStudentMember) => void
+  onOpenAdmissionLetter?: (student: TenantStudentMember) => void
 }
 
 export function TenantStudentDesk({
@@ -33,6 +37,10 @@ export function TenantStudentDesk({
   onSelectStudent,
   onReloadData,
   onOpenReceipt,
+  onOpenTranscript,
+  onOpenInvoice,
+  onOpenExamPass,
+  onOpenAdmissionLetter,
 }: TenantStudentDeskProps) {
   const primaryColor = school.primary_color || '#881337'
   const accentColor = school.accent_color || '#d4af37'
@@ -43,6 +51,7 @@ export function TenantStudentDesk({
   const [studentSubTab, setStudentSubTab] = useState<
     'report_card' | 'timetable' | 'notes' | 'fees' | 'attendance' | 'id_card'
   >('report_card')
+  const [showDocMenu, setShowDocMenu] = useState(false)
 
   // Timetable Day Filter
   const [timetableDayFilter, setTimetableDayFilter] = useState<string>('ALL')
@@ -412,27 +421,188 @@ export function TenantStudentDesk({
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={() => window.print()}
-              style={{
-                background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 120%)`,
-                color: '#ffffff',
-                fontWeight: 800,
-                padding: '0.65rem 1.25rem',
-                borderRadius: '12px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: `0 4px 16px -2px ${primaryColor}40`,
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>🖨️</span> Print Document
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setShowDocMenu((prev) => !prev)}
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 120%)`,
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  padding: '0.65rem 1.25rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: `0 4px 16px -2px ${primaryColor}40`,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>📑</span> Official Documents ▾
+              </button>
+
+              {showDocMenu && (
+                <div
+                  className="no-print"
+                  style={{
+                    position: 'absolute',
+                    top: '110%',
+                    right: 0,
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '14px',
+                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                    zIndex: 100,
+                    width: '260px',
+                    overflow: 'hidden',
+                    padding: '6px',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDocMenu(false)
+                      if (onOpenTranscript) onOpenTranscript(activeStudent)
+                      else setStudentSubTab('report_card')
+                    }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px 12px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <span>📜</span> Official Academic Transcript
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDocMenu(false)
+                      if (onOpenInvoice) onOpenInvoice(activeStudent)
+                      else setStudentSubTab('fees')
+                    }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px 12px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <span>📄</span> Fee Statement &amp; Invoice
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDocMenu(false)
+                      if (onOpenExamPass) onOpenExamPass(activeStudent)
+                      else setStudentSubTab('id_card')
+                    }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px 12px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <span>🎫</span> Exam &amp; Biometric Pass
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDocMenu(false)
+                      if (onOpenAdmissionLetter) onOpenAdmissionLetter(activeStudent)
+                    }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px 12px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <span>✉️</span> Official Admission Letter
+                  </button>
+
+                  <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDocMenu(false)
+                      window.print()
+                    }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'none',
+                      border: 'none',
+                      padding: '8px 12px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#64748b',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <span>🖨️</span> Print Current Screen
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -779,20 +949,42 @@ export function TenantStudentDesk({
               </div>
             </div>
 
-            <div
-              style={{
-                textAlign: 'right',
-                background: '#f8fafc',
-                padding: '0.75rem 1.25rem',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-              }}
-            >
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: primaryColor, textTransform: 'uppercase' }}>
-                OFFICIAL TRANSCRIPT
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => (onOpenTranscript ? onOpenTranscript(activeStudent) : window.print())}
+                style={{
+                  background: primaryColor,
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  padding: '0.65rem 1.15rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: `0 4px 12px -2px ${primaryColor}40`,
+                }}
+              >
+                <span>📜</span> Official Transcript PDF
+              </button>
+              <div
+                style={{
+                  textAlign: 'right',
+                  background: '#f8fafc',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                }}
+              >
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: primaryColor, textTransform: 'uppercase' }}>
+                  OFFICIAL TRANSCRIPT
+                </div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{activePeriod}</div>
+                <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 800 }}>Verified Digital Record ✓</div>
               </div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>{activePeriod}</div>
-              <div style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 800 }}>Verified Digital Record ✓</div>
             </div>
           </div>
 
@@ -1279,36 +1471,58 @@ export function TenantStudentDesk({
               </p>
             </div>
 
-            {activeStudent.fee_balance > 0 && (
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
               <button
                 type="button"
-                onClick={() => {
-                  setOnlinePaymentInput({
-                    amount: activeStudent.fee_balance,
-                    payment_method: 'Mobile Money (M-Pesa)',
-                    phone_or_account: activeStudent.guardian_phone || activeStudent.phone || '',
-                    reference_code: '',
-                  })
-                  setShowOnlinePaymentModal(true)
-                }}
+                onClick={() => (onOpenInvoice ? onOpenInvoice(activeStudent) : window.print())}
                 style={{
-                  background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
-                  color: '#ffffff',
+                  background: '#ffffff',
+                  color: '#0f172a',
                   fontWeight: 800,
-                  padding: '0.65rem 1.25rem',
+                  padding: '0.65rem 1.15rem',
                   borderRadius: '12px',
-                  border: 'none',
+                  border: '1.5px solid #cbd5e1',
                   cursor: 'pointer',
                   fontSize: '0.84rem',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  boxShadow: '0 4px 16px -2px rgba(22, 163, 74, 0.4)',
                 }}
               >
-                <span>💳</span> Pay Tuition Online
+                <span>📄</span> Official Fee Invoice / Statement PDF
               </button>
-            )}
+
+              {activeStudent.fee_balance > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOnlinePaymentInput({
+                      amount: activeStudent.fee_balance,
+                      payment_method: 'Mobile Money (M-Pesa)',
+                      phone_or_account: activeStudent.guardian_phone || activeStudent.phone || '',
+                      reference_code: '',
+                    })
+                    setShowOnlinePaymentModal(true)
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.84rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 16px -2px rgba(22, 163, 74, 0.4)',
+                  }}
+                >
+                  <span>💳</span> Pay Tuition Online
+                </button>
+              )}
+            </div>
           </div>
 
           <div
@@ -1781,7 +1995,7 @@ export function TenantStudentDesk({
 
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={() => (onOpenExamPass ? onOpenExamPass(activeStudent) : window.print())}
                 style={{
                   width: '100%',
                   background: primaryColor,

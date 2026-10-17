@@ -13,9 +13,9 @@ export function UnitRegistrationSlip({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1200 }}>
+    <div className="modal-overlay printable-modal-overlay" onClick={onClose} style={{ zIndex: 1200 }}>
       <div
-        className="modal-content modal-lg"
+        className="modal-content modal-lg printable-modal-card"
         onClick={(e) => e.stopPropagation()}
         style={{
           background: '#ffffff',
@@ -29,8 +29,8 @@ export function UnitRegistrationSlip({
         {/* Printable Unit Registration Header */}
         <div style={{ textAlign: 'center', borderBottom: '2px solid #1e3a8a', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#1e3a8a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 800 }}>
-              EI
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#1e3a8a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 800 }}>
+              GC
             </div>
             <div>
               <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 900, color: '#1e3a8a', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
