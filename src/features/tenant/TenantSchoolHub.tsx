@@ -358,94 +358,175 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   const domainLinks: TenantDomainLinks = getTenantDomainLinks(school)
 
   // Restricted Access Fallback Card
-  const renderRestrictedCard = (deskName: string, description: string, allowedRolesText: string) => (
-    <div
-      style={{
-        background: '#ffffff',
-        borderRadius: '24px',
-        padding: '3rem 2rem',
-        border: '1.5px solid #e2e8f0',
-        maxWidth: '680px',
-        margin: '2rem auto',
-        textAlign: 'center',
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.04)',
-      }}
-    >
+  const renderRestrictedCard = (deskName: string, description: string, allowedRolesText: string) => {
+    const userRole = currentSession?.role
+    const roleDeskMap: Record<string, typeof activeTab> = {
+      admin: 'principal',
+      principal: 'principal',
+      teacher: 'teacher',
+      bursar: 'bursar',
+      student: 'student',
+    }
+    const myDesk = userRole ? roleDeskMap[userRole] : null
+
+    return (
       <div
         style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '20px',
-          background: '#fef2f2',
-          color: '#dc2626',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 1.5rem',
+          maxWidth: '680px',
+          margin: '3rem auto',
+          background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
+          borderRadius: '24px',
+          padding: '2.75rem 2.25rem',
+          border: '1px solid rgba(226, 232, 240, 0.9)',
+          boxShadow: '0 10px 35px -5px rgba(15, 23, 42, 0.06)',
+          textAlign: 'center',
         }}
       >
-        <LockIcon size={28} color="#dc2626" />
-      </div>
-
-      <span
-        style={{
-          fontSize: '0.72rem',
-          fontWeight: 800,
-          color: '#dc2626',
-          background: '#fee2e2',
-          padding: '3px 10px',
-          borderRadius: '6px',
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-        }}
-      >
-        Restricted Portal Desk
-      </span>
-
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '0.75rem 0 0.5rem' }}>
-        Authentication Required for {deskName}
-      </h2>
-
-      <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 1.5rem' }}>
-        {description}
-      </p>
-
-      <div
-        style={{
-          background: '#f8fafc',
-          borderRadius: '12px',
-          padding: '0.75rem 1.25rem',
-          border: '1px solid #e2e8f0',
-          display: 'inline-block',
-          marginBottom: '1.5rem',
-          fontSize: '0.82rem',
-          color: '#475569',
-        }}
-      >
-        Authorized Roles: <strong>{allowedRolesText}</strong>
-      </div>
-
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowLoginModal(true)}
+        <div
           style={{
-            background: primaryColor,
-            color: '#ffffff',
-            fontWeight: 800,
-            padding: '0.75rem 1.75rem',
-            borderRadius: '12px',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            boxShadow: `0 4px 16px ${primaryColor}40`,
+            width: '64px',
+            height: '64px',
+            borderRadius: '20px',
+            background: '#fef2f2',
+            color: '#dc2626',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem',
+            border: '2px solid #fee2e2',
+            boxShadow: '0 4px 14px rgba(220, 38, 38, 0.12)',
           }}
         >
-          Sign In to Access {deskName} ➔
-        </button>
+          <LockIcon size={28} color="#dc2626" />
+        </div>
+
+        <span
+          style={{
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            color: '#dc2626',
+            background: '#fee2e2',
+            padding: '3px 10px',
+            borderRadius: '6px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          Restricted Portal Desk
+        </span>
+
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a', margin: '0.75rem 0 0.5rem' }}>
+          Authentication Required for {deskName}
+        </h2>
+
+        <p style={{ color: '#64748b', fontSize: '0.88rem', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 1.5rem' }}>
+          {description}
+        </p>
+
+        <div
+          style={{
+            background: '#f8fafc',
+            borderRadius: '12px',
+            padding: '0.75rem 1.25rem',
+            border: '1px solid #e2e8f0',
+            display: 'inline-block',
+            marginBottom: '1.75rem',
+            fontSize: '0.82rem',
+            color: '#475569',
+          }}
+        >
+          Authorized Access: <strong>{allowedRolesText}</strong>
+          {currentSession && (
+            <div style={{ marginTop: '4px', fontSize: '0.76rem', color: '#64748b' }}>
+              Current Active Session: <strong>{currentSession.name}</strong> ({currentSession.role.toUpperCase()})
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {myDesk ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab(myDesk)
+                  navigate(getDeskRoute(myDesk))
+                }}
+                style={{
+                  background: primaryColor,
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  padding: '0.75rem 1.75rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.88rem',
+                  boxShadow: `0 4px 16px ${primaryColor}40`,
+                }}
+              >
+                Return to My {userRole?.toUpperCase()} Desk ➔
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(true)}
+                style={{
+                  background: '#ffffff',
+                  color: '#475569',
+                  fontWeight: 700,
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '12px',
+                  border: '1.5px solid #cbd5e1',
+                  cursor: 'pointer',
+                  fontSize: '0.88rem',
+                }}
+              >
+                Switch Account / Sign In ➔
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(true)}
+                style={{
+                  background: primaryColor,
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  padding: '0.75rem 1.75rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.88rem',
+                  boxShadow: `0 4px 16px ${primaryColor}40`,
+                }}
+              >
+                Sign In to Access {deskName} ➔
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('hub')
+                  navigate(getDeskRoute('hub'))
+                }}
+                style={{
+                  background: '#ffffff',
+                  color: '#475569',
+                  fontWeight: 700,
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '12px',
+                  border: '1.5px solid #cbd5e1',
+                  cursor: 'pointer',
+                  fontSize: '0.88rem',
+                }}
+              >
+                Campus Overview
+              </button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const isLicenseActive = Boolean(
     school.active_license_key &&
@@ -771,9 +852,9 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               {divider('d1')}
               {sectionLabel('Role Workspaces')}
               {activeRole === 'admin' && item('principal', '🛡️', 'Principal Office')}
-              {(activeRole === 'admin' || activeRole === 'bursar') && item('bursar', '💳', 'Bursar Desk')}
-              {(activeRole === 'admin' || activeRole === 'teacher') && item('teacher', '📖', 'Teacher Portal')}
-              {(activeRole === 'admin' || activeRole === 'student') && item('student', '🎓', 'Student Portal')}
+              {activeRole === 'bursar' && item('bursar', '💳', 'Bursar Desk')}
+              {activeRole === 'teacher' && item('teacher', '📖', 'Teacher Portal')}
+              {activeRole === 'student' && item('student', '🎓', 'Student Portal')}
               {activeRole === 'public' && (
                 <button
                   type="button"
@@ -1201,9 +1282,9 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           style={{
             background: '#ffffff',
             borderTop: '1px solid #f1f5f9',
-            padding: '0.35rem 1rem',
+            padding: '0.4rem 1rem',
             display: 'flex',
-            gap: '0.35rem',
+            gap: '0.45rem',
             overflowX: 'auto',
             scrollbarWidth: 'none',
           }}
@@ -1214,9 +1295,9 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               { tab: 'programs', icon: '📚', label: 'Programs' },
               { tab: 'calendar', icon: '📅', label: 'Calendar' },
               ...(activeRole === 'admin' ? [{ tab: 'principal', icon: '🛡️', label: 'Principal Office' }] : []),
-              ...(activeRole === 'admin' || activeRole === 'bursar' ? [{ tab: 'bursar', icon: '💳', label: 'Bursar Desk' }] : []),
-              ...(activeRole === 'admin' || activeRole === 'teacher' ? [{ tab: 'teacher', icon: '📖', label: 'Teacher Portal' }] : []),
-              ...(activeRole === 'admin' || activeRole === 'student' ? [{ tab: 'student', icon: '🎓', label: 'Student Portal' }] : []),
+              ...(activeRole === 'bursar' ? [{ tab: 'bursar', icon: '💳', label: 'Bursar Desk' }] : []),
+              ...(activeRole === 'teacher' ? [{ tab: 'teacher', icon: '📖', label: 'Teacher Portal' }] : []),
+              ...(activeRole === 'student' ? [{ tab: 'student', icon: '🎓', label: 'Student Portal' }] : []),
               ...(activeRole === 'admin' ? [{ tab: 'billing', icon: '💳', label: 'Billing & License' }] : []),
               ...(currentSession ? [{ tab: 'profile', icon: '👤', label: 'My Profile' }] : []),
             ] as { tab: typeof activeTab; icon: string; label: string }[]
@@ -1231,9 +1312,9 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   navigate(getDeskRoute(tab))
                 }}
                 style={{
-                  background: isActive ? primaryColor : '#f8fafc',
+                  background: isActive ? `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 120%)` : '#f8fafc',
                   border: isActive ? `1px solid ${primaryColor}` : '1px solid #e2e8f0',
-                  padding: '0.45rem 0.95rem',
+                  padding: '0.48rem 1rem',
                   fontSize: '0.8rem',
                   fontWeight: isActive ? 800 : 600,
                   color: isActive ? '#ffffff' : '#475569',
@@ -1243,9 +1324,9 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  boxShadow: isActive ? `0 2px 8px ${primaryColor}40` : 'none',
+                  boxShadow: isActive ? `0 3px 12px ${primaryColor}40` : 'none',
                   transition: 'all 0.15s ease',
-                  minHeight: '34px',
+                  minHeight: '36px',
                 }}
               >
                 <span>{icon}</span>
@@ -2049,11 +2130,13 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
         {/* VIEW 3: STUDENT DESK */}
         {activeTab === 'student' && (
-          activeRole !== 'admin' && activeRole !== 'student' ? (
+          activeRole !== 'student' ? (
             renderRestrictedCard(
               'Student Learning Portal',
-              'This workspace contains personalized course modules, lecture notes, timetable periods, attendance tracking, and individual report card results. Access is strictly scoped to enrolled students and executive administrators.',
-              'Executive Admin, Enrolled Student'
+              activeRole === 'admin'
+                ? 'This workspace is restricted to enrolled students. As an Executive Administrator, please use the Admissions & Student Registry inside your Principal Office to manage students, inspect transcripts, and generate fee invoices.'
+                : 'This workspace contains personalized course modules, lecture notes, timetable periods, attendance tracking, and individual report card results. Access is strictly scoped to enrolled students.',
+              'Enrolled Student Only'
             )
           ) : (
             <TenantStudentDesk
@@ -2062,7 +2145,14 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               gradeList={gradeList}
               lessonNotesList={lessonNotesList}
               feePaymentsList={feePaymentsList}
-              activeStudent={activeStudent || studentList[0]}
+              activeStudent={
+                studentList.find(
+                  (s) =>
+                    s.id === currentSession?.id ||
+                    s.admission_number === currentSession?.admission_number ||
+                    s.username === currentSession?.username
+                ) || activeStudent || studentList[0]
+              }
               sessionUser={currentSession}
               onSelectStudent={(s) => setActiveStudent(s)}
               onReloadData={() => reloadSchoolData(school.slug)}
@@ -2077,11 +2167,13 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
         {/* VIEW 4: TEACHER DESK */}
         {activeTab === 'teacher' && (
-          activeRole !== 'admin' && activeRole !== 'teacher' ? (
+          activeRole !== 'teacher' ? (
             renderRestrictedCard(
               'Teacher & Faculty Workspace',
-              'This workspace contains attendance registers, continuous assessment test (CAT) gradebooks, student examination marks entry, and curriculum materials. Only teaching faculty and executive administrators may enter.',
-              'Executive Admin, Teacher'
+              activeRole === 'admin'
+                ? 'This workspace is restricted to teaching faculty. As an Executive Administrator, please manage teaching staff assignments and curriculum in your Principal Office.'
+                : 'This workspace contains attendance registers, continuous assessment test (CAT) gradebooks, student examination marks entry, and curriculum materials. Only authenticated teaching faculty may enter.',
+              'Teaching Faculty Only'
             )
           ) : (
             <TenantTeacherDesk
@@ -2097,11 +2189,13 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
         {/* VIEW 5: BURSAR DESK */}
         {activeTab === 'bursar' && (
-          activeRole !== 'admin' && activeRole !== 'bursar' ? (
+          activeRole !== 'bursar' ? (
             renderRestrictedCard(
               'Bursar & Finance Office',
-              'This finance desk contains confidential institution revenue ledgers, student fee balances, tuition invoices, and receipt printing. Only bursars and executive administrators may enter.',
-              'Executive Admin, Bursar'
+              activeRole === 'admin'
+                ? 'This finance workspace is restricted to authorized Bursars & Finance Officers. Executive revenue totals and payroll approvals can be accessed in your Principal Office.'
+                : 'This finance desk contains confidential institution revenue ledgers, student fee balances, tuition invoices, and receipt printing. Only bursars and executive finance officers may enter.',
+              'Bursar / Finance Officer Only'
             )
           ) : (
             <TenantBursarDesk
@@ -2174,7 +2268,14 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         )}
 
         {activeTab === 'billing' && (
-          <div style={{ maxWidth: '980px', margin: '0 auto' }}>
+          activeRole !== 'admin' ? (
+            renderRestrictedCard(
+              'Institutional Billing & Licensing',
+              'Multi-campus subscription plans, product key activations, and institutional billing management are strictly restricted to the Executive Administrator.',
+              'Executive Admin Only'
+            )
+          ) : (
+            <div style={{ maxWidth: '980px', margin: '0 auto' }}>
             <div style={{ background: '#ffffff', borderRadius: '24px', padding: '2.5rem', border: '1px solid #e2e8f0', boxShadow: '0 8px 30px rgba(0,0,0,0.04)', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
@@ -2334,7 +2435,8 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               </div>
             </div>
           </div>
-        )}
+        )
+      )}
       </main>
 
       {/* Official Institutional Contact Footer */}

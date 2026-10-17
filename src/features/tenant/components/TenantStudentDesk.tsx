@@ -33,7 +33,7 @@ export function TenantStudentDesk({
   lessonNotesList,
   feePaymentsList,
   activeStudent,
-  sessionUser: _sessionUser,
+  sessionUser,
   onSelectStudent,
   onReloadData,
   onOpenReceipt,
@@ -315,21 +315,46 @@ export function TenantStudentDesk({
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
             <div
               style={{
-                width: '60px',
-                height: '60px',
-                borderRadius: '18px',
+                position: 'relative',
+                width: '68px',
+                height: '68px',
+                borderRadius: '20px',
                 background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.8rem',
+                fontSize: '1.45rem',
+                fontWeight: 900,
+                letterSpacing: '1px',
                 boxShadow: `0 8px 24px -4px ${primaryColor}40`,
-                border: '2px solid rgba(255, 255, 255, 0.2)',
+                border: `2.5px solid ${accentColor}`,
                 flexShrink: 0,
               }}
             >
-              🎓
+              {(activeStudent.full_name || 'Student')
+                .split(' ')
+                .map((n) => n[0])
+                .filter(Boolean)
+                .slice(0, 2)
+                .join('')
+                .toUpperCase()}
+              <div
+                title="Active Enrolled Learner"
+                style={{
+                  position: 'absolute',
+                  bottom: '-3px',
+                  right: '-3px',
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  background: '#16a34a',
+                  border: '2.5px solid #ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -342,29 +367,33 @@ export function TenantStudentDesk({
                     letterSpacing: '0.08em',
                   }}
                 >
-                  {school.name} STUDENT DESK
+                  {school.name} • STUDENT DESK
                 </span>
                 <span
                   style={{
                     background: '#e0f2fe',
                     color: '#0369a1',
                     fontSize: '0.68rem',
-                    fontWeight: 700,
-                    padding: '2px 8px',
+                    fontWeight: 800,
+                    padding: '2px 9px',
                     borderRadius: '9999px',
                     border: '1px solid #bae6fd',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
                   }}
                 >
-                  VERIFIED LEARNER
+                  <span>🛡️</span> VERIFIED LEARNER
                 </span>
                 <span
                   style={{
                     background: activeStudent.fee_balance === 0 ? '#dcfce7' : '#fee2e2',
                     color: activeStudent.fee_balance === 0 ? '#15803d' : '#991b1b',
                     fontSize: '0.68rem',
-                    fontWeight: 700,
-                    padding: '2px 8px',
+                    fontWeight: 800,
+                    padding: '2px 9px',
                     borderRadius: '9999px',
+                    border: activeStudent.fee_balance === 0 ? '1px solid #86efac' : '1px solid #fca5a5',
                   }}
                 >
                   {activeStudent.fee_balance === 0 ? '✓ Exam Clearance Active' : '⚠️ Fee Clearance Pending'}
@@ -373,29 +402,38 @@ export function TenantStudentDesk({
 
               <h2
                 style={{
-                  fontSize: '1.65rem',
+                  fontSize: '1.85rem',
                   fontWeight: 900,
-                  margin: '4px 0 0',
+                  margin: '4px 0 2px',
                   color: '#0f172a',
-                  letterSpacing: '-0.02em',
+                  letterSpacing: '-0.025em',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
                 }}
               >
                 {activeStudent.full_name}
               </h2>
 
-              <div style={{ fontSize: '0.86rem', color: '#64748b', marginTop: '4px' }}>
-                Admission No: <strong style={{ color: '#0f172a' }}>{activeStudent.admission_number}</strong> • Class Cohort:{' '}
-                <strong style={{ color: '#0f172a' }}>{activeStudent.grade_class}</strong> • Period:{' '}
-                <strong style={{ color: '#0f172a' }}>{activePeriod}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.82rem', color: '#64748b', marginTop: '4px' }}>
+                <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, color: '#334155' }}>
+                  Admission: <strong style={{ color: '#0f172a' }}>{activeStudent.admission_number}</strong>
+                </span>
+                <span>•</span>
+                <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, color: '#334155' }}>
+                  Cohort: <strong style={{ color: '#0f172a' }}>{activeStudent.grade_class}</strong>
+                </span>
+                <span>•</span>
+                <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, color: '#334155' }}>
+                  Period: <strong style={{ color: '#0f172a' }}>{activePeriod}</strong>
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Student Switcher & Print Action */}
+          {/* Student Switcher (Admin Only) & Quick Pay & Print Action */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {studentList.length > 1 && (
+            {studentList.length > 1 && sessionUser?.role === 'admin' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>Switch Student:</span>
+                <span style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 700 }}>Staff Switch:</span>
                 <select
                   value={activeStudent.id}
                   onChange={(e) => {
@@ -419,6 +457,29 @@ export function TenantStudentDesk({
                   ))}
                 </select>
               </div>
+            )}
+
+            {activeStudent.fee_balance > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowOnlinePaymentModal(true)}
+                style={{
+                  background: '#16a34a',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  padding: '0.65rem 1.15rem',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '0.82rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 14px rgba(22, 163, 74, 0.3)',
+                }}
+              >
+                <span>💳</span> Pay Balance Online
+              </button>
             )}
 
             <div style={{ position: 'relative' }}>
@@ -606,149 +667,62 @@ export function TenantStudentDesk({
           </div>
         </div>
 
-        {/* Sub-tab Navigation Pills */}
+        {/* Modern Segmented Navigation Bar */}
         <div
           style={{
             display: 'flex',
-            gap: '0.35rem',
-            flexWrap: 'wrap',
-            background: '#f8fafc',
+            gap: '0.45rem',
+            overflowX: 'auto',
+            background: '#f1f5f9',
             padding: '6px',
             borderRadius: '16px',
             border: '1px solid #e2e8f0',
+            scrollbarWidth: 'none',
           }}
         >
-          <button
-            type="button"
-            onClick={() => setStudentSubTab('report_card')}
-            style={{
-              background: studentSubTab === 'report_card' ? primaryColor : 'transparent',
-              color: studentSubTab === 'report_card' ? '#ffffff' : '#475569',
-              border: 'none',
-              padding: '0.55rem 1.15rem',
-              borderRadius: '10px',
-              fontSize: '0.82rem',
-              fontWeight: studentSubTab === 'report_card' ? 800 : 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: studentSubTab === 'report_card' ? `0 4px 12px ${primaryColor}33` : 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>📜</span> Academic Report Card
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStudentSubTab('timetable')}
-            style={{
-              background: studentSubTab === 'timetable' ? primaryColor : 'transparent',
-              color: studentSubTab === 'timetable' ? '#ffffff' : '#475569',
-              border: 'none',
-              padding: '0.55rem 1.15rem',
-              borderRadius: '10px',
-              fontSize: '0.82rem',
-              fontWeight: studentSubTab === 'timetable' ? 800 : 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: studentSubTab === 'timetable' ? `0 4px 12px ${primaryColor}33` : 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>🗓️</span> Class Timetable ({classTimetable.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStudentSubTab('notes')}
-            style={{
-              background: studentSubTab === 'notes' ? primaryColor : 'transparent',
-              color: studentSubTab === 'notes' ? '#ffffff' : '#475569',
-              border: 'none',
-              padding: '0.55rem 1.15rem',
-              borderRadius: '10px',
-              fontSize: '0.82rem',
-              fontWeight: studentSubTab === 'notes' ? 800 : 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: studentSubTab === 'notes' ? `0 4px 12px ${primaryColor}33` : 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>📚</span> Study Notes &amp; Syllabi ({classNotes.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStudentSubTab('fees')}
-            style={{
-              background: studentSubTab === 'fees' ? primaryColor : 'transparent',
-              color: studentSubTab === 'fees' ? '#ffffff' : '#475569',
-              border: 'none',
-              padding: '0.55rem 1.15rem',
-              borderRadius: '10px',
-              fontSize: '0.82rem',
-              fontWeight: studentSubTab === 'fees' ? 800 : 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: studentSubTab === 'fees' ? `0 4px 12px ${primaryColor}33` : 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>💳</span> Tuition Statement ({currency} {activeStudent.fee_balance.toLocaleString()} due)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStudentSubTab('attendance')}
-            style={{
-              background: studentSubTab === 'attendance' ? primaryColor : 'transparent',
-              color: studentSubTab === 'attendance' ? '#ffffff' : '#475569',
-              border: 'none',
-              padding: '0.55rem 1.15rem',
-              borderRadius: '10px',
-              fontSize: '0.82rem',
-              fontWeight: studentSubTab === 'attendance' ? 800 : 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: studentSubTab === 'attendance' ? `0 4px 12px ${primaryColor}33` : 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>📊</span> Roll Call Attendance ({attendanceStats.rate}%)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStudentSubTab('id_card')}
-            style={{
-              background: studentSubTab === 'id_card' ? primaryColor : 'transparent',
-              color: studentSubTab === 'id_card' ? '#ffffff' : '#475569',
-              border: 'none',
-              padding: '0.55rem 1.15rem',
-              borderRadius: '10px',
-              fontSize: '0.82rem',
-              fontWeight: studentSubTab === 'id_card' ? 800 : 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: studentSubTab === 'id_card' ? `0 4px 12px ${primaryColor}33` : 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>🪪</span> Digital Student ID &amp; Exam Pass
-          </button>
+          {[
+            { id: 'report_card' as const, icon: '📊', label: 'Academic Performance' },
+            { id: 'timetable' as const, icon: '🗓️', label: `Timetable (${classTimetable.length})` },
+            { id: 'notes' as const, icon: '📚', label: `Study Notes (${classNotes.length})` },
+            {
+              id: 'fees' as const,
+              icon: '💳',
+              label: activeStudent.fee_balance > 0
+                ? `Tuition (${currency} ${activeStudent.fee_balance.toLocaleString()} due)`
+                : 'Tuition (Cleared)'
+            },
+            { id: 'attendance' as const, icon: '📋', label: `Attendance (${attendanceStats.rate}%)` },
+            { id: 'id_card' as const, icon: '🪪', label: 'Digital Student ID & Pass' },
+          ].map((item) => {
+            const isActive = studentSubTab === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setStudentSubTab(item.id)}
+                style={{
+                  background: isActive ? '#ffffff' : 'transparent',
+                  color: isActive ? primaryColor : '#475569',
+                  border: isActive ? '1px solid #cbd5e1' : '1px solid transparent',
+                  padding: '0.6rem 1.15rem',
+                  borderRadius: '11px',
+                  fontSize: '0.82rem',
+                  fontWeight: isActive ? 800 : 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+              >
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -758,8 +732,8 @@ export function TenantStudentDesk({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-          gap: '1rem',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: '1.15rem',
           marginBottom: '1.75rem',
         }}
       >
@@ -767,29 +741,34 @@ export function TenantStudentDesk({
         <div
           style={{
             background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
-            borderRadius: '18px',
-            padding: '1.35rem 1.5rem',
+            borderRadius: '20px',
+            padding: '1.5rem',
             border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            boxShadow: '0 4px 18px -2px rgba(15, 23, 42, 0.04)',
             position: 'relative',
             overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: primaryColor }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: primaryColor }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               ACADEMIC STANDING
             </span>
-            <span style={{ fontSize: '1.1rem' }}>🏆</span>
+            <span style={{ width: '32px', height: '32px', borderRadius: '10px', background: `${primaryColor}14`, color: primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+              🏆
+            </span>
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 4px', letterSpacing: '-0.02em' }}>
             {hasGrades ? (
               <>
-                Grade {overallGrade} <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#64748b' }}>({averagePercentage}%)</span>
+                Grade {overallGrade} <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#64748b' }}>({averagePercentage}%)</span>
               </>
             ) : (
-              <span style={{ fontSize: '1.15rem', color: '#64748b' }}>Assessment Pending</span>
+              <span style={{ fontSize: '1.2rem', color: '#64748b' }}>Assessment Pending</span>
             )}
+          </div>
+          <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
+            <div style={{ width: `${averagePercentage || 50}%`, background: primaryColor, height: '100%', borderRadius: '999px' }} />
           </div>
           <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span>●</span> Rank {classRanking.rank} of {classRanking.total} in {activeStudent.grade_class}
@@ -800,23 +779,28 @@ export function TenantStudentDesk({
         <div
           style={{
             background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
-            borderRadius: '18px',
-            padding: '1.35rem 1.5rem',
+            borderRadius: '20px',
+            padding: '1.5rem',
             border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            boxShadow: '0 4px 18px -2px rgba(15, 23, 42, 0.04)',
             position: 'relative',
             overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#059669' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#059669' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               ROLL CALL ATTENDANCE
             </span>
-            <span style={{ fontSize: '1.1rem' }}>📋</span>
+            <span style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+              📋
+            </span>
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#059669', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#059669', margin: '8px 0 4px', letterSpacing: '-0.02em' }}>
             {attendanceStats.rate}%
+          </div>
+          <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
+            <div style={{ width: `${Math.min(100, attendanceStats.rate)}%`, background: attendanceStats.rate >= 75 ? '#059669' : '#dc2626', height: '100%', borderRadius: '999px' }} />
           </div>
           <div style={{ fontSize: '0.78rem', color: attendanceStats.rate >= 75 ? '#059669' : '#dc2626', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span>●</span> {attendanceStats.rate >= 75 ? 'Meets Exam Threshold (≥75%)' : 'Attendance Warning (<75%)'}
@@ -827,10 +811,10 @@ export function TenantStudentDesk({
         <div
           style={{
             background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
-            borderRadius: '18px',
-            padding: '1.35rem 1.5rem',
+            borderRadius: '20px',
+            padding: '1.5rem',
             border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            boxShadow: '0 4px 18px -2px rgba(15, 23, 42, 0.04)',
             position: 'relative',
             overflow: 'hidden',
           }}
@@ -841,29 +825,41 @@ export function TenantStudentDesk({
               top: 0,
               left: 0,
               right: 0,
-              height: '3px',
+              height: '4px',
               background: activeStudent.fee_balance > 0 ? '#dc2626' : '#16a34a',
             }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               FEE CLEARANCE STATUS
             </span>
-            <span style={{ fontSize: '1.1rem' }}>💳</span>
+            <span style={{ width: '32px', height: '32px', borderRadius: '10px', background: activeStudent.fee_balance > 0 ? '#fef2f2' : '#f0fdf4', color: activeStudent.fee_balance > 0 ? '#dc2626' : '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+              💳
+            </span>
           </div>
           <div
             style={{
-              fontSize: '1.65rem',
+              fontSize: '1.75rem',
               fontWeight: 900,
               color: activeStudent.fee_balance > 0 ? '#dc2626' : '#16a34a',
-              margin: '6px 0 2px',
+              margin: '8px 0 4px',
               letterSpacing: '-0.02em',
             }}
           >
             {activeStudent.fee_balance === 0 ? 'Fully Cleared' : `${currency} ${activeStudent.fee_balance.toLocaleString()}`}
           </div>
+          <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
+            <div
+              style={{
+                width: `${activeStudent.fee_total > 0 ? Math.min(100, Math.round((activeStudent.fee_paid / activeStudent.fee_total) * 100)) : 100}%`,
+                background: activeStudent.fee_balance > 0 ? '#dc2626' : '#16a34a',
+                height: '100%',
+                borderRadius: '999px',
+              }}
+            />
+          </div>
           <div style={{ fontSize: '0.78rem', color: activeStudent.fee_balance > 0 ? '#dc2626' : '#16a34a', fontWeight: 700 }}>
-            {activeStudent.fee_balance > 0 ? 'Pending Term Balance' : 'Zero Outstanding Balance ✓'}
+            {activeStudent.fee_balance > 0 ? 'Outstanding Tuition Due' : 'Zero Outstanding Balance ✓'}
           </div>
         </div>
 
@@ -871,23 +867,28 @@ export function TenantStudentDesk({
         <div
           style={{
             background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
-            borderRadius: '18px',
-            padding: '1.35rem 1.5rem',
+            borderRadius: '20px',
+            padding: '1.5rem',
             border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
+            boxShadow: '0 4px 18px -2px rgba(15, 23, 42, 0.04)',
             position: 'relative',
             overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#3b82f6' }} />
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#3b82f6' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              STUDY MATERIALS
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              COURSEWORK &amp; SYLLABI
             </span>
-            <span style={{ fontSize: '1.1rem' }}>📚</span>
+            <span style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+              📚
+            </span>
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 2px', letterSpacing: '-0.02em' }}>
-            {classNotes.length} <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#64748b' }}>Modules</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', margin: '8px 0 4px', letterSpacing: '-0.02em' }}>
+            {classNotes.length} <span style={{ fontSize: '0.92rem', fontWeight: 700, color: '#64748b' }}>Modules</span>
+          </div>
+          <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
+            <div style={{ width: '100%', background: '#3b82f6', height: '100%', borderRadius: '999px' }} />
           </div>
           <div style={{ fontSize: '0.78rem', color: '#3b82f6', fontWeight: 700 }}>
             Across {availableSubjects.length} Registered Subjects
