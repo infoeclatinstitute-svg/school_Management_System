@@ -47,6 +47,7 @@ import {
 } from './components/TenantPrintableDocuments'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
+import { getContrastColor } from '@/utils/colorContrast'
 
 export interface TenantSchoolHubProps {
   forcedSlug?: string
@@ -1578,7 +1579,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   onClick={() => handleOpenApplyModal()}
                   style={{
                     background: accentColor || '#d4af37',
-                    color: '#0f172a',
+                    color: getContrastColor(accentColor || '#d4af37'),
                     fontWeight: 900,
                     padding: '0.8rem 1.4rem',
                     borderRadius: '12px',

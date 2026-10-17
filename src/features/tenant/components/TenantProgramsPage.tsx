@@ -8,6 +8,7 @@ import {
   CreditCardIcon,
   ClockIcon,
 } from '@/components/icons/AppIcons'
+import { getContrastColor } from '@/utils/colorContrast'
 
 interface TenantProgramsPageProps {
   school: PartnerSchoolTenant
@@ -179,42 +180,64 @@ export function TenantProgramsPage({
       {/* Hero Header */}
       <div
         style={{
-          background: `linear-gradient(135deg, ${school.primary_color} 0%, #0f172a 100%)`,
-          color: '#ffffff',
+          background: '#ffffff',
           borderRadius: '24px',
-          padding: '2.5rem 2rem',
+          border: '1px solid #e2e8f0',
+          padding: 'clamp(1.75rem, 3.5vw, 2.5rem)',
           marginBottom: '2rem',
           position: 'relative',
           overflow: 'hidden',
-          boxShadow: `0 16px 36px ${school.primary_color}25`,
+          boxShadow: '0 10px 30px -10px rgba(15, 23, 42, 0.06)',
         }}
       >
+        {/* Top ambient brand ribbon */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '5px',
+            background: `linear-gradient(90deg, ${school.primary_color}, ${school.accent_color || '#0284c7'})`,
+          }}
+        />
+
         <div style={{ maxWidth: '850px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.6rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
             <span
               style={{
-                background: 'rgba(255, 255, 255, 0.16)',
-                color: school.accent_color || '#38bdf8',
+                background: `${school.primary_color}14`,
+                color: school.primary_color,
                 padding: '4px 12px',
                 borderRadius: '999px',
                 fontSize: '0.74rem',
                 fontWeight: 900,
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
+                border: `1px solid ${school.primary_color}25`,
               }}
             >
               🎓 Academic Prospectus &amp; Programs
             </span>
-            <span style={{ fontSize: '0.75rem', opacity: 0.9, color: '#cbd5e1' }}>
-              • {programs.length} Approved Programs Offered
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>
+              • {programs.length} Approved Program{programs.length !== 1 ? 's' : ''} Offered
             </span>
           </div>
 
-          <h1 style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', fontWeight: 900, margin: '0 0 0.5rem', lineHeight: 1.2, color: '#ffffff', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+          <h1
+            style={{
+              fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)',
+              fontWeight: 900,
+              margin: '0.5rem 0 0.5rem',
+              lineHeight: 1.2,
+              color: '#0f172a',
+              letterSpacing: '-0.02em',
+            }}
+          >
             Programs Offered at {school.name}
           </h1>
 
-          <p style={{ fontSize: '1rem', color: '#e2e8f0', opacity: 0.95, margin: '0 0 1.25rem', lineHeight: 1.55 }}>
+          <p style={{ fontSize: '1rem', color: '#475569', margin: '0 0 1.25rem', lineHeight: 1.55 }}>
             Explore industry-aligned courses, diplomas, and certifications designed for practical competence and career leadership.
           </p>
 
@@ -224,17 +247,19 @@ export function TenantProgramsPage({
                 type="button"
                 onClick={() => onOpenAdmissions()}
                 style={{
-                  background: school.accent_color || '#d4af37',
-                  color: '#0f172a',
+                  background: school.accent_color || school.primary_color || '#0284c7',
+                  color: getContrastColor(school.accent_color || school.primary_color || '#0284c7'),
                   fontWeight: 900,
                   fontSize: '0.88rem',
-                  padding: '0.7rem 1.4rem',
+                  padding: '0.75rem 1.4rem',
                   borderRadius: '12px',
                   border: 'none',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(15, 23, 42, 0.12)',
+                  transition: 'transform 0.15s ease',
                 }}
               >
                 Apply for Admission Now <ArrowRightIcon size={16} />
@@ -246,17 +271,18 @@ export function TenantProgramsPage({
                 type="button"
                 onClick={openNewProgramModal}
                 style={{
-                  background: '#ffffff',
-                  color: '#0f172a',
+                  background: '#0f172a',
+                  color: '#ffffff',
                   fontWeight: 900,
                   fontSize: '0.86rem',
-                  padding: '0.7rem 1.25rem',
+                  padding: '0.75rem 1.25rem',
                   borderRadius: '12px',
                   border: 'none',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
+                  boxShadow: '0 4px 14px rgba(15, 23, 42, 0.15)',
                 }}
               >
                 + Add New Program (Admin)
