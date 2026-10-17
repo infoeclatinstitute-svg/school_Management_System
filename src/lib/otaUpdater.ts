@@ -8,6 +8,47 @@
 const LOCAL_BUILD_TIME_KEY = 'gc_ota_build_timestamp'
 let isCheckingUpdate = false
 let isReloading = false
+let pendingSilentUpdate = false
+let idleTimer: any = null
+
+function scheduleSilentActivation() {
+  if (typeof window === 'undefined' || !pendingSilentUpdate) return
+
+  // 1. Silent swap when tab/app goes into the background
+  const onVisibilityChange = () => {
+    if (document.visibilityState === 'hidden' && pendingSilentUpdate && !isReloading) {
+      isReloading = true
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.location.reload()
+    }
+  }
+  document.addEventListener('visibilitychange', onVisibilityChange, { once: true })
+
+  // 2. Silent swap on browser history navigation
+  const onPopState = () => {
+    if (pendingSilentUpdate && !isReloading) {
+      isReloading = true
+      window.removeEventListener('popstate', onPopState)
+      window.location.reload()
+    }
+  }
+  window.addEventListener('popstate', onPopState, { once: true })
+
+  // 3. Silent swap when user is idle for 45s without typing
+  if (idleTimer) clearTimeout(idleTimer)
+  idleTimer = setTimeout(() => {
+    const activeEl = document.activeElement
+    const isTyping =
+      activeEl &&
+      (activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        (activeEl as HTMLElement).isContentEditable)
+    if (!isTyping && pendingSilentUpdate && !isReloading) {
+      isReloading = true
+      window.location.reload()
+    }
+  }, 45000)
+}
 
 export function getCurrentRuntimeBuildTimestamp(): number {
   try {
@@ -87,28 +128,37 @@ export async function checkForOTAUpdates(force: boolean = false): Promise<boolea
     // Check if the cloud build is strictly newer than our current running build
     const isNewer = remoteBuildTime > baselineTime
 
-    if (isNewer) {
-      localStorage.setItem(LOCAL_BUILD_TIME_KEY, remoteBuildTime.toString())
-      window.dispatchEvent(new CustomEvent('gc-update-available', { detail: { buildTime: remoteBuildTime } }))
-    }
-
-    // Only perform hard reload if user explicitly clicked manual refresh (force === true)
-    if (force && (isNewer || remoteBuildTime !== baselineTime)) {
-      isReloading = true
+    if (isNewer || force) {
       localStorage.setItem(LOCAL_BUILD_TIME_KEY, remoteBuildTime.toString())
 
-      // Notify Service Worker to skipWaiting immediately
+      // 1. Silently update web caches in the background
+      await clearAllWebCaches()
+
+      // 2. Notify Service Worker to skipWaiting in the background
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' })
       }
 
-      await clearAllWebCaches()
-      window.dispatchEvent(new CustomEvent('gc-app-updating', { detail: { buildTime: remoteBuildTime } }))
+      pendingSilentUpdate = true
 
-      setTimeout(() => {
+      // 3. If tab is already in background / hidden, reload silently now
+      if (document.visibilityState === 'hidden' && !isReloading) {
+        isReloading = true
         window.location.reload()
-      }, 300)
-      return true
+        return true
+      }
+
+      // 4. If forced, reload now
+      if (force && !isReloading) {
+        isReloading = true
+        setTimeout(() => {
+          window.location.reload()
+        }, 300)
+        return true
+      }
+
+      // 5. Schedule silent activation without popping up any banner
+      scheduleSilentActivation()
     }
   } catch (err) {
     console.debug('[OTA Update] Check completed:', err)
@@ -145,8 +195,13 @@ export function initOTAUpdater(): () => void {
     checkForOTAUpdates().catch(() => {})
   }, 45000)
 
-  // 3. Auto-refresh check when user returns to tab / unlocks device
+  // 3. Silent refresh when user switches tab or unlocks device
   const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden' && pendingSilentUpdate && !isReloading) {
+      isReloading = true
+      window.location.reload()
+      return
+    }
     if (document.visibilityState === 'visible') {
       checkForOTAUpdates().catch(() => {})
     }
