@@ -369,7 +369,31 @@ class TenantSchoolStore {
   public getSchoolBySlug(slug: string): PartnerSchoolTenant | null {
     if (!slug) return null
     const cleanSlug = slug.trim().toLowerCase()
-    return this.schools.find((s) => s.slug.toLowerCase() === cleanSlug) || null
+
+    // 1. Exact match by slug
+    const exact = this.schools.find((s) => s.slug.toLowerCase() === cleanSlug)
+    if (exact) return exact
+
+    // 2. Loose match: frequently confused 1 (digit) vs l (letter L) vs i (letter I)
+    const normalize = (str: string) =>
+      str.toLowerCase().replace(/l/g, '1').replace(/i/g, '1').replace(/[^a-z0-9]/g, '')
+    const targetNorm = normalize(cleanSlug)
+
+    const loose = this.schools.find((s) => normalize(s.slug) === targetNorm)
+    if (loose) return loose
+
+    // 3. Match by school name
+    const byName = this.schools.find((s) => normalize(s.name) === targetNorm)
+    if (byName) return byName
+
+    // 4. Prefix match (e.g. 'prime-skills' matches 'prime-skills-1' or vice versa)
+    const baseSlug = cleanSlug.replace(/[-_]?[0-9l]+$/, '')
+    if (baseSlug && baseSlug.length >= 3) {
+      const byBase = this.schools.find((s) => s.slug.toLowerCase().startsWith(baseSlug))
+      if (byBase) return byBase
+    }
+
+    return null
   }
 
   public getSchoolById(id: string): PartnerSchoolTenant | null {

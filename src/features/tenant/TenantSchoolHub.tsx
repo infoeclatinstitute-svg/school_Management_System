@@ -212,26 +212,15 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   useEffect(() => {
     let cancelled = false
     const resolveTargetSlug = () => {
-      let targetSlug = (schoolSlug || '').toLowerCase()
+      let targetSlug = (schoolSlug || '').trim().toLowerCase()
 
       if (typeof window !== 'undefined') {
         const hostname = window.location.hostname.toLowerCase()
         const allSchools = tenantSchoolStore.getSchools()
 
-        const customMatched = allSchools.find((s) => {
-          if (!s.custom_domain) return false
-          const cleanCustom = s.custom_domain.replace(/^https?:\/\//, '').replace(/\/.*$/, '').toLowerCase()
-          return hostname === cleanCustom
-        })
-
-        if (customMatched) {
-          targetSlug = customMatched.slug
-        } else if (hostname.split('.').length > 2) {
-          const parts = hostname.split('.')
-          const sub = parts[0]
-          if (sub && sub !== 'www' && sub !== 'cloud' && sub !== 'app') {
-            targetSlug = sub
-          }
+        const detected = detectTenantFromHost(hostname, allSchools)
+        if (detected) {
+          targetSlug = detected.school.slug
         }
       }
       return targetSlug

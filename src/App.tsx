@@ -151,11 +151,9 @@ function FallbackOrSchoolSlug() {
   const segments = location.pathname.split('/').filter(Boolean)
   if (segments.length >= 1) {
     const candidateSlug = segments[0]
+    const subview = segments[1] || 'hub'
     const school = tenantSchoolStore.getSchoolBySlug(candidateSlug)
-    if (school) {
-      const subview = segments[1] || 'hub'
-      return <TenantSchoolHub forcedSlug={school.slug} forcedSubview={subview} />
-    }
+    return <TenantSchoolHub forcedSlug={school ? school.slug : candidateSlug} forcedSubview={subview} />
   }
   return <Navigate to="/" replace />
 }
