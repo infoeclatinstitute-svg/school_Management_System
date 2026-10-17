@@ -7,20 +7,23 @@ interface Props {
 interface State {
   hasError: boolean
   error: Error | null
+  errorId: string
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
+    errorId: '',
   }
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error }
+    const errorId = `ERR-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    return { hasError: true, error, errorId }
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error in React lifecycle:', error, errorInfo)
+    console.error(`[${this.state.errorId}] Uncaught error in React lifecycle:`, error, errorInfo)
   }
 
   public render() {
@@ -113,10 +116,14 @@ export class ErrorBoundary extends Component<Props, State> {
             </button>
           </div>
 
-          {this.state.error && (
-            <details style={{ maxWidth: '560px', width: '100%', textAlign: 'left', background: '#1e293b', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.78rem', color: '#cbd5e1' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+            Incident Reference: <code style={{ color: '#94a3b8', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px' }}>{this.state.errorId || 'ERR-RECOVER'}</code>
+          </div>
+
+          {import.meta.env.DEV && this.state.error && (
+            <details style={{ marginTop: '1.5rem', maxWidth: '560px', width: '100%', textAlign: 'left', background: '#1e293b', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.78rem', color: '#cbd5e1' }}>
               <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#f87171' }}>
-                Technical Details: {this.state.error.message || 'Unknown error'}
+                [Dev Only] Diagnostic Details
               </summary>
               <pre style={{ marginTop: '0.5rem', whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#94a3b8', fontSize: '0.72rem' }}>
                 {this.state.error.stack || this.state.error.message}
