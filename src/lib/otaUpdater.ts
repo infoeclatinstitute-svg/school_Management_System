@@ -98,7 +98,12 @@ export async function checkForOTAUpdates(force: boolean = false): Promise<boolea
 
   isCheckingUpdate = true
   try {
-    const versionUrl = '/version.json?_nocache=' + Date.now()
+    const isLocalOrigin = typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.protocol === 'file:'
+    )
+    const versionUrl = (isLocalOrigin ? 'https://cloud.eclat.institute/version.json?_nocache=' : '/version.json?_nocache=') + Date.now()
     const response = await fetch(versionUrl, {
       method: 'GET',
       headers: {

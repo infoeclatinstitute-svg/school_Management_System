@@ -230,7 +230,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   useEffect(() => {
     let cancelled = false
     const resolveTargetSlug = () => {
-      let targetSlug = (schoolSlug || '').trim().toLowerCase()
+      let targetSlug = (forcedSlug || schoolSlug || '').trim().toLowerCase().replace(/\/+$/, '')
 
       if (typeof window !== 'undefined') {
         const hostname = window.location.hostname.toLowerCase()
@@ -245,7 +245,15 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
     }
 
     const applySchool = (slug: string) => {
-      const foundSchool = tenantSchoolStore.getSchoolBySlug(slug)
+      const clean = slug.trim().toLowerCase().replace(/\/+$/, '')
+      let foundSchool = tenantSchoolStore.getSchoolBySlug(clean)
+      if (!foundSchool) {
+        // Fallback: if slug is 'prime-skills-1', try base 'prime-skills'
+        const baseSlug = clean.replace(/[-_]?[0-9l]+$/, '')
+        if (baseSlug && baseSlug !== clean) {
+          foundSchool = tenantSchoolStore.getSchoolBySlug(baseSlug)
+        }
+      }
       if (foundSchool && !cancelled) {
         setSchool(foundSchool)
         setCustomDomainInput(foundSchool.custom_domain || '')
@@ -285,7 +293,14 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       } catch { /* offline — ignore */ }
 
       if (!cancelled) {
-        applySchool(resolveTargetSlug())
+        const finalSlug = resolveTargetSlug()
+        if (!applySchool(finalSlug)) {
+          // Fallback to base slug on retry
+          const base = finalSlug.replace(/[-_]?[0-9l]+$/, '')
+          if (base && base !== finalSlug) {
+            applySchool(base)
+          }
+        }
         setLoading(false)
       }
     }
@@ -305,7 +320,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       cancelled = true
       window.removeEventListener('gc-tenant-schools-updated', handleCloudUpdate)
     }
-  }, [schoolSlug])
+  }, [schoolSlug, forcedSlug])
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text)
@@ -359,34 +374,102 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   }
 
   if (!school) {
+    const rawTarget = (forcedSlug || schoolSlug || '').trim().toLowerCase().replace(/\/+$/, '')
+    const baseTarget = rawTarget.replace(/[-_]?[0-9l]+$/, '')
+    const allKnownSchools = tenantSchoolStore.getSchools()
+
+    // Find any close match in known schools
+    const closeMatch = allKnownSchools.find((s) => {
+      const sSlug = s.slug.toLowerCase().trim()
+      const sBase = sSlug.replace(/[-_]?[0-9l]+$/, '')
+      return (
+        sSlug === rawTarget ||
+        sSlug === baseTarget ||
+        sBase === baseTarget ||
+        sSlug.startsWith(baseTarget) ||
+        s.name.toLowerCase().includes(baseTarget)
+      )
+    })
+
+    const cloudDirectUrl = `https://cloud.eclat.institute/s/${rawTarget || 'hub'}`
+
     return (
-      <div style={{ maxWidth: '640px', margin: '4rem auto', textAlign: 'center', padding: '2rem' }}>
+      <div style={{ maxWidth: '720px', margin: '3rem auto', textAlign: 'center', padding: '2rem' }}>
         <div
           style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '16px',
+            width: '68px',
+            height: '68px',
+            borderRadius: '20px',
             background: '#fee2e2',
             color: '#b91c1c',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '2rem',
+            fontSize: '2.25rem',
             margin: '0 auto 1.25rem',
+            boxShadow: '0 8px 24px rgba(239, 68, 68, 0.15)',
           }}
         >
           🏫
         </div>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>School Portal Not Found</h2>
-        <p style={{ color: '#64748b', margin: '0.5rem 0 1.5rem', lineHeight: 1.5 }}>
-          No registered partner school matches the link <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>{schoolSlug}</code>.
+        <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.02em' }}>
+          School Portal Not Found
+        </h2>
+        <p style={{ color: '#64748b', margin: '0.5rem 0 1.5rem', lineHeight: 1.6, fontSize: '0.95rem' }}>
+          No registered partner school matches the identifier <code style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontWeight: 800, color: '#1e293b' }}>{rawTarget || 'unknown'}</code> on this workstation.
         </p>
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+
+        {closeMatch && (
+          <div
+            style={{
+              background: '#eff6ff',
+              border: '1.5px solid #bfdbfe',
+              borderRadius: '14px',
+              padding: '1.25rem',
+              marginBottom: '1.5rem',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                💡 Recommended Matching Campus
+              </div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                {closeMatch.name}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                Official Handle: <code>{closeMatch.slug}</code> &bull; {closeMatch.city}, {closeMatch.country}
+              </div>
+            </div>
+            <Link
+              to={`/s/${closeMatch.slug}`}
+              style={{
+                background: '#1d4ed8',
+                color: '#fff',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '10px',
+                textDecoration: 'none',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Open Campus Hub ➔
+            </Link>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '2rem' }}>
           <button
             type="button"
             onClick={() => {
               setLoading(true)
-              const slug = (forcedSlug || schoolSlug || '').trim().toLowerCase()
+              const slug = (forcedSlug || schoolSlug || '').trim().toLowerCase().replace(/\/+$/, '')
               tenantSchoolStore.fetchSchoolFromCloudDirect(slug)
                 .then((res) => {
                   if (res) {
@@ -394,7 +477,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                     reloadSchoolData(res.slug)
                   } else {
                     return tenantSchoolStore.syncWithCloud().then(() => {
-                      const found = tenantSchoolStore.getSchoolBySlug(slug)
+                      const found = tenantSchoolStore.getSchoolBySlug(slug) || (closeMatch ? closeMatch : null)
                       if (found) {
                         setSchool(found)
                         reloadSchoolData(found.slug)
@@ -408,34 +491,98 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
             style={{
               background: '#0f172a',
               color: '#fff',
-              padding: '0.65rem 1.25rem',
+              padding: '0.7rem 1.35rem',
               borderRadius: '10px',
               border: 'none',
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.5rem',
+              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.2)',
             }}
           >
-            🔄 Sync & Recover from Cloud Gateway
+            🔄 Sync with Cloud Gateway
           </button>
+
+          <a
+            href={cloudDirectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: '#0284c7',
+              color: '#fff',
+              padding: '0.7rem 1.35rem',
+              borderRadius: '10px',
+              textDecoration: 'none',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 4px 14px rgba(2, 132, 199, 0.25)',
+            }}
+          >
+            🌐 Open on Global College Cloud ↗
+          </a>
+
           <Link
             to="/register-school"
             style={{
               background: 'var(--color-primary, #1e3a8a)',
               color: '#fff',
-              padding: '0.65rem 1.25rem',
+              padding: '0.7rem 1.35rem',
               borderRadius: '10px',
               textDecoration: 'none',
-              fontWeight: 700,
+              fontWeight: 800,
               display: 'inline-flex',
               alignItems: 'center',
+              boxShadow: '0 4px 14px rgba(30, 58, 138, 0.25)',
             }}
           >
-            Register Your School on Global College Cloud ➔
+            Register Your School ➔
           </Link>
         </div>
+
+        {allKnownSchools.length > 0 && (
+          <div style={{ textAlign: 'left', marginTop: '2.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.75rem' }}>
+            <h3 style={{ fontSize: '0.88rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#64748b', marginBottom: '1rem' }}>
+              🏛️ Available Institutions on this Workstation ({allKnownSchools.length})
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.85rem' }}>
+              {allKnownSchools.map((s) => (
+                <Link
+                  key={s.id || s.slug}
+                  to={`/s/${s.slug}`}
+                  style={{
+                    display: 'block',
+                    padding: '0.9rem 1.1rem',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#ffffff'
+                    e.currentTarget.style.borderColor = '#94a3b8'
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#f8fafc'
+                    e.currentTarget.style.borderColor = '#e2e8f0'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0f172a' }}>{s.name}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px' }}>
+                    <code>/s/{s.slug}</code> &bull; {(s.institution_category || 'College').toUpperCase()}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
   }

@@ -2402,7 +2402,7 @@ export function SchoolRegistrationPage() {
                                 )}
                               </div>
                               <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.2rem' }}>
-                                KES {tierInfo.rateKes.toLocaleString()} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>/ mo</span>
+                                {currency} {tierInfo.rateKes.toLocaleString()} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>/ mo</span>
                               </div>
                               <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.6rem' }}>
                                 {tierInfo.tagline}
@@ -2437,10 +2437,10 @@ export function SchoolRegistrationPage() {
                           <span>🇰🇪 OFFICIAL INSTITUTIONAL PRICING</span>
                         </div>
                         <h4 style={{ margin: '0 0 0.25rem', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
-                          KES {currentTierRate.toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>/ month per campus ({SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name})</span>
+                          {currency} {currentTierRate.toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>/ month per campus ({SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name})</span>
                         </h4>
                         <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.45 }}>
-                          Multi-campus institutions pay separately per branch: <strong>{campusesList.length} {campusesList.length === 1 ? 'campus' : 'campuses'} &times; KES {currentTierRate.toLocaleString()}/mo</strong>.
+                          Multi-campus institutions pay separately per branch: <strong>{campusesList.length} {campusesList.length === 1 ? 'campus' : 'campuses'} &times; {currency} {currentTierRate.toLocaleString()}/mo</strong>.
                         </p>
                       </div>
 
@@ -2449,10 +2449,10 @@ export function SchoolRegistrationPage() {
                           Total {billingCycle === 'monthly' ? 'Monthly' : 'Annual'} Subscription
                         </div>
                         <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#1e3a8a' }}>
-                          KES {computedSubscriptionRate.toLocaleString()}
+                          {currency} {computedSubscriptionRate.toLocaleString()}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>
-                          {billingCycle === 'monthly' ? `KES ${currentTierRate.toLocaleString()} × ${campusesList.length} campus${campusesList.length > 1 ? 'es' : ''}` : `Save 2 Months Free (10 mo rate)`}
+                          {billingCycle === 'monthly' ? `${currency} ${currentTierRate.toLocaleString()} × ${campusesList.length} campus${campusesList.length > 1 ? 'es' : ''}` : `Save 2 Months Free (10 mo rate)`}
                         </div>
                       </div>
                     </div>
@@ -2471,7 +2471,7 @@ export function SchoolRegistrationPage() {
                         <span style={{ fontSize: '1.2rem' }}>📲</span>
                         <div>
                           <div style={{ fontWeight: 800, color: '#0f172a' }}>Direct M-Pesa Subscription Payment Line</div>
-                          <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Send KES {currentTierRate.toLocaleString()} per campus to receive instant Product Activation Key</div>
+                          <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Send {currency} {currentTierRate.toLocaleString()} per campus to receive instant Product Activation Key</div>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

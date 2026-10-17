@@ -32,7 +32,7 @@
       "public/**/*"
     ],
     "win": {
-      "icon": "public/favicon.ico",
+      "icon": "public/icon.ico",
       "target": [
         "appx",
         "nsis",
