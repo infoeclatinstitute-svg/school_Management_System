@@ -15,6 +15,11 @@ import {
   CalendarIcon,
   SparklesIcon,
 } from '@/components/icons/AppIcons'
+import {
+  SUBSCRIPTION_TIER_RATES,
+  SUBSCRIPTION_TIER_DETAILS,
+  type SubscriptionTierType,
+} from '@/types/licensing'
 
 const PRESET_COLORS = [
   { name: 'Burgundy & Gold', primary: '#881337', accent: '#d4af37' },
@@ -229,8 +234,8 @@ export function SchoolRegistrationPage() {
   const [curriculumType, setCurriculumType] = useState<string>(
     INSTITUTION_CATEGORIES[0].defaultCurriculum
   )
-  const [country, setCountry] = useState('Kenya')
-  const [city, setCity] = useState('Nairobi')
+  const [country, setCountry] = useState('')
+  const [city, setCity] = useState('')
   const [address, setAddress] = useState('')
   const [customDomain, setCustomDomain] = useState('')
 
@@ -258,10 +263,19 @@ export function SchoolRegistrationPage() {
     e_library: true,
   })
 
-  // Step 4: Branding, Leadership & Admin Credentials
+  // Step 4: Branding, Leadership & Dynamic Admin Credentials
+  const generateDynamicPassword = (prefix = 'GC') => {
+    const cleanPrefix = (prefix || 'GC').slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, 'G')
+    const randDigits = Math.floor(1000 + Math.random() * 9000)
+    const specials = ['#', '!', '$', '@', '&']
+    const sym = specials[Math.floor(Math.random() * specials.length)]
+    const token = Math.random().toString(36).substring(2, 5).toUpperCase()
+    return `${cleanPrefix}@${randDigits}${sym}${token}`
+  }
+
   const [primaryColor, setPrimaryColor] = useState('#1e3a8a')
   const [accentColor, setAccentColor] = useState('#0284c7')
-  const [logoUrl, setLogoUrl] = useState('/logo.png?v=2')
+  const [logoUrl, setLogoUrl] = useState('')
   const [principalName, setPrincipalName] = useState('')
   const [principalTitle, setPrincipalTitle] = useState('College Principal / Provost')
   const [principalEmail, setPrincipalEmail] = useState('')
@@ -269,9 +283,11 @@ export function SchoolRegistrationPage() {
   const [contactPhone, setContactPhone] = useState('')
   const [adminUsername, setAdminUsername] = useState('')
   const [isUsernameManual, setIsUsernameManual] = useState(false)
-  const [adminPassword, setAdminPassword] = useState('GC-ADMIN-2026')
+  const [adminPassword, setAdminPassword] = useState(() => generateDynamicPassword('GC'))
+  const [isPasswordManual, setIsPasswordManual] = useState(false)
 
-  // Step 5: Campuses & Subscription (KES 2,500 / campus / month)
+  // Step 5: Campuses & Subscription Tier Selection (Silver KES 2,500, Gold KES 3,000, Platinum KES 5,000)
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTierType>('gold')
   const [campusCount, setCampusCount] = useState<number>(1)
   const [campusesList, setCampusesList] = useState<string[]>(['Main Campus'])
   const [newCampusInput, setNewCampusInput] = useState('')
@@ -304,6 +320,9 @@ export function SchoolRegistrationPage() {
       if (!isUsernameManual && generatedSlug) {
         setAdminUsername(`admin.${generatedSlug}`)
       }
+      if (!isPasswordManual && generatedSlug) {
+        setAdminPassword(generateDynamicPassword(generatedSlug))
+      }
     }
   }
 
@@ -317,12 +336,14 @@ export function SchoolRegistrationPage() {
     if (!isUsernameManual && clean) {
       setAdminUsername(`admin.${clean}`)
     }
+    if (!isPasswordManual && clean) {
+      setAdminPassword(generateDynamicPassword(clean))
+    }
   }
 
   const generateStrongPassword = () => {
-    const prefix = (slug || 'GC').slice(0, 4).toUpperCase().replace(/[^A-Z]/g, 'G')
-    const rand = Math.floor(1000 + Math.random() * 9000)
-    setAdminPassword(`${prefix}@${rand}#2026`)
+    setIsPasswordManual(true)
+    setAdminPassword(generateDynamicPassword(slug || 'GC'))
   }
 
   const copyToClipboard = (text: string, key: string) => {
@@ -358,14 +379,6 @@ export function SchoolRegistrationPage() {
   const handleNextStep2 = (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (departmentsList.length === 0) {
-      setError('Please keep or add at least one academic department or faculty.')
-      return
-    }
-    if (classesList.length === 0) {
-      setError('Please keep or add at least one initial class, grade, or program cohort.')
-      return
-    }
     setStep(3)
   }
 
@@ -397,6 +410,12 @@ export function SchoolRegistrationPage() {
     setStep(5)
   }
 
+  const currentTierRate = SUBSCRIPTION_TIER_RATES[subscriptionTier] || 3000
+  const computedSubscriptionRate =
+    billingCycle === 'monthly'
+      ? campusCount * currentTierRate
+      : campusCount * currentTierRate * 10
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -406,8 +425,8 @@ export function SchoolRegistrationPage() {
         name: name.trim(),
         slug: slug.trim(),
         institution_category: institutionCategory,
-        motto: motto.trim() || 'Knowledge, Discipline and Leadership',
-        logo_url: logoUrl.trim() || '/logo.png?v=2',
+        motto: motto.trim() || undefined,
+        logo_url: logoUrl.trim() || undefined,
         primary_color: primaryColor,
         accent_color: accentColor,
         academic_system: academicSystem,
@@ -432,8 +451,8 @@ export function SchoolRegistrationPage() {
           name: c,
           is_main: i === 0,
         })),
-        subscription_tier: 'growth',
-        subscription_monthly_rate: billingCycle === 'monthly' ? campusCount * 2500 : campusCount * 2100,
+        subscription_tier: subscriptionTier,
+        subscription_monthly_rate: computedSubscriptionRate,
         subscription_billing_cycle: billingCycle,
         departments_list: departmentsList,
         classes_list: classesList,
@@ -468,7 +487,8 @@ export function SchoolRegistrationPage() {
       `Portal URL: ${domainLinks.portals.principal.path}`,
       `Head of Institution: ${registeredSchool.principal_name} (${registeredSchool.principal_title})`,
       `Username: ${registeredSchool.admin_username || `admin.${registeredSchool.slug}`}`,
-      `Password: ${registeredSchool.admin_password || 'GC-ADMIN-2026'}`,
+      `Password: ${registeredSchool.admin_password || ''}`,
+      `Subscription Tier: ${(registeredSchool.subscription_tier || 'silver').toUpperCase()} (KES ${(registeredSchool.subscription_monthly_rate || 2500).toLocaleString()})`,
       `====================================================`,
     ].join('\n')
 
@@ -521,7 +541,7 @@ export function SchoolRegistrationPage() {
                   letterSpacing: '0.05em',
                 }}
               >
-                💎 {(registeredSchool.subscription_tier || 'growth').toUpperCase()} PLAN • ACTIVATION KEY REQUIRED
+                💎 {(registeredSchool.subscription_tier || 'silver').toUpperCase()} PLAN • ACTIVATION KEY REQUIRED
               </span>
             </div>
 
@@ -1205,6 +1225,7 @@ export function SchoolRegistrationPage() {
                         id={`${formId}-country`}
                         type="text"
                         required
+                        placeholder="e.g. Kenya, Uganda, Tanzania, Rwanda, UK, USA..."
                         value={country}
                         onChange={(e) => setCountry(e.target.value)}
                         style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
@@ -1218,11 +1239,46 @@ export function SchoolRegistrationPage() {
                         id={`${formId}-city`}
                         type="text"
                         required
+                        placeholder="e.g. Nairobi, Mombasa, Kampala, Kigali, London..."
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                         style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
                       />
                     </div>
+                  </div>
+
+                  {/* Quick-select region chips */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>Quick Fill:</span>
+                    {[
+                      { city: 'Nairobi', country: 'Kenya', currency: 'KES' },
+                      { city: 'Mombasa', country: 'Kenya', currency: 'KES' },
+                      { city: 'Kampala', country: 'Uganda', currency: 'UGX' },
+                      { city: 'Dar es Salaam', country: 'Tanzania', currency: 'TZS' },
+                      { city: 'Kigali', country: 'Rwanda', currency: 'RWF' },
+                    ].map((loc) => (
+                      <button
+                        key={loc.city}
+                        type="button"
+                        onClick={() => {
+                          setCity(loc.city)
+                          setCountry(loc.country)
+                          setCurrency(loc.currency)
+                        }}
+                        style={{
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '6px',
+                          padding: '2px 8px',
+                          fontSize: '0.72rem',
+                          color: '#334155',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {loc.city}, {loc.country}
+                      </button>
+                    ))}
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -1355,46 +1411,63 @@ export function SchoolRegistrationPage() {
 
                   {/* Interactive Faculties / Departments Chip Builder */}
                   <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
                       <label style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
                         🏛️ Initial Faculties / Academic Departments ({departmentsList.length})
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setDepartmentsList([...activeCategoryObj.suggestedDepts])}
-                        style={{ background: 'none', border: 'none', color: '#1d4ed8', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        Reset Defaults
-                      </button>
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.65rem' }}>
-                      {departmentsList.map((dept) => (
-                        <span
-                          key={dept}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            padding: '0.3rem 0.65rem',
-                            borderRadius: '999px',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                            color: '#1e293b',
-                          }}
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => setDepartmentsList([...activeCategoryObj.suggestedDepts])}
+                          style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontSize: '0.74rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', cursor: 'pointer' }}
                         >
-                          {dept}
+                          ⚡ Load Template
+                        </button>
+                        {departmentsList.length > 0 && (
                           <button
                             type="button"
-                            onClick={() => setDepartmentsList(departmentsList.filter((d) => d !== dept))}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 900, padding: 0 }}
+                            onClick={() => setDepartmentsList([])}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
                           >
-                            ×
+                            Clear All
                           </button>
-                        </span>
-                      ))}
+                        )}
+                      </div>
                     </div>
+                    {departmentsList.length === 0 ? (
+                      <div style={{ fontSize: '0.78rem', color: '#64748b', fontStyle: 'italic', padding: '0.4rem 0' }}>
+                        No initial faculties added. Add custom names below or tap suggestions.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.65rem' }}>
+                        {departmentsList.map((dept) => (
+                          <span
+                            key={dept}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              padding: '0.3rem 0.65rem',
+                              borderRadius: '999px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              color: '#1e293b',
+                            }}
+                          >
+                            {dept}
+                            <button
+                              type="button"
+                              onClick={() => setDepartmentsList(departmentsList.filter((d) => d !== dept))}
+                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 900, padding: 0 }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <input
                         type="text"
@@ -1425,50 +1498,92 @@ export function SchoolRegistrationPage() {
                         + Add
                       </button>
                     </div>
+                    {/* Suggested clickable chips */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.5rem', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>Suggestions:</span>
+                      {activeCategoryObj.suggestedDepts
+                        .filter((d) => !departmentsList.includes(d))
+                        .map((sug) => (
+                          <button
+                            key={sug}
+                            type="button"
+                            onClick={() => setDepartmentsList([...departmentsList, sug])}
+                            style={{
+                              background: '#f1f5f9',
+                              border: '1px dashed #cbd5e1',
+                              borderRadius: '999px',
+                              padding: '2px 8px',
+                              fontSize: '0.7rem',
+                              color: '#334155',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            + {sug}
+                          </button>
+                        ))}
+                    </div>
                   </div>
 
                   {/* Interactive Classes / Programs / Cohorts Chip Builder */}
                   <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.4rem' }}>
                       <label style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>
                         🎓 Initial Classes, Programs or Intakes ({classesList.length})
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setClassesList([...activeCategoryObj.suggestedClasses])}
-                        style={{ background: 'none', border: 'none', color: '#1d4ed8', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        Reset Defaults
-                      </button>
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.65rem' }}>
-                      {classesList.map((cls) => (
-                        <span
-                          key={cls}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            background: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            padding: '0.3rem 0.65rem',
-                            borderRadius: '999px',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                            color: '#1e293b',
-                          }}
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => setClassesList([...activeCategoryObj.suggestedClasses])}
+                          style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', fontSize: '0.74rem', fontWeight: 700, padding: '2px 8px', borderRadius: '6px', cursor: 'pointer' }}
                         >
-                          {cls}
+                          ⚡ Load Template
+                        </button>
+                        {classesList.length > 0 && (
                           <button
                             type="button"
-                            onClick={() => setClassesList(classesList.filter((c) => c !== cls))}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 900, padding: 0 }}
+                            onClick={() => setClassesList([])}
+                            style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
                           >
-                            ×
+                            Clear All
                           </button>
-                        </span>
-                      ))}
+                        )}
+                      </div>
                     </div>
+                    {classesList.length === 0 ? (
+                      <div style={{ fontSize: '0.78rem', color: '#64748b', fontStyle: 'italic', padding: '0.4rem 0' }}>
+                        No initial cohorts or classes added. Add custom names below or tap suggestions.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.65rem' }}>
+                        {classesList.map((cls) => (
+                          <span
+                            key={cls}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              padding: '0.3rem 0.65rem',
+                              borderRadius: '999px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              color: '#1e293b',
+                            }}
+                          >
+                            {cls}
+                            <button
+                              type="button"
+                              onClick={() => setClassesList(classesList.filter((c) => c !== cls))}
+                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 900, padding: 0 }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <input
                         type="text"
@@ -1498,6 +1613,31 @@ export function SchoolRegistrationPage() {
                       >
                         + Add
                       </button>
+                    </div>
+                    {/* Suggested clickable chips */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.5rem', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>Suggestions:</span>
+                      {activeCategoryObj.suggestedClasses
+                        .filter((c) => !classesList.includes(c))
+                        .map((sug) => (
+                          <button
+                            key={sug}
+                            type="button"
+                            onClick={() => setClassesList([...classesList, sug])}
+                            style={{
+                              background: '#f1f5f9',
+                              border: '1px dashed #cbd5e1',
+                              borderRadius: '999px',
+                              padding: '2px 8px',
+                              fontSize: '0.7rem',
+                              color: '#334155',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            + {sug}
+                          </button>
+                        ))}
                     </div>
                   </div>
 
@@ -1734,16 +1874,16 @@ export function SchoolRegistrationPage() {
                           overflow: 'hidden', flexShrink: 0,
                         }}
                       >
-                        {logoUrl && logoUrl !== '/logo.png?v=2' ? (
+                        {logoUrl ? (
                           <img src={logoUrl} alt="Logo preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         ) : (
-                          <span style={{ fontSize: '2rem' }}>🏫</span>
+                          <span style={{ fontSize: '2rem' }}>{activeCategoryObj.icon || '🏫'}</span>
                         )}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <label
                           style={{
-                            display: 'inline-block', background: '#1e3a8a', color: '#fff',
+                            display: 'inline-block', background: primaryColor || '#1e3a8a', color: '#fff',
                             borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.82rem',
                             fontWeight: 700, cursor: 'pointer',
                           }}
@@ -1769,10 +1909,10 @@ export function SchoolRegistrationPage() {
                             }}
                           />
                         </label>
-                        {logoUrl && logoUrl !== '/logo.png?v=2' && (
+                        {logoUrl && (
                           <button
                             type="button"
-                            onClick={() => setLogoUrl('/logo.png?v=2')}
+                            onClick={() => setLogoUrl('')}
                             style={{ background: 'none', border: '1px solid #f87171', color: '#ef4444', borderRadius: '8px', padding: '0.35rem 0.75rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
                           >
                             ✕ Remove
@@ -2096,7 +2236,62 @@ export function SchoolRegistrationPage() {
                     </div>
                   </div>
 
-                  {/* KES 2,500 Pricing Card */}
+                  {/* Subscription Tier Selection Grid */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 800, color: '#334155', marginBottom: '0.5rem' }}>
+                      Institutional Subscription Tier *
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+                      {(['silver', 'gold', 'platinum'] as SubscriptionTierType[]).map((tierKey) => {
+                        const tierInfo = SUBSCRIPTION_TIER_DETAILS[tierKey]
+                        const isSelected = subscriptionTier === tierKey
+                        return (
+                          <div
+                            key={tierKey}
+                            onClick={() => setSubscriptionTier(tierKey)}
+                            style={{
+                              border: isSelected ? '2px solid #1d4ed8' : '1px solid #cbd5e1',
+                              background: isSelected ? '#eff6ff' : '#ffffff',
+                              borderRadius: '14px',
+                              padding: '1rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              boxShadow: isSelected ? '0 4px 12px rgba(29, 78, 216, 0.12)' : 'none',
+                              position: 'relative',
+                            }}
+                          >
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isSelected ? '#1d4ed8' : '#475569' }}>
+                                  {tierInfo.badge}
+                                </span>
+                                {tierKey === 'gold' && (
+                                  <span style={{ fontSize: '0.65rem', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                    RECOMMENDED
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.2rem' }}>
+                                KES {tierInfo.rateKes.toLocaleString()} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>/ mo</span>
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.6rem' }}>
+                                {tierInfo.tagline}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: '#334155', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              {tierInfo.features.slice(0, 2).map((feat, fi) => (
+                                <div key={fi}>✓ {feat}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Pricing Calculation Summary Card */}
                   <div
                     style={{
                       background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
@@ -2114,10 +2309,10 @@ export function SchoolRegistrationPage() {
                           <span>🇰🇪 OFFICIAL INSTITUTIONAL PRICING</span>
                         </div>
                         <h4 style={{ margin: '0 0 0.25rem', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
-                          KES 2,500 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>/ month per school or campus</span>
+                          KES {currentTierRate.toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>/ month per campus ({SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name})</span>
                         </h4>
                         <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.45 }}>
-                          Multi-campus institutions pay separately per branch: <strong>{campusesList.length} {campusesList.length === 1 ? 'campus' : 'campuses'} &times; KES 2,500/mo</strong>.
+                          Multi-campus institutions pay separately per branch: <strong>{campusesList.length} {campusesList.length === 1 ? 'campus' : 'campuses'} &times; KES {currentTierRate.toLocaleString()}/mo</strong>.
                         </p>
                       </div>
 
@@ -2126,17 +2321,17 @@ export function SchoolRegistrationPage() {
                           Total {billingCycle === 'monthly' ? 'Monthly' : 'Annual'} Subscription
                         </div>
                         <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#1e3a8a' }}>
-                          KES {billingCycle === 'monthly' ? (campusesList.length * 2500).toLocaleString() : (campusesList.length * 2500 * 10).toLocaleString()}
+                          KES {computedSubscriptionRate.toLocaleString()}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>
-                          {billingCycle === 'monthly' ? `KES 2,500 × ${campusesList.length} campus${campusesList.length > 1 ? 'es' : ''}` : `Save 2 Months Free (10 mo rate)`}
+                          {billingCycle === 'monthly' ? `KES ${currentTierRate.toLocaleString()} × ${campusesList.length} campus${campusesList.length > 1 ? 'es' : ''}` : `Save 2 Months Free (10 mo rate)`}
                         </div>
                       </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem', fontSize: '0.78rem', color: '#334155', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem' }}>
                       <div>✅ Full Access to all 4 Role Portals (Admin, Teacher, Student, Bursar)</div>
-                      <div>✅ Public Programs / Courses Showcase Landing Page (Admin Controlled)</div>
+                      <div>✅ {subscriptionTier === 'gold' || subscriptionTier === 'platinum' ? 'Dedicated Public Programs & Courses Showcase Page' : 'Core SIS & Academic Gradebooks'}</div>
                       <div>✅ M-Pesa automated fee reconciliation &amp; digital receipts</div>
                       <div>✅ Official printable report cards &amp; QR transcripts with digital seal</div>
                       <div>✅ Product activation key unlocking via Master SaaS Billing Portal</div>
@@ -2148,7 +2343,7 @@ export function SchoolRegistrationPage() {
                         <span style={{ fontSize: '1.2rem' }}>📲</span>
                         <div>
                           <div style={{ fontWeight: 800, color: '#0f172a' }}>Direct M-Pesa Subscription Payment Line</div>
-                          <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Send KES 2,500 per campus to receive instant Product Activation Key</div>
+                          <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Send KES {currentTierRate.toLocaleString()} per campus to receive instant Product Activation Key</div>
                         </div>
                       </div>
                       <div style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1.1rem', color: '#047857', background: '#dcfce7', padding: '3px 12px', borderRadius: '8px', letterSpacing: '0.04em' }}>
@@ -2166,6 +2361,7 @@ export function SchoolRegistrationPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.4rem', color: '#475569' }}>
                       <div>• <strong>Institution:</strong> {name || '—'}</div>
                       <div>• <strong>Category:</strong> {activeCategoryObj.label}</div>
+                      <div>• <strong>Tier:</strong> {SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name}</div>
                       <div>• <strong>Calendar:</strong> {academicSystem.toUpperCase()} ({gradingScale.replace('_', ' ')})</div>
                       <div>• <strong>Faculties &amp; Cohorts:</strong> {departmentsList.length} Depts / {classesList.length} Classes</div>
                       <div>• <strong>Executive Login:</strong> <code>{adminUsername}</code></div>
@@ -2255,9 +2451,14 @@ export function SchoolRegistrationPage() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '1.3rem',
+                        overflow: 'hidden',
                       }}
                     >
-                      {activeCategoryObj.icon}
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      ) : (
+                        activeCategoryObj.icon
+                      )}
                     </div>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 900, lineHeight: 1.2 }}>
@@ -2269,9 +2470,11 @@ export function SchoolRegistrationPage() {
                     </div>
                   </div>
 
-                  <p style={{ margin: 0, fontSize: '0.78rem', opacity: 0.9, fontStyle: 'italic' }}>
-                    "{motto || 'Knowledge, Discipline and Leadership'}"
-                  </p>
+                  {motto && (
+                    <p style={{ margin: 0, fontSize: '0.78rem', opacity: 0.9, fontStyle: 'italic' }}>
+                      "{motto}"
+                    </p>
+                  )}
 
                   <div style={{ marginTop: '0.9rem', paddingTop: '0.7rem', borderTop: '1px solid rgba(255,255,255,0.15)', display: 'flex', justifyContent: 'space-between', fontSize: '0.73rem', opacity: 0.9 }}>
                     <span>📍 {city || 'City'}, {country || 'Country'}</span>

@@ -20,6 +20,10 @@ import type {
   ApplicationStatus,
   TenantAttendanceSession,
 } from '@/types/tenantSchool'
+import {
+  SUBSCRIPTION_TIER_RATES,
+  type SubscriptionTierType,
+} from '@/types/licensing'
 
 const STORAGE_KEY = 'gc_v2_partner_schools_tenants'
 const CLOUD_SYNC_KEY = 'gc_v2_partner_schools_state'
@@ -943,7 +947,8 @@ class TenantSchoolStore {
       : []
 
     const adminUsername = (input.admin_username || `admin.${finalSlug}`).trim()
-    const adminPassword = (input.admin_password || `GC-${finalSlug.slice(0, 6).toUpperCase()}-2026`).trim()
+    const autoGenPass = `${(finalSlug || 'GC').slice(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, 'G')}@${Math.floor(1000 + Math.random() * 9000)}#${Math.random().toString(36).slice(2, 5).toUpperCase()}`
+    const adminPassword = (input.admin_password || autoGenPass).trim()
 
     const defaultFeatures = {
       student_portal: true,
@@ -965,18 +970,19 @@ class TenantSchoolStore {
         ? input.campuses_list
         : [{ id: `cmp_${Date.now()}_main`, name: 'Main Campus', is_main: true }]
 
-    // Monthly subscription rate: KES 2,500 per school or campus.
-    // If institution has multiple campuses, each campus is billed separately: campusCount * 2500
+    // Monthly subscription rate dynamically mapped to tier (silver, gold, platinum)
+    const chosenTier = (input.subscription_tier as SubscriptionTierType) || 'silver'
+    const tierRate = SUBSCRIPTION_TIER_RATES[chosenTier] || 2500
     const monthlyRate =
-      input.subscription_monthly_rate ?? (campusCount * 2500)
+      input.subscription_monthly_rate ?? (campusCount * tierRate)
 
     const newSchool: PartnerSchoolTenant = {
       id: `sch_${Date.now()}`,
       name: input.name.trim(),
       slug: finalSlug,
       institution_category: input.institution_category || 'college',
-      motto: input.motto?.trim() || 'Knowledge, Discipline and Leadership',
-      logo_url: input.logo_url?.trim() || '/logo.png?v=2',
+      motto: input.motto?.trim() || '',
+      logo_url: input.logo_url?.trim() || '',
       primary_color: input.primary_color || '#1e3a8a',
       accent_color: input.accent_color || '#d4af37',
       academic_system: input.academic_system,
@@ -1000,7 +1006,7 @@ class TenantSchoolStore {
       subdomain: finalSlug,
       campus_count: campusCount,
       campuses_list: campusesList,
-      subscription_tier: input.subscription_tier || 'growth',
+      subscription_tier: input.subscription_tier || 'silver',
       subscription_monthly_rate: monthlyRate,
       subscription_billing_cycle: input.subscription_billing_cycle || 'monthly',
       subscription_status: input.subscription_status || 'trial',
@@ -1036,7 +1042,7 @@ class TenantSchoolStore {
       title: newSchool.principal_title,
       department: deptsList[0] || 'Executive Administration',
       assigned_classes: classesList.slice(0, 2),
-      assigned_subjects: ['Institutional Governance'],
+      assigned_subjects: [],
       username: adminUsername,
       temp_password: adminPassword,
       salary_base: 0,
@@ -2291,55 +2297,7 @@ class TenantSchoolStore {
       })
     }
 
-    // Default dynamic notices adapted to the school's session if no custom notices posted yet
-    const periodName = activePeriodLabel || 'Semester 1'
-    return [
-      {
-        id: `not_${clean}_exam_1`,
-        school_slug: clean,
-        department: 'Examination Registry',
-        title: `${periodName} Continuous Assessment Schedule`,
-        content:
-          'Mid-term CAT examination timetables and practical assessment rosters have been published in the Student and Teacher portals.',
-        category: 'Examination',
-        accent_color: '#d97706',
-        target_audience: 'All',
-        is_pinned: true,
-        created_at: new Date().toISOString(),
-        author_name: 'Registrar & Examinations Senate',
-        author_role: 'Office of the Registrar',
-      },
-      {
-        id: `not_${clean}_bursar_1`,
-        school_slug: clean,
-        department: "Bursar's Treasury",
-        title: 'Tuition Fee Statements & Clearance',
-        content:
-          'Fee payment receipts and official bank deposit slips are validated at the Bursar Desk. Students can verify clearances online.',
-        category: 'Finance & Fees',
-        accent_color: '#16a34a',
-        target_audience: 'Students',
-        is_pinned: false,
-        created_at: new Date().toISOString(),
-        author_name: 'Chief Bursar & Finance Desk',
-        author_role: 'Treasury Office',
-      },
-      {
-        id: `not_${clean}_faculty_1`,
-        school_slug: clean,
-        department: 'Academic Faculty',
-        title: 'Study Guides & Digital Lesson Materials',
-        content:
-          'Subject instructors have uploaded downloadable lesson notes and past papers. Log in to the Student Portal to download.',
-        category: 'Academics',
-        accent_color: '#2563eb',
-        target_audience: 'Students',
-        is_pinned: false,
-        created_at: new Date().toISOString(),
-        author_name: 'Faculty Senate & Heads of Department',
-        author_role: 'Academic Affairs',
-      },
-    ]
+    return []
   }
 
   public addNotice(
