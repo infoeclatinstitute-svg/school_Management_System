@@ -54,6 +54,7 @@ class TenantSchoolStore {
   private programs: InstitutionProgram[] = []
   private deletedSchoolSlugs: Set<string> = new Set()
   private isPushing = false
+  private queuedPush = false
   private pushTimer: any = null
 
   constructor() {
@@ -129,14 +130,27 @@ class TenantSchoolStore {
       }
 
       // 0. Merge remote tombstones
-      if (Array.isArray(cloudState.deletedSchools)) {
-        cloudState.deletedSchools.forEach((slug) => {
-          if (slug && typeof slug === 'string') {
-            this.deletedSchoolSlugs.add(slug.toLowerCase().trim())
+      const remoteDeleted = new Set(
+        Array.isArray(cloudState.deletedSchools)
+          ? cloudState.deletedSchools.map((s) => (typeof s === 'string' ? s.toLowerCase().trim() : '')).filter(Boolean)
+          : []
+      )
+      remoteDeleted.forEach((slug) => {
+        this.deletedSchoolSlugs.add(slug)
+      })
+
+      // If a school exists in cloudState.schools, and is NOT in remoteDeleted,
+      // then that school is active on the cloud!
+      // Any stale local tombstone must be removed so it can be restored.
+      if (Array.isArray(cloudState.schools)) {
+        cloudState.schools.forEach((s) => {
+          const sSlug = (s.slug || '').toLowerCase().trim()
+          if (sSlug && !remoteDeleted.has(sSlug) && this.deletedSchoolSlugs.has(sSlug)) {
+            this.deletedSchoolSlugs.delete(sSlug)
           }
         })
-        this.saveDeletedSchoolSlugs()
       }
+      this.saveDeletedSchoolSlugs()
 
       let hadLocalChanges = false
 
@@ -144,8 +158,10 @@ class TenantSchoolStore {
         const map = new Map<string, PartnerSchoolTenant>()
         // 1. Put cloud schools in map (excluding tombstones)
         cloudState.schools.forEach((s) => {
-          if (!this.deletedSchoolSlugs.has(s.slug.toLowerCase().trim())) {
-            map.set(s.slug.toLowerCase().trim(), s)
+          const sSlug = (s.slug || '').toLowerCase().trim()
+          if (!sSlug) return
+          if (!this.deletedSchoolSlugs.has(sSlug)) {
+            map.set(sSlug, s)
           } else {
             // Cloud has a deleted school that needs to be scrubbed remotely
             hadLocalChanges = true
@@ -431,8 +447,13 @@ class TenantSchoolStore {
   }
 
   public async pushToCloud(): Promise<void> {
-    if (typeof window === 'undefined' || this.isPushing) return
+    if (typeof window === 'undefined') return
+    if (this.isPushing) {
+      this.queuedPush = true
+      return
+    }
     this.isPushing = true
+    this.queuedPush = false
     try {
       await supabase.from('app_cloud_sync').upsert(
         {
@@ -461,6 +482,10 @@ class TenantSchoolStore {
       // Ignore offline errors
     } finally {
       this.isPushing = false
+      if (this.queuedPush) {
+        this.queuedPush = false
+        this.pushToCloud().catch(() => {})
+      }
     }
   }
 
@@ -514,6 +539,9 @@ class TenantSchoolStore {
 
   public getSchoolBySlug(slug: string): PartnerSchoolTenant | null {
     if (!slug) return null
+    if (this.schools.length === 0) {
+      this.loadSchools()
+    }
     const cleanSlug = slug.trim().toLowerCase()
 
     // 1. Exact match by slug
@@ -537,6 +565,74 @@ class TenantSchoolStore {
     if (baseSlug && baseSlug.length >= 3) {
       const byBase = this.schools.find((s) => s.slug.toLowerCase().startsWith(baseSlug))
       if (byBase) return byBase
+    }
+
+    return null
+  }
+
+  public async fetchSchoolFromCloudDirect(slug: string): Promise<PartnerSchoolTenant | null> {
+    if (!slug) return null
+    const cleanSlug = slug.trim().toLowerCase()
+
+    // 1. Check local cache first
+    const existing = this.getSchoolBySlug(cleanSlug)
+    if (existing) return existing
+
+    // 2. Fetch directly from Supabase app_cloud_sync
+    try {
+      const { data, error } = await supabase
+        .from('app_cloud_sync')
+        .select('data')
+        .eq('key', CLOUD_SYNC_KEY)
+        .maybeSingle()
+
+      if (error || !data?.data) return null
+      const cloudState = data.data as { schools?: PartnerSchoolTenant[]; deletedSchools?: string[] }
+      if (!Array.isArray(cloudState.schools)) return null
+
+      // Check if explicitly marked deleted in cloud
+      const remoteDeleted = new Set(
+        Array.isArray(cloudState.deletedSchools)
+          ? cloudState.deletedSchools.map((s) => (typeof s === 'string' ? s.toLowerCase().trim() : '')).filter(Boolean)
+          : []
+      )
+      if (remoteDeleted.has(cleanSlug)) return null
+
+      const normalize = (str: string) =>
+        str.toLowerCase().replace(/l/g, '1').replace(/i/g, '1').replace(/[^a-z0-9]/g, '')
+      const targetNorm = normalize(cleanSlug)
+
+      const found = cloudState.schools.find((s) => {
+        const sSlug = (s.slug || '').toLowerCase().trim()
+        const sNorm = normalize(sSlug)
+        const nameNorm = normalize(s.name || '')
+        const baseSlug = cleanSlug.replace(/[-_]?[0-9l]+$/, '')
+        return (
+          sSlug === cleanSlug ||
+          sNorm === targetNorm ||
+          nameNorm === targetNorm ||
+          (baseSlug.length >= 3 && sSlug.startsWith(baseSlug))
+        )
+      })
+
+      if (found) {
+        const foundSlug = found.slug.toLowerCase().trim()
+        // Clear any stale local tombstone
+        this.deletedSchoolSlugs.delete(foundSlug)
+        this.saveDeletedSchoolSlugs()
+
+        // Merge into local store
+        const existingIdx = this.schools.findIndex((s) => s.slug.toLowerCase().trim() === foundSlug)
+        if (existingIdx >= 0) {
+          this.schools[existingIdx] = found
+        } else {
+          this.schools.unshift(found)
+        }
+        this.saveSchools()
+        return found
+      }
+    } catch (err) {
+      console.warn('Direct cloud school fetch warning:', err)
     }
 
     return null
@@ -678,6 +774,10 @@ class TenantSchoolStore {
       finalSlug = `${cleanSlug}-${counter}`
       counter++
     }
+
+    // Explicitly un-tombstone if this slug was previously deleted
+    this.deletedSchoolSlugs.delete(finalSlug.toLowerCase().trim())
+    this.saveDeletedSchoolSlugs()
 
     const currentYear = new Date().getFullYear()
 

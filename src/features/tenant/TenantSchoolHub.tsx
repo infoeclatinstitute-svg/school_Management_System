@@ -261,13 +261,25 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       setLoading(true)
       const targetSlug = resolveTargetSlug()
 
-      // First try local/cached data
+      // 1. First try local/cached data
       if (applySchool(targetSlug)) {
         if (!cancelled) setLoading(false)
         return
       }
 
-      // Not found locally — pull from Supabase cloud sync and retry
+      // 2. Direct Cloud Fetch specifically for targetSlug
+      try {
+        const directFound = await tenantSchoolStore.fetchSchoolFromCloudDirect(targetSlug)
+        if (directFound && !cancelled) {
+          applySchool(directFound.slug)
+          setLoading(false)
+          return
+        }
+      } catch {
+        // Fall back to full sync
+      }
+
+      // 3. Not found locally or direct — pull from Supabase cloud sync and retry
       try {
         await tenantSchoolStore.syncWithCloud()
       } catch { /* offline — ignore */ }
@@ -349,23 +361,81 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
   if (!school) {
     return (
       <div style={{ maxWidth: '640px', margin: '4rem auto', textAlign: 'center', padding: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>School Portal Not Found</h2>
-        <p style={{ color: '#64748b', margin: '0.5rem 0 1.5rem' }}>
-          No registered partner school matches the link <code>{schoolSlug}</code>.
-        </p>
-        <Link
-          to="/register-school"
+        <div
           style={{
-            background: 'var(--color-primary)',
-            color: '#fff',
-            padding: '0.65rem 1.25rem',
-            borderRadius: '10px',
-            textDecoration: 'none',
-            fontWeight: 700,
+            width: '64px',
+            height: '64px',
+            borderRadius: '16px',
+            background: '#fee2e2',
+            color: '#b91c1c',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2rem',
+            margin: '0 auto 1.25rem',
           }}
         >
-          Register Your School on Global College Cloud ➔
-        </Link>
+          🏫
+        </div>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}>School Portal Not Found</h2>
+        <p style={{ color: '#64748b', margin: '0.5rem 0 1.5rem', lineHeight: 1.5 }}>
+          No registered partner school matches the link <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>{schoolSlug}</code>.
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true)
+              const slug = (forcedSlug || schoolSlug || '').trim().toLowerCase()
+              tenantSchoolStore.fetchSchoolFromCloudDirect(slug)
+                .then((res) => {
+                  if (res) {
+                    setSchool(res)
+                    reloadSchoolData(res.slug)
+                  } else {
+                    return tenantSchoolStore.syncWithCloud().then(() => {
+                      const found = tenantSchoolStore.getSchoolBySlug(slug)
+                      if (found) {
+                        setSchool(found)
+                        reloadSchoolData(found.slug)
+                      }
+                    })
+                  }
+                })
+                .catch(() => {})
+                .finally(() => setLoading(false))
+            }}
+            style={{
+              background: '#0f172a',
+              color: '#fff',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '10px',
+              border: 'none',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            🔄 Sync & Recover from Cloud Gateway
+          </button>
+          <Link
+            to="/register-school"
+            style={{
+              background: 'var(--color-primary, #1e3a8a)',
+              color: '#fff',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '10px',
+              textDecoration: 'none',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
+          >
+            Register Your School on Global College Cloud ➔
+          </Link>
+        </div>
       </div>
     )
   }
