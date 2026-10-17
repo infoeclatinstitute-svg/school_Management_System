@@ -304,8 +304,22 @@ export function SchoolRegistrationPage() {
       setGradingScale(found.defaultGrading)
       setPrincipalTitle(found.defaultTitle)
       setCurriculumType(found.defaultCurriculum)
-      setDepartmentsList([...found.suggestedDepts])
-      setClassesList([...found.suggestedClasses])
+
+      // Only overwrite suggested departments if current list is empty or matches another default category template
+      const isTemplateDepts = departmentsList.length === 0 || INSTITUTION_CATEGORIES.some(
+        (c) => c.suggestedDepts.length === departmentsList.length && c.suggestedDepts.every((d, i) => d === departmentsList[i])
+      )
+      if (isTemplateDepts) {
+        setDepartmentsList([...found.suggestedDepts])
+      }
+
+      // Only overwrite suggested classes if current list is empty or matches another default category template
+      const isTemplateClasses = classesList.length === 0 || INSTITUTION_CATEGORIES.some(
+        (c) => c.suggestedClasses.length === classesList.length && c.suggestedClasses.every((cls, i) => cls === classesList[i])
+      )
+      if (isTemplateClasses) {
+        setClassesList([...found.suggestedClasses])
+      }
     }
   }
 
@@ -370,7 +384,7 @@ export function SchoolRegistrationPage() {
       return
     }
     if (!city.trim() || !country.trim()) {
-      setError('Please provide both the city/town and country.')
+      setError('Please provide both the campus city/town and country.')
       return
     }
     setStep(2)
@@ -395,16 +409,21 @@ export function SchoolRegistrationPage() {
       setError('Please provide the full name of the Principal, Provost, or Head of Institution.')
       return
     }
-    if (!contactEmail.trim()) {
-      setError('Please provide an official administrative email address.')
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!contactEmail.trim() || !emailRegex.test(contactEmail.trim())) {
+      setError('Please provide a valid official administrative email address (e.g. registrar@school.ac.ke).')
       return
     }
-    if (!contactPhone.trim()) {
-      setError('Please provide an official phone or WhatsApp contact number.')
+    if (!contactPhone.trim() || contactPhone.trim().length < 9) {
+      setError('Please provide a valid official phone or WhatsApp contact number (at least 9 digits).')
       return
     }
-    if (!adminUsername.trim() || !adminPassword.trim()) {
-      setError('Please configure the Executive Admin login username and password.')
+    if (!adminUsername.trim()) {
+      setError('Please configure the Executive Admin login username.')
+      return
+    }
+    if (!adminPassword.trim() || adminPassword.trim().length < 6) {
+      setError('Admin password must be at least 6 characters. Use "Generate Secure Password" for high security.')
       return
     }
     setStep(5)
@@ -491,6 +510,16 @@ export function SchoolRegistrationPage() {
       `Subscription Tier: ${(registeredSchool.subscription_tier || 'silver').toUpperCase()} (KES ${(registeredSchool.subscription_monthly_rate || 2500).toLocaleString()})`,
       `====================================================`,
     ].join('\n')
+
+    const downloadCredentialsTxt = () => {
+      const element = document.createElement('a')
+      const file = new Blob([credentialsSlipText], { type: 'text/plain;charset=utf-8' })
+      element.href = URL.createObjectURL(file)
+      element.download = `${registeredSchool.slug}-cloud-credentials.txt`
+      document.body.appendChild(element)
+      element.click()
+      document.body.removeChild(element)
+    }
 
     return (
       <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '2.5rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -634,23 +663,43 @@ export function SchoolRegistrationPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.9rem' }}>
+              <div style={{ display: 'flex', gap: '0.45rem', marginTop: '0.9rem', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => copyToClipboard(credentialsSlipText, 'creds')}
                   style={{
-                    flex: 1,
+                    flex: '1 1 120px',
                     background: '#f59e0b',
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '10px',
-                    padding: '0.55rem 0.75rem',
-                    fontSize: '0.78rem',
+                    padding: '0.55rem 0.65rem',
+                    fontSize: '0.76rem',
                     fontWeight: 800,
                     cursor: 'pointer',
+                    textAlign: 'center',
                   }}
                 >
-                  {copiedKey === 'creds' ? '✓ Copied Credentials Slip!' : '📋 Copy Credentials Slip'}
+                  {copiedKey === 'creds' ? '✓ Copied' : '📋 Copy Slip'}
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadCredentialsTxt}
+                  style={{
+                    flex: '1 1 120px',
+                    background: '#ffffff',
+                    color: '#1e3a8a',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '10px',
+                    padding: '0.55rem 0.65rem',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                  }}
+                  title="Save institutional credentials as text file"
+                >
+                  📥 Download (.txt)
                 </button>
                 <button
                   type="button"
@@ -660,13 +709,14 @@ export function SchoolRegistrationPage() {
                     color: '#92400e',
                     border: '1px solid #fcd34d',
                     borderRadius: '10px',
-                    padding: '0.55rem 0.85rem',
-                    fontSize: '0.78rem',
+                    padding: '0.55rem 0.75rem',
+                    fontSize: '0.76rem',
                     fontWeight: 800,
                     cursor: 'pointer',
+                    textAlign: 'center',
                   }}
                 >
-                  🖨️ Print Certificate
+                  🖨️ Print
                 </button>
               </div>
             </div>
@@ -777,46 +827,89 @@ export function SchoolRegistrationPage() {
           </div>
 
           {/* Primary Launch CTAs */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.85rem', justifyContent: 'center' }}>
-            <Link
-              to={hubUrl}
-              style={{
-                flex: '1 1 280px',
-                background: registeredSchool.primary_color,
-                color: '#ffffff',
-                fontWeight: 800,
-                fontSize: '1rem',
-                padding: '1rem 1.75rem',
-                borderRadius: '16px',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                boxShadow: '0 10px 24px rgba(15, 23, 42, 0.16)',
-              }}
-            >
-              Launch {registeredSchool.name} Hub Now <ArrowRightIcon size={18} />
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setRegisteredSchool(null)
-                setStep(1)
-              }}
-              style={{
-                background: '#f1f5f9',
-                color: '#334155',
-                fontWeight: 800,
-                fontSize: '0.92rem',
-                padding: '1rem 1.5rem',
-                borderRadius: '16px',
-                border: '1px solid #cbd5e1',
-                cursor: 'pointer',
-              }}
-            >
-              + Onboard Another Institution
-            </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.85rem', width: '100%', justifyContent: 'center' }}>
+              <Link
+                to={`/s/${registeredSchool.slug}/principal`}
+                style={{
+                  flex: '1 1 280px',
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)',
+                  color: '#ffffff',
+                  fontWeight: 900,
+                  fontSize: '1rem',
+                  padding: '1.05rem 1.75rem',
+                  borderRadius: '16px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.55rem',
+                  boxShadow: '0 10px 24px rgba(30, 58, 138, 0.25)',
+                }}
+              >
+                <span>🛡️</span> Enter Principal Desk (Pre-Signed In) <ArrowRightIcon size={18} />
+              </Link>
+              <Link
+                to={hubUrl}
+                style={{
+                  flex: '1 1 240px',
+                  background: registeredSchool.primary_color,
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  fontSize: '0.96rem',
+                  padding: '1rem 1.5rem',
+                  borderRadius: '16px',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  boxShadow: '0 8px 20px rgba(15, 23, 42, 0.12)',
+                }}
+              >
+                <span>🏫</span> View Public Campus Hub
+              </Link>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center', width: '100%' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setRegisteredSchool(null)
+                  setStep(1)
+                }}
+                style={{
+                  background: '#f8fafc',
+                  color: '#334155',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '12px',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                }}
+              >
+                + Onboard Another Institution
+              </button>
+              <Link
+                to="/saas-admin"
+                style={{
+                  background: '#ffffff',
+                  color: '#1d4ed8',
+                  fontWeight: 800,
+                  fontSize: '0.86rem',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '12px',
+                  border: '1px solid #bfdbfe',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                ← Return to SaaS Admin Portal
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -1114,22 +1207,45 @@ export function SchoolRegistrationPage() {
 
                   {/* Dedicated URL Slug + Real-Time Availability Check */}
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '4px' }}>
                       <label htmlFor={`${formId}-slug`} style={{ fontSize: '0.84rem', fontWeight: 700, color: '#334155' }}>
                         Dedicated Campus URL Handle *
                       </label>
                       {slug.trim() && (
-                        <span
-                          style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
-                            color: slugAlreadyExists ? '#d97706' : '#059669',
-                          }}
-                        >
-                          {slugAlreadyExists
-                            ? '⚠️ Handle exists (will auto-append number)'
-                            : `✓ /s/${slug} is available`}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              color: slugAlreadyExists ? '#d97706' : '#059669',
+                            }}
+                          >
+                            {slugAlreadyExists
+                              ? `⚠️ /s/${slug} is in use`
+                              : `✓ /s/${slug} is available`}
+                          </span>
+                          {slugAlreadyExists && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSlug = `${slug}-${new Date().getFullYear()}`
+                                handleSlugChange(newSlug)
+                              }}
+                              style={{
+                                background: '#fef3c7',
+                                border: '1px solid #fcd34d',
+                                color: '#92400e',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ⚡ Use {slug}-{new Date().getFullYear()}
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '12px', overflow: 'hidden' }}>
@@ -1897,7 +2013,7 @@ export function SchoolRegistrationPage() {
                               const file = e.target.files?.[0]
                               if (!file) return
                               if (file.size > 2 * 1024 * 1024) {
-                                alert('Logo must be under 2 MB.')
+                                setError('Institutional logo image must be under 2 MB.')
                                 return
                               }
                               const reader = new FileReader()
@@ -2078,7 +2194,7 @@ export function SchoolRegistrationPage() {
                         5. Select Institutional Cloud Plan &amp; Deploy
                       </h3>
                       <p style={{ fontSize: '0.84rem', color: '#64748b', margin: 0 }}>
-                        Platform Rate: <strong>KES 2,500 / campus / month</strong>. Activated via official Product Key.
+                        Platform Rate: <strong>KES {currentTierRate.toLocaleString()} / campus / month</strong> ({SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name}). Activated via official Product Key.
                       </p>
                     </div>
 
@@ -2126,7 +2242,7 @@ export function SchoolRegistrationPage() {
                           🏢 Campuses &amp; Satellite Branches
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                          Each registered campus is billed independently at <strong>KES 2,500 / month</strong>.
+                          Each registered campus is billed independently at <strong>KES {currentTierRate.toLocaleString()} / month</strong>.
                         </div>
                       </div>
                       <span style={{ background: '#eff6ff', color: '#1d4ed8', fontWeight: 800, fontSize: '0.8rem', padding: '4px 10px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
@@ -2192,8 +2308,14 @@ export function SchoolRegistrationPage() {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault()
-                            if (newCampusInput.trim()) {
-                              const updated = [...campusesList, newCampusInput.trim()]
+                            const trimmed = newCampusInput.trim()
+                            if (trimmed) {
+                              if (campusesList.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+                                setError(`A campus named "${trimmed}" has already been added.`)
+                                return
+                              }
+                              setError(null)
+                              const updated = [...campusesList, trimmed]
                               setCampusesList(updated)
                               setCampusCount(updated.length)
                               setNewCampusInput('')
@@ -2212,8 +2334,14 @@ export function SchoolRegistrationPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          if (newCampusInput.trim()) {
-                            const updated = [...campusesList, newCampusInput.trim()]
+                          const trimmed = newCampusInput.trim()
+                          if (trimmed) {
+                            if (campusesList.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+                              setError(`A campus named "${trimmed}" has already been added.`)
+                              return
+                            }
+                            setError(null)
+                            const updated = [...campusesList, trimmed]
                             setCampusesList(updated)
                             setCampusCount(updated.length)
                             setNewCampusInput('')
@@ -2346,8 +2474,26 @@ export function SchoolRegistrationPage() {
                           <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Send KES {currentTierRate.toLocaleString()} per campus to receive instant Product Activation Key</div>
                         </div>
                       </div>
-                      <div style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1.1rem', color: '#047857', background: '#dcfce7', padding: '3px 12px', borderRadius: '8px', letterSpacing: '0.04em' }}>
-                        0740027346
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <div style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: '1.1rem', color: '#047857', background: '#dcfce7', padding: '3px 12px', borderRadius: '8px', letterSpacing: '0.04em' }}>
+                          0740027346
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard('0740027346', 'mpesa_line')}
+                          style={{
+                            background: '#f1f5f9',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '8px',
+                            padding: '4px 10px',
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            color: '#334155',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {copiedKey === 'mpesa_line' ? '✓ Copied' : 'Copy'}
+                        </button>
                       </div>
                     </div>
                   </div>

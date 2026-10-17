@@ -82,6 +82,15 @@ export function TenantPrincipalDesk({
 
   const [principalSubTab, setPrincipalSubTab] = useState<PrincipalSubTab>(initialSubTab || 'overview')
 
+  const [dismissedOnboarding, setDismissedOnboarding] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return localStorage.getItem(`gc_onboarding_dismissed_${school.slug}`) === 'true'
+    } catch {
+      return false
+    }
+  })
+
   useEffect(() => {
     if (initialSubTab) {
       setPrincipalSubTab(initialSubTab)
@@ -1245,6 +1254,204 @@ export function TenantPrincipalDesk({
           })}
         </div>
       </div>
+
+      {/* ========================================== */}
+      {/* FIRST-DAY ONBOARDING QUICKSTART CHECKLIST  */}
+      {/* ========================================== */}
+      {principalSubTab === 'overview' && !dismissedOnboarding && (totalStudents === 0 || teachersList.length === 0) && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)',
+            border: '2px solid #bfdbfe',
+            borderRadius: '20px',
+            padding: '1.4rem',
+            marginBottom: '1.75rem',
+            boxShadow: '0 8px 24px rgba(30, 58, 138, 0.08)',
+            position: 'relative',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dbeafe', color: '#1d4ed8', padding: '3px 10px', borderRadius: '999px', fontSize: '0.74rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.35rem' }}>
+                <span>🚀</span> Digital Campus Quickstart Guide
+              </div>
+              <h3 style={{ margin: '0 0 0.25rem', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+                Welcome to {school.name}, {school.principal_name}!
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.84rem', color: '#475569', lineHeight: 1.5, maxWidth: '680px' }}>
+                Your multi-tenant cloud instance has been provisioned. Complete these essential first-day milestones to get your teachers and students fully operational.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setDismissedOnboarding(true)
+                try {
+                  localStorage.setItem(`gc_onboarding_dismissed_${school.slug}`, 'true')
+                } catch {}
+              }}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                color: '#64748b',
+                fontSize: '0.76rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                padding: '5px 10px',
+              }}
+              title="Dismiss quickstart guide"
+            >
+              ✕ Dismiss Guide
+            </button>
+          </div>
+
+          {/* Quickstart 3-Card Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.85rem' }}>
+            {/* Card 1: Faculty */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '14px',
+                padding: '1.1rem',
+                border: teachersList.length > 0 ? '1.5px solid #86efac' : '1px solid #cbd5e1',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ fontSize: '1.35rem' }}>👨‍🏫</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: teachersList.length > 0 ? '#dcfce7' : '#fef3c7', color: teachersList.length > 0 ? '#15803d' : '#92400e' }}>
+                    {teachersList.length > 0 ? '✓ COMPLETED' : 'ACTION REQUIRED'}
+                  </span>
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', marginBottom: '4px' }}>
+                  1. Appoint Teachers &amp; Faculty
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.45 }}>
+                  Provision teacher logins with auto-generated credentials so faculty can publish lesson notes and record CAT exams.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPrincipalSubTab('staff')}
+                style={{
+                  marginTop: '0.9rem',
+                  background: teachersList.length > 0 ? '#f1f5f9' : '#1e3a8a',
+                  color: teachersList.length > 0 ? '#334155' : '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '0.55rem 0.85rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                }}
+              >
+                {teachersList.length > 0 ? 'View Appointed Faculty →' : '+ Appoint First Teacher →'}
+              </button>
+            </div>
+
+            {/* Card 2: Student Enrollment */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '14px',
+                padding: '1.1rem',
+                border: totalStudents > 0 ? '1.5px solid #86efac' : '1px solid #cbd5e1',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ fontSize: '1.35rem' }}>🎓</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: totalStudents > 0 ? '#dcfce7' : '#fef3c7', color: totalStudents > 0 ? '#15803d' : '#92400e' }}>
+                    {totalStudents > 0 ? '✓ COMPLETED' : 'ACTION REQUIRED'}
+                  </span>
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', marginBottom: '4px' }}>
+                  2. Admit Students &amp; Cohorts
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.45 }}>
+                  Assign admission numbers, place students into programs/classes, and issue verified printable admission slips.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPrincipalSubTab('admissions')}
+                style={{
+                  marginTop: '0.9rem',
+                  background: totalStudents > 0 ? '#f1f5f9' : '#047857',
+                  color: totalStudents > 0 ? '#334155' : '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '0.55rem 0.85rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                }}
+              >
+                {totalStudents > 0 ? 'View Student Directory →' : '+ Admit First Student →'}
+              </button>
+            </div>
+
+            {/* Card 3: Academic Calendar & Programs */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '14px',
+                padding: '1.1rem',
+                border: '1.5px solid #86efac',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ fontSize: '1.35rem' }}>📅</span>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', background: '#dcfce7', color: '#15803d' }}>
+                    ✓ CONFIGURED
+                  </span>
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', marginBottom: '4px' }}>
+                  3. Academic Calendar &amp; Fees
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.45 }}>
+                  Active period: <strong>{school.active_period_name || `${school.academic_system.toUpperCase()} 1`}</strong>. Tuition billing, serialized M-Pesa receipts, and exam schedules.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPrincipalSubTab('calendar')}
+                style={{
+                  marginTop: '0.9rem',
+                  background: '#f1f5f9',
+                  color: '#334155',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '0.55rem 0.85rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                }}
+              >
+                Manage Calendar &amp; Periods →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================== */}
       {/* DYNAMIC KPI OVERVIEW STRIP                 */}
