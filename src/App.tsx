@@ -13,6 +13,7 @@ import { LayoutShell } from '@/components/layout/LayoutShell'
 import { LoadingScreen } from '@/components/ui/Spinner'
 import { PullToRefresh } from '@/components/shared/PullToRefresh'
 import { ConcurrentSessionAlertModal } from '@/components/shared/ConcurrentSessionAlertModal'
+import { OTAUpdateBanner } from '@/components/shared/OTAUpdateBanner'
 
 import { LandingPage } from '@/features/landing/LandingPage'
 import { Login } from '@/features/auth/Login'
@@ -186,6 +187,7 @@ export function App() {
       <TenantSubdomainWatcher />
       <PullToRefresh />
       <ConcurrentSessionAlertModal />
+      <OTAUpdateBanner />
       <Routes>
         {/* Portal Root Route */}
         <Route path="/" element={<RootEntryRouter />} />

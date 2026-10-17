@@ -13,7 +13,7 @@ import {
   SUBSCRIPTION_TIER_RATES,
   SUBSCRIPTION_TIER_DETAILS,
 } from '@/types/licensing'
-import type { PartnerSchoolTenant } from '@/types/tenantSchool'
+import type { PartnerSchoolTenant, InstitutionCategory } from '@/types/tenantSchool'
 import { SearchIcon } from '@/components/icons/AppIcons'
 import { AppLogo } from '@/components/common/AppLogo'
 import { SaasPushNotificationManager } from './components/SaasPushNotificationManager'
@@ -80,6 +80,20 @@ export function MasterSaasPortal() {
 
   // Selected School Detail & Password Reset State
   const [inspectedSchool, setInspectedSchool] = useState<PartnerSchoolTenant | null>(null)
+  const [editingSchool, setEditingSchool] = useState<PartnerSchoolTenant | null>(null)
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    motto: '',
+    curriculum_type: 'General Academic & Multi-Disciplinary',
+    institution_category: 'college' as InstitutionCategory,
+    contact_phone: '',
+    contact_email: '',
+    address: '',
+    principal_name: '',
+    campus_count: 1,
+    subscription_tier: 'gold' as SubscriptionTierType,
+  })
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [generatedAdminPasswordMsg, setGeneratedAdminPasswordMsg] = useState<{ schoolSlug: string; pass: string } | null>(null)
 
   const [metrics, setMetrics] = useState<MasterLicensingMetrics>(() => licensingStore.getMetrics())
@@ -195,6 +209,48 @@ export function MasterSaasPortal() {
       setCustomSchoolSlug('')
     } finally {
       setIsGeneratingKey(false)
+    }
+  }
+
+  const openEditSchool = (sch: PartnerSchoolTenant) => {
+    setEditingSchool(sch)
+    setEditFormData({
+      name: sch.name || '',
+      motto: sch.motto || '',
+      curriculum_type: sch.curriculum_type || 'General Academic & Multi-Disciplinary',
+      institution_category: sch.institution_category || 'college',
+      contact_phone: sch.contact_phone || '',
+      contact_email: sch.contact_email || '',
+      address: sch.address || '',
+      principal_name: sch.principal_name || '',
+      campus_count: sch.campus_count || 1,
+      subscription_tier: (sch.subscription_tier as SubscriptionTierType) || 'gold',
+    })
+  }
+
+  const handleSaveSchoolEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingSchool) return
+
+    setIsSavingEdit(true)
+    try {
+      tenantSchoolStore.updateSchoolBranding(editingSchool.slug, {
+        name: editFormData.name.trim() || editingSchool.name,
+        motto: editFormData.motto.trim(),
+        curriculum_type: editFormData.curriculum_type.trim(),
+        institution_category: editFormData.institution_category,
+        contact_phone: editFormData.contact_phone.trim(),
+        contact_email: editFormData.contact_email.trim(),
+        address: editFormData.address.trim(),
+        principal_name: editFormData.principal_name.trim(),
+        campus_count: Number(editFormData.campus_count) || 1,
+        subscription_tier: editFormData.subscription_tier,
+      })
+      await tenantSchoolStore.pushToCloud()
+      setSchools(tenantSchoolStore.getSchools())
+      setEditingSchool(null)
+    } finally {
+      setIsSavingEdit(false)
     }
   }
 
@@ -1506,6 +1562,23 @@ export function MasterSaasPortal() {
                                 </button>
                                 <button
                                   type="button"
+                                  onClick={() => openEditSchool(sch)}
+                                  style={{
+                                    background: '#1d4ed8',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '0.4rem 0.7rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                  }}
+                                  title="Edit institution profile, name, campuses, tier & contacts"
+                                >
+                                  ✏️ Edit
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => {
                                     const res = tenantSchoolStore.resetSchoolAdminPassword(sch.slug)
                                     if (res.success) {
@@ -1560,9 +1633,10 @@ export function MasterSaasPortal() {
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    if (window.confirm(`Delete institution "${sch.name}"? This will remove all associated records.`)) {
+                                    if (window.confirm(`Permanently delete institution "${sch.name}"? This will purge all associated staff, students, programs, timetables, and cloud records.`)) {
                                       tenantSchoolStore.deleteSchool(sch.slug)
                                       setSchools(tenantSchoolStore.getSchools())
+                                      setMetrics(licensingStore.getMetrics())
                                     }
                                   }}
                                   style={{
@@ -1575,9 +1649,9 @@ export function MasterSaasPortal() {
                                     fontWeight: 700,
                                     cursor: 'pointer',
                                   }}
-                                  title={`Delete ${sch.name}`}
+                                  title={`Permanently delete ${sch.name}`}
                                 >
-                                  🗑️
+                                  🗑️ Delete
                                 </button>
                               </div>
                             </td>
@@ -2281,6 +2355,300 @@ export function MasterSaasPortal() {
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: EDIT INSTITUTION PROFILE */}
+        {editingSchool && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.75)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: '1.25rem',
+            }}
+            onClick={() => setEditingSchool(null)}
+          >
+            <div
+              style={{
+                background: '#131b2e',
+                borderRadius: '24px',
+                maxWidth: '640px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '2rem',
+                border: '1px solid #3b82f6',
+                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.7)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #1e293b', paddingBottom: '1rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    ✏️ Update Institution Profile
+                  </span>
+                  <h3 style={{ margin: '4px 0 0', fontSize: '1.3rem', fontWeight: 900, color: '#f8fafc' }}>
+                    {editingSchool.name}
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
+                    Slug: <strong>{editingSchool.slug}</strong> (Permanent identifier)
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingSchool(null)}
+                  style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveSchoolEdit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                    INSTITUTION FULL NAME *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '10px',
+                      background: '#0a0f1d',
+                      border: '1px solid #334155',
+                      color: '#ffffff',
+                      fontSize: '0.88rem',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      INSTITUTION MOTTO / SLOGAN
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.motto}
+                      onChange={(e) => setEditFormData({ ...editFormData, motto: e.target.value })}
+                      placeholder="e.g. Excellence in Technical Skill"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      CURRICULUM / SECTOR
+                    </label>
+                    <select
+                      value={editFormData.curriculum_type}
+                      onChange={(e) => setEditFormData({ ...editFormData, curriculum_type: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    >
+                      <option value="Vocational & TVET College">Vocational &amp; TVET College</option>
+                      <option value="General Academic & Multi-Disciplinary">General Academic &amp; Multi-Disciplinary</option>
+                      <option value="STEM & Technology Institute">STEM &amp; Technology Institute</option>
+                      <option value="Business & Professional Academy">Business &amp; Professional Academy</option>
+                      <option value="National / CBC Curriculum">National / CBC Curriculum</option>
+                      <option value="International Academic Curriculum">International Academic Curriculum</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      CONTACT PHONE
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.contact_phone}
+                      onChange={(e) => setEditFormData({ ...editFormData, contact_phone: e.target.value })}
+                      placeholder="+254 700 000 000"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      CONTACT EMAIL
+                    </label>
+                    <input
+                      type="email"
+                      value={editFormData.contact_email}
+                      onChange={(e) => setEditFormData({ ...editFormData, contact_email: e.target.value })}
+                      placeholder="admissions@school.edu"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      PRINCIPAL / DIRECTOR NAME
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.principal_name}
+                      onChange={(e) => setEditFormData({ ...editFormData, principal_name: e.target.value })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      CAMPUS COUNT
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={editFormData.campus_count}
+                      onChange={(e) => setEditFormData({ ...editFormData, campus_count: Number(e.target.value) || 1 })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      SUBSCRIPTION TIER
+                    </label>
+                    <select
+                      value={editFormData.subscription_tier}
+                      onChange={(e) => setEditFormData({ ...editFormData, subscription_tier: e.target.value as SubscriptionTierType })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    >
+                      <option value="gold">Gold Tier (KES 3,000 / mo)</option>
+                      <option value="silver">Silver Tier (KES 2,500 / mo)</option>
+                      <option value="platinum">Platinum Tier (KES 5,000 / mo)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                    CAMPUS PHYSICAL ADDRESS
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.address}
+                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                    placeholder="e.g. Commercial Street, Westlands, Nairobi"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '10px',
+                      background: '#0a0f1d',
+                      border: '1px solid #334155',
+                      color: '#ffffff',
+                      fontSize: '0.88rem',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid #1e293b', paddingTop: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setEditingSchool(null)}
+                    style={{
+                      flex: 1,
+                      background: '#1e293b',
+                      color: '#cbd5e1',
+                      border: 'none',
+                      padding: '0.8rem',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit}
+                    style={{
+                      flex: 2,
+                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '0.8rem',
+                      borderRadius: '10px',
+                      fontWeight: 900,
+                      cursor: isSavingEdit ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
+                    }}
+                  >
+                    {isSavingEdit ? 'Saving Changes...' : '💾 Save & Sync Across Network'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

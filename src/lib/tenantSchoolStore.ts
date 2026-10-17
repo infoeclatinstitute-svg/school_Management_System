@@ -35,6 +35,7 @@ const NOTICES_STORAGE_KEY = 'gc_v2_tenant_notices'
 const APPLICATIONS_STORAGE_KEY = 'gc_v2_tenant_applications'
 const ATTENDANCE_STORAGE_KEY = 'gc_v2_tenant_attendance_sessions'
 const SESSION_STORAGE_KEY_PREFIX = 'gc_v2_tenant_session_'
+const DELETED_SCHOOLS_KEY = 'gc_v2_deleted_schools_tombstones'
 
 function safeTenantStorePersist<T>(key: string, data: T): void {
   if (typeof window === 'undefined') return
@@ -51,10 +52,12 @@ const INITIAL_PARTNER_SCHOOLS: PartnerSchoolTenant[] = []
 class TenantSchoolStore {
   private schools: PartnerSchoolTenant[] = []
   private programs: InstitutionProgram[] = []
+  private deletedSchoolSlugs: Set<string> = new Set()
   private isPushing = false
   private pushTimer: any = null
 
   constructor() {
+    this.loadDeletedSchoolSlugs()
     this.loadSchools()
     if (typeof window !== 'undefined') {
       setTimeout(() => {
@@ -71,6 +74,26 @@ class TenantSchoolStore {
           .subscribe()
       }, 1000)
     }
+  }
+
+  private loadDeletedSchoolSlugs() {
+    if (typeof window === 'undefined') return
+    try {
+      const stored = localStorage.getItem(DELETED_SCHOOLS_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          this.deletedSchoolSlugs = new Set(parsed.map((s: string) => s.toLowerCase().trim()))
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  private saveDeletedSchoolSlugs() {
+    if (typeof window === 'undefined') return
+    safeTenantStorePersist(DELETED_SCHOOLS_KEY, Array.from(this.deletedSchoolSlugs))
   }
 
   public async syncWithCloud(): Promise<void> {
@@ -102,19 +125,42 @@ class TenantSchoolStore {
         notices?: TenantSchoolNotice[]
         applications?: TenantAdmissionApplication[]
         attendanceSessions?: TenantAttendanceSession[]
+        deletedSchools?: string[]
+      }
+
+      // 0. Merge remote tombstones
+      if (Array.isArray(cloudState.deletedSchools)) {
+        cloudState.deletedSchools.forEach((slug) => {
+          if (slug && typeof slug === 'string') {
+            this.deletedSchoolSlugs.add(slug.toLowerCase().trim())
+          }
+        })
+        this.saveDeletedSchoolSlugs()
       }
 
       let hadLocalChanges = false
 
       if (Array.isArray(cloudState.schools)) {
         const map = new Map<string, PartnerSchoolTenant>()
-        // 1. Put cloud schools in map
-        cloudState.schools.forEach((s) => map.set(s.slug.toLowerCase(), s))
-        // 2. Merge local schools
+        // 1. Put cloud schools in map (excluding tombstones)
+        cloudState.schools.forEach((s) => {
+          if (!this.deletedSchoolSlugs.has(s.slug.toLowerCase().trim())) {
+            map.set(s.slug.toLowerCase().trim(), s)
+          } else {
+            // Cloud has a deleted school that needs to be scrubbed remotely
+            hadLocalChanges = true
+          }
+        })
+        // 2. Merge local schools (excluding tombstones)
         this.schools.forEach((s) => {
-          const cloudSchool = map.get(s.slug.toLowerCase())
+          const cleanSlug = s.slug.toLowerCase().trim()
+          if (this.deletedSchoolSlugs.has(cleanSlug)) {
+            hadLocalChanges = true
+            return
+          }
+          const cloudSchool = map.get(cleanSlug)
           if (!cloudSchool) {
-            map.set(s.slug.toLowerCase(), s)
+            map.set(cleanSlug, s)
             hadLocalChanges = true
           } else {
             // Keep the one that has the active license if available
@@ -140,7 +186,7 @@ class TenantSchoolStore {
               mergedCampuses.length || 1
             )
 
-            map.set(s.slug.toLowerCase(), {
+            map.set(cleanSlug, {
               ...cloudSchool,
               ...s,
               campuses_list: mergedCampuses.length > 0 ? mergedCampuses : (cloudSchool.campuses_list || s.campuses_list),
@@ -151,7 +197,7 @@ class TenantSchoolStore {
             })
           }
         })
-        this.schools = Array.from(map.values())
+        this.schools = Array.from(map.values()).filter((s) => !this.deletedSchoolSlugs.has(s.slug.toLowerCase().trim()))
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.schools))
         window.dispatchEvent(new CustomEvent('gc-tenant-schools-updated', { detail: this.schools }))
       }
@@ -159,9 +205,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.programs) && cloudState.programs.length > 0) {
         this.loadPrograms()
         const map = new Map<string, InstitutionProgram>()
-        cloudState.programs.forEach((pr) => map.set(pr.id, pr))
+        cloudState.programs.forEach((pr) => {
+          if (!this.deletedSchoolSlugs.has((pr.school_slug || '').toLowerCase().trim())) {
+            map.set(pr.id, pr)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.programs.forEach((pr) => {
-          if (!map.has(pr.id)) { map.set(pr.id, pr); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((pr.school_slug || '').toLowerCase().trim()) && !map.has(pr.id)) {
+            map.set(pr.id, pr)
+            hadLocalChanges = true
+          }
         })
         this.programs = Array.from(map.values())
         localStorage.setItem(PROGRAMS_STORAGE_KEY, JSON.stringify(this.programs))
@@ -170,9 +225,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.staff) && cloudState.staff.length > 0) {
         this.loadStaff()
         const map = new Map<string, TenantStaffMember>()
-        cloudState.staff.forEach((st) => map.set(st.id, st))
+        cloudState.staff.forEach((st) => {
+          if (!this.deletedSchoolSlugs.has((st.school_slug || '').toLowerCase().trim())) {
+            map.set(st.id, st)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.staff.forEach((st) => {
-          if (!map.has(st.id)) { map.set(st.id, st); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((st.school_slug || '').toLowerCase().trim()) && !map.has(st.id)) {
+            map.set(st.id, st)
+            hadLocalChanges = true
+          }
         })
         this.staff = Array.from(map.values())
         localStorage.setItem(STAFF_STORAGE_KEY, JSON.stringify(this.staff))
@@ -181,9 +245,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.students) && cloudState.students.length > 0) {
         this.loadStudents()
         const map = new Map<string, TenantStudentMember>()
-        cloudState.students.forEach((std) => map.set(std.id, std))
+        cloudState.students.forEach((std) => {
+          if (!this.deletedSchoolSlugs.has((std.school_slug || '').toLowerCase().trim())) {
+            map.set(std.id, std)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.students.forEach((std) => {
-          if (!map.has(std.id)) { map.set(std.id, std); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((std.school_slug || '').toLowerCase().trim()) && !map.has(std.id)) {
+            map.set(std.id, std)
+            hadLocalChanges = true
+          }
         })
         this.students = Array.from(map.values())
         localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(this.students))
@@ -192,9 +265,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.payroll) && cloudState.payroll.length > 0) {
         this.loadPayroll()
         const map = new Map<string, TenantPayrollRecord>()
-        cloudState.payroll.forEach((p) => map.set(p.id, p))
+        cloudState.payroll.forEach((p) => {
+          if (!this.deletedSchoolSlugs.has((p.school_slug || '').toLowerCase().trim())) {
+            map.set(p.id, p)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.payroll.forEach((p) => {
-          if (!map.has(p.id)) { map.set(p.id, p); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((p.school_slug || '').toLowerCase().trim()) && !map.has(p.id)) {
+            map.set(p.id, p)
+            hadLocalChanges = true
+          }
         })
         this.payroll = Array.from(map.values())
         localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(this.payroll))
@@ -203,9 +285,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.grades) && cloudState.grades.length > 0) {
         this.loadGrades()
         const map = new Map<string, TenantGradeRecord>()
-        cloudState.grades.forEach((g) => map.set(g.id, g))
+        cloudState.grades.forEach((g) => {
+          if (!this.deletedSchoolSlugs.has((g.school_slug || '').toLowerCase().trim())) {
+            map.set(g.id, g)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.grades.forEach((g) => {
-          if (!map.has(g.id)) { map.set(g.id, g); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((g.school_slug || '').toLowerCase().trim()) && !map.has(g.id)) {
+            map.set(g.id, g)
+            hadLocalChanges = true
+          }
         })
         this.grades = Array.from(map.values())
         localStorage.setItem(GRADES_STORAGE_KEY, JSON.stringify(this.grades))
@@ -214,9 +305,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.lessonNotes) && cloudState.lessonNotes.length > 0) {
         this.loadLessonNotes()
         const map = new Map<string, TenantLessonNote>()
-        cloudState.lessonNotes.forEach((n) => map.set(n.id, n))
+        cloudState.lessonNotes.forEach((n) => {
+          if (!this.deletedSchoolSlugs.has((n.school_slug || '').toLowerCase().trim())) {
+            map.set(n.id, n)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.lessonNotes.forEach((n) => {
-          if (!map.has(n.id)) { map.set(n.id, n); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((n.school_slug || '').toLowerCase().trim()) && !map.has(n.id)) {
+            map.set(n.id, n)
+            hadLocalChanges = true
+          }
         })
         this.lessonNotes = Array.from(map.values())
         localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(this.lessonNotes))
@@ -225,9 +325,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.payments) && cloudState.payments.length > 0) {
         this.loadPayments()
         const map = new Map<string, TenantFeePayment>()
-        cloudState.payments.forEach((pm) => map.set(pm.id, pm))
+        cloudState.payments.forEach((pm) => {
+          if (!this.deletedSchoolSlugs.has((pm.school_slug || '').toLowerCase().trim())) {
+            map.set(pm.id, pm)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.payments.forEach((pm) => {
-          if (!map.has(pm.id)) { map.set(pm.id, pm); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((pm.school_slug || '').toLowerCase().trim()) && !map.has(pm.id)) {
+            map.set(pm.id, pm)
+            hadLocalChanges = true
+          }
         })
         this.payments = Array.from(map.values())
         localStorage.setItem(PAYMENTS_STORAGE_KEY, JSON.stringify(this.payments))
@@ -236,9 +345,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.timetables) && cloudState.timetables.length > 0) {
         this.loadTimetables()
         const map = new Map<string, TenantTimetableEntry>()
-        cloudState.timetables.forEach((t) => map.set(t.id, t))
+        cloudState.timetables.forEach((t) => {
+          if (!this.deletedSchoolSlugs.has((t.school_slug || '').toLowerCase().trim())) {
+            map.set(t.id, t)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.timetables.forEach((t) => {
-          if (!map.has(t.id)) { map.set(t.id, t); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((t.school_slug || '').toLowerCase().trim()) && !map.has(t.id)) {
+            map.set(t.id, t)
+            hadLocalChanges = true
+          }
         })
         this.timetables = Array.from(map.values())
         localStorage.setItem(TIMETABLE_STORAGE_KEY, JSON.stringify(this.timetables))
@@ -247,9 +365,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.notices) && cloudState.notices.length > 0) {
         this.loadNotices()
         const map = new Map<string, TenantSchoolNotice>()
-        cloudState.notices.forEach((n) => map.set(n.id, n))
+        cloudState.notices.forEach((n) => {
+          if (!this.deletedSchoolSlugs.has((n.school_slug || '').toLowerCase().trim())) {
+            map.set(n.id, n)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.notices.forEach((n) => {
-          if (!map.has(n.id)) { map.set(n.id, n); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((n.school_slug || '').toLowerCase().trim()) && !map.has(n.id)) {
+            map.set(n.id, n)
+            hadLocalChanges = true
+          }
         })
         this.notices = Array.from(map.values())
         localStorage.setItem(NOTICES_STORAGE_KEY, JSON.stringify(this.notices))
@@ -258,9 +385,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.applications) && cloudState.applications.length > 0) {
         this.loadApplications()
         const map = new Map<string, TenantAdmissionApplication>()
-        cloudState.applications.forEach((a) => map.set(a.id, a))
+        cloudState.applications.forEach((a) => {
+          if (!this.deletedSchoolSlugs.has((a.school_slug || '').toLowerCase().trim())) {
+            map.set(a.id, a)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.applications.forEach((a) => {
-          if (!map.has(a.id)) { map.set(a.id, a); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((a.school_slug || '').toLowerCase().trim()) && !map.has(a.id)) {
+            map.set(a.id, a)
+            hadLocalChanges = true
+          }
         })
         this.applications = Array.from(map.values())
         localStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(this.applications))
@@ -269,9 +405,18 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.attendanceSessions) && cloudState.attendanceSessions.length > 0) {
         this.loadAttendanceSessions()
         const map = new Map<string, TenantAttendanceSession>()
-        cloudState.attendanceSessions.forEach((s) => map.set(s.id, s))
+        cloudState.attendanceSessions.forEach((s) => {
+          if (!this.deletedSchoolSlugs.has((s.school_slug || '').toLowerCase().trim())) {
+            map.set(s.id, s)
+          } else {
+            hadLocalChanges = true
+          }
+        })
         this.attendanceSessions.forEach((s) => {
-          if (!map.has(s.id)) { map.set(s.id, s); hadLocalChanges = true }
+          if (!this.deletedSchoolSlugs.has((s.school_slug || '').toLowerCase().trim()) && !map.has(s.id)) {
+            map.set(s.id, s)
+            hadLocalChanges = true
+          }
         })
         this.attendanceSessions = Array.from(map.values())
         localStorage.setItem(ATTENDANCE_STORAGE_KEY, JSON.stringify(this.attendanceSessions))
@@ -305,6 +450,7 @@ class TenantSchoolStore {
             notices: this.notices,
             applications: this.applications,
             attendanceSessions: this.attendanceSessions,
+            deletedSchools: Array.from(this.deletedSchoolSlugs),
           },
           updated_at: new Date().toISOString(),
           updated_by: 'TenantSchoolStore',
@@ -402,11 +548,71 @@ class TenantSchoolStore {
 
   public deleteSchool(slug: string): void {
     const clean = slug.trim().toLowerCase()
-    this.schools = this.schools.filter((s) => s.slug.toLowerCase() !== clean)
+    if (!clean) return
+
+    // 1. Record tombstone so cloud sync never resurrects this institution
+    this.deletedSchoolSlugs.add(clean)
+    this.saveDeletedSchoolSlugs()
+
+    // 2. Remove school from memory and persistence
+    this.schools = this.schools.filter((s) => s.slug.toLowerCase().trim() !== clean)
     this.saveSchools()
+
+    // 3. Cascade delete all associated entities across all collections
+    if (this.staff.length === 0) this.loadStaff()
+    this.staff = this.staff.filter((s) => (s.school_slug || '').toLowerCase().trim() !== clean)
+    this.saveStaff()
+
+    if (this.students.length === 0) this.loadStudents()
+    this.students = this.students.filter((s) => (s.school_slug || '').toLowerCase().trim() !== clean)
+    this.saveStudents()
+
+    if (this.programs.length === 0) this.loadPrograms()
+    this.programs = this.programs.filter((p) => (p.school_slug || '').toLowerCase().trim() !== clean)
+    this.savePrograms()
+
+    if (this.payroll.length === 0) this.loadPayroll()
+    this.payroll = this.payroll.filter((p) => (p.school_slug || '').toLowerCase().trim() !== clean)
+    this.savePayroll()
+
+    if (this.grades.length === 0) this.loadGrades()
+    this.grades = this.grades.filter((g) => (g.school_slug || '').toLowerCase().trim() !== clean)
+    this.saveGrades()
+
+    if (this.lessonNotes.length === 0) this.loadLessonNotes()
+    this.lessonNotes = this.lessonNotes.filter((n) => (n.school_slug || '').toLowerCase().trim() !== clean)
+    this.saveLessonNotes()
+
+    if (this.payments.length === 0) this.loadPayments()
+    this.payments = this.payments.filter((p) => (p.school_slug || '').toLowerCase().trim() !== clean)
+    this.savePayments()
+
+    if (this.timetables.length === 0) this.loadTimetables()
+    this.timetables = this.timetables.filter((t) => (t.school_slug || '').toLowerCase().trim() !== clean)
+    this.saveTimetables()
+
+    if (this.notices.length === 0) this.loadNotices()
+    this.notices = this.notices.filter((n) => (n.school_slug || '').toLowerCase().trim() !== clean)
+    this.saveNotices()
+
+    if (this.applications.length === 0) this.loadApplications()
+    this.applications = this.applications.filter((a) => (a.school_slug || '').toLowerCase().trim() !== clean)
+    this.saveApplications()
+
+    if (this.attendanceSessions.length === 0) this.loadAttendanceSessions()
+    this.attendanceSessions = this.attendanceSessions.filter((s) => (s.school_slug || '').toLowerCase().trim() !== clean)
+    this.saveAttendanceSessions()
+
+    // 4. Clean local session
+    this.setActiveSession(clean, null)
+
+    // 5. Immediately push scrubbed dataset to Supabase Cloud
+    this.pushToCloud().catch(() => {})
   }
 
   public clearAllSchools(): void {
+    this.schools.forEach((s) => this.deletedSchoolSlugs.add(s.slug.toLowerCase().trim()))
+    this.saveDeletedSchoolSlugs()
     this.schools = []
     this.staff = []
     this.students = []
@@ -416,6 +622,9 @@ class TenantSchoolStore {
     this.payments = []
     this.timetables = []
     this.programs = []
+    this.notices = []
+    this.applications = []
+    this.attendanceSessions = []
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY)
       localStorage.removeItem(STAFF_STORAGE_KEY)
@@ -426,8 +635,11 @@ class TenantSchoolStore {
       localStorage.removeItem(PAYMENTS_STORAGE_KEY)
       localStorage.removeItem(TIMETABLE_STORAGE_KEY)
       localStorage.removeItem(PROGRAMS_STORAGE_KEY)
+      localStorage.removeItem(NOTICES_STORAGE_KEY)
+      localStorage.removeItem(APPLICATIONS_STORAGE_KEY)
+      localStorage.removeItem(ATTENDANCE_STORAGE_KEY)
       window.dispatchEvent(new CustomEvent('gc-tenant-schools-updated', { detail: [] }))
-      this.pushToCloud()
+      this.pushToCloud().catch(() => {})
     }
   }
 
