@@ -1556,7 +1556,7 @@ export function FeeManagement() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem', marginBottom: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem', fontSize: '0.85rem', marginBottom: '1.25rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <div><strong>Receipt No:</strong> <span style={{ color: '#1e3a8a', fontWeight: 800 }}>{selectedReceipt.receipt_number}</span></div>
                 <div><strong>Date:</strong> {selectedReceipt.payment_date}</div>
                 <div><strong>Student Name:</strong> {selectedReceipt.student_name}</div>

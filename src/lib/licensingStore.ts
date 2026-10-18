@@ -396,7 +396,7 @@ class LicensingStore {
       subscription_tier: resolvedTier,
       active_license_key: license.key,
       license_valid_until: license.expires_at,
-      subscription_monthly_rate: (license.total_amount_kes / license.duration_months) || (SUBSCRIPTION_TIER_RATES[resolvedTier] * license.campus_count),
+      subscription_monthly_rate: (license.duration_months > 0 ? Math.round(license.total_amount_kes / license.duration_months) : 0) || (SUBSCRIPTION_TIER_RATES[resolvedTier] * license.campus_count),
       campus_count: license.campus_count,
     })
 

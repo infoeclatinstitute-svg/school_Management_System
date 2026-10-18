@@ -97,7 +97,7 @@ export function ExamManagement() {
                     admission_number: currentStudent.admission_number,
                     course_title: currentStudent.class_name,
                     grade: currentStudent.certificate_grade || (myReportCard ? myReportCard.mean_grade : 'Competent / Pass'),
-                    percentage: myReportCard?.mean_percentage ?? 80,
+                    percentage: myReportCard?.mean_percentage ?? 0,
                     issue_date: new Date().toLocaleDateString('en-GB'),
                     certificate_no: currentStudent.certificate_number || `GC-CERT-${currentStudent.admission_number.replace(/[^a-zA-Z0-9]/g, '')}`,
                     duration: currentStudent.grade_level || '3 Months Intensive Practical Training',
