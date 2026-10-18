@@ -1690,10 +1690,14 @@ class TenantSchoolStore {
   }
 
   public admitStudent(
-    input: Omit<TenantStudentMember, 'id' | 'admission_date' | 'fee_balance' | 'attendance_percent' | 'status'>
+    input: Omit<TenantStudentMember, 'id' | 'admission_date' | 'fee_balance' | 'attendance_percent' | 'status'> & {
+      admission_date?: string
+    }
   ): TenantStudentMember {
     if (this.students.length === 0) this.loadStudents()
     const feeBalance = Math.max(0, (input.fee_total || 0) - (input.fee_paid || 0))
+    const installmentsCount = input.fee_installments_count || (input.fee_payment_plan === 'monthly' ? 3 : input.fee_payment_plan === 'weekly' ? 10 : 1)
+    const installmentAmount = input.fee_installment_amount || (installmentsCount > 1 && input.fee_total ? Math.ceil(input.fee_total / installmentsCount) : input.fee_total || 0)
 
     const newStudent: TenantStudentMember = {
       ...input,
@@ -1701,7 +1705,10 @@ class TenantSchoolStore {
       fee_balance: feeBalance,
       attendance_percent: 100.0,
       status: 'active',
-      admission_date: new Date().toISOString().split('T')[0],
+      admission_date: input.admission_date || new Date().toISOString().split('T')[0],
+      fee_payment_plan: input.fee_payment_plan || 'termly',
+      fee_installments_count: installmentsCount,
+      fee_installment_amount: installmentAmount,
     }
 
     this.students.unshift(newStudent)
@@ -1759,6 +1766,11 @@ class TenantSchoolStore {
       const total = typeof updates.fee_total === 'number' ? updates.fee_total : updated.fee_total
       const paid = typeof updates.fee_paid === 'number' ? updates.fee_paid : updated.fee_paid
       updated.fee_balance = Math.max(0, total - paid)
+    }
+    if (typeof updates.fee_total === 'number' || typeof updates.fee_installments_count === 'number' || updates.fee_payment_plan) {
+      const total = typeof updates.fee_total === 'number' ? updates.fee_total : updated.fee_total
+      const count = typeof updates.fee_installments_count === 'number' ? updates.fee_installments_count : (updated.fee_installments_count || 1)
+      updated.fee_installment_amount = count > 1 ? Math.ceil(total / count) : total
     }
 
     this.students = this.students.map((s) => (s.id === id ? updated : s))

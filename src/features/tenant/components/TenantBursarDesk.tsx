@@ -89,6 +89,7 @@ export function TenantBursarDesk({
   const [arrearsSearchQuery, setArrearsSearchQuery] = useState('')
   const [arrearsClassFilter, setArrearsClassFilter] = useState<string>('ALL')
   const [arrearsSeverityFilter, setArrearsSeverityFilter] = useState<'ALL' | 'CRITICAL' | 'ZERO_PAID'>('ALL')
+  const [arrearsPlanFilter, setArrearsPlanFilter] = useState<'ALL' | 'termly' | 'monthly' | 'weekly' | 'custom'>('ALL')
 
   // Payroll Filter States
   const availablePayrollMonths = useMemo(() => {
@@ -112,6 +113,8 @@ export function TenantBursarDesk({
   const [showStudentFeeAdjustmentModal, setShowStudentFeeAdjustmentModal] = useState(false)
   const [selectedStudentForAdjustment, setSelectedStudentForAdjustment] = useState<TenantStudentMember | null>(null)
   const [adjustedFeeTotalInput, setAdjustedFeeTotalInput] = useState<number>(0)
+  const [adjustedPaymentPlanInput, setAdjustedPaymentPlanInput] = useState<'termly' | 'monthly' | 'weekly' | 'custom'>('termly')
+  const [adjustedInstallmentsCountInput, setAdjustedInstallmentsCountInput] = useState<number>(1)
   const [showDisburseBatchModal, setShowDisburseBatchModal] = useState(false)
   const [batchDisburseChannel, setBatchDisburseChannel] = useState<'Bank Wire' | 'Mobile Money' | 'Cheque'>('Bank Wire')
 
@@ -143,6 +146,7 @@ export function TenantBursarDesk({
     reference_code: '',
     period_name: activePeriod,
     bursar_notes: '',
+    installment_label: '',
   })
 
   // Banking Channels State
@@ -182,6 +186,8 @@ export function TenantBursarDesk({
     const existingFee = cohortStudents[0]?.fee_total || 0
     return {
       target_cohort: firstCohort,
+      fee_payment_plan: (cohortStudents[0]?.fee_payment_plan || 'termly') as 'termly' | 'monthly' | 'weekly' | 'custom',
+      fee_installments_count: cohortStudents[0]?.fee_installments_count || 1,
       tuition_component: existingFee > 0 ? Math.round(existingFee * 0.75) : 0,
       exam_component: existingFee > 0 ? Math.round(existingFee * 0.1) : 0,
       activity_component: existingFee > 0 ? Math.round(existingFee * 0.05) : 0,
@@ -250,11 +256,13 @@ export function TenantBursarDesk({
       period_name: newPaymentInput.period_name || activePeriod,
       payment_method: newPaymentInput.payment_method,
       recorded_by: recordedByName,
+      installment_label: newPaymentInput.installment_label || undefined,
+      notes: newPaymentInput.bursar_notes || undefined,
     })
 
     setShowRecordPaymentModal(false)
     // Reset amount
-    setNewPaymentInput((prev) => ({ ...prev, amount: 0, reference_code: '', bursar_notes: '' }))
+    setNewPaymentInput((prev) => ({ ...prev, amount: 0, reference_code: '', bursar_notes: '', installment_label: '' }))
     onReloadData()
     onOpenReceipt(payment)
   }
@@ -279,10 +287,16 @@ export function TenantBursarDesk({
       return
     }
 
+    const instCount = batchInvoiceForm.fee_payment_plan === 'termly' ? 1 : Math.max(1, batchInvoiceForm.fee_installments_count || 1)
+    const instAmount = Math.round(totalCalculated / instCount)
+
     let updatedCount = 0
     cohortStudents.forEach((st) => {
       tenantSchoolStore.updateStudent(st.id, {
         fee_total: totalCalculated,
+        fee_payment_plan: batchInvoiceForm.fee_payment_plan,
+        fee_installments_count: instCount,
+        fee_installment_amount: instAmount,
       })
       updatedCount++
     })
@@ -290,7 +304,7 @@ export function TenantBursarDesk({
     setShowBatchInvoiceModal(false)
     onReloadData()
     alert(
-      `✓ Successfully invoiced ${updatedCount} students in ${cohort} with new standard term rate of ${currency} ${totalCalculated.toLocaleString()}!`
+      `✓ Successfully invoiced ${updatedCount} students in ${cohort} with ${batchInvoiceForm.fee_payment_plan.toUpperCase()} plan (${instCount} installments @ ${currency} ${instAmount.toLocaleString()})! Total term rate: ${currency} ${totalCalculated.toLocaleString()}.`
     )
   }
 
@@ -306,14 +320,20 @@ export function TenantBursarDesk({
       return
     }
 
+    const instCount = adjustedPaymentPlanInput === 'termly' ? 1 : Math.max(1, adjustedInstallmentsCountInput || 1)
+    const instAmount = Math.round(newTotal / instCount)
+
     tenantSchoolStore.updateStudent(selectedStudentForAdjustment.id, {
       fee_total: newTotal,
+      fee_payment_plan: adjustedPaymentPlanInput,
+      fee_installments_count: instCount,
+      fee_installment_amount: instAmount,
     })
 
     setShowStudentFeeAdjustmentModal(false)
     setSelectedStudentForAdjustment(null)
     onReloadData()
-    alert(`Updated billed fee total for ${selectedStudentForAdjustment.full_name} to ${currency} ${newTotal.toLocaleString()}.`)
+    alert(`Updated billing schedule for ${selectedStudentForAdjustment.full_name}: ${adjustedPaymentPlanInput.toUpperCase()} plan (${instCount} installments @ ${currency} ${instAmount.toLocaleString()}), Total: ${currency} ${newTotal.toLocaleString()}.`)
   }
 
   // Handle Disbursing Batch
@@ -411,9 +431,11 @@ export function TenantBursarDesk({
         matchSeverity = s.fee_paid === 0
       }
 
-      return matchQuery && matchClass && matchSeverity
+      const matchPlan = arrearsPlanFilter === 'ALL' || (s.fee_payment_plan || 'termly') === arrearsPlanFilter
+
+      return matchQuery && matchClass && matchSeverity && matchPlan
     })
-  }, [defaultersList, arrearsSearchQuery, arrearsClassFilter, arrearsSeverityFilter])
+  }, [defaultersList, arrearsSearchQuery, arrearsClassFilter, arrearsSeverityFilter, arrearsPlanFilter])
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -1226,7 +1248,7 @@ export function TenantBursarDesk({
       )}
 
       {/* ============================================================ */}
-      {/* SUBTAB 2: FEE ARREARS & DEFAULTERS RECOVERY */}
+      {/* SUBTAB 2: FEE ARREARS & DEFAULTERS RECOVERY (PENDING BALANCE TRACKER) */}
       {/* ============================================================ */}
       {bursarSubTab === 'arrears' && (
         <div style={{ background: '#ffffff', borderRadius: '20px', padding: '2rem', border: '1px solid #e2e8f0' }}>
@@ -1241,11 +1263,14 @@ export function TenantBursarDesk({
             }}
           >
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
-                Aging Debtors &amp; Fee Defaulters Clearance Terminal
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                ARREARS INTELLIGENCE &amp; INSTALLMENT MONITOR
+              </div>
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 900, margin: '2px 0 0', color: '#0f172a' }}>
+                Pending Balance &amp; Installments Tracker
               </h3>
               <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
-                Track outstanding tuition arrears, dispatch automated WhatsApp &amp; SMS demand notices, and issue exam permits.
+                Track outstanding tuition balances across monthly, weekly, and termly payment plans, monitor pending installments, and issue clearance notices.
               </p>
             </div>
 
@@ -1267,8 +1292,106 @@ export function TenantBursarDesk({
                   gap: '6px',
                 }}
               >
-                <span>⬇</span> Export Arrears Roster (CSV)
+                <span>⬇</span> Export Arrears Ledger (CSV)
               </button>
+            </div>
+          </div>
+
+          {/* Pending Balance & Installment Telemetry Cards */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '1rem',
+              marginBottom: '1.5rem',
+            }}
+          >
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+                padding: '1.15rem',
+                borderRadius: '14px',
+                border: '1px solid #fecaca',
+              }}
+            >
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#991b1b', textTransform: 'uppercase' }}>
+                Total Pending Balance
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>
+                {currency} {totalArrears.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#7f1d1d', marginTop: '2px' }}>
+                Across {defaultersList.length} student account(s)
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#f0fdf4',
+                padding: '1.15rem',
+                borderRadius: '14px',
+                border: '1px solid #bbf7d0',
+              }}
+            >
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>
+                Monthly Installments Plan
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>
+                {currency}{' '}
+                {defaultersList
+                  .filter((s) => s.fee_payment_plan === 'monthly')
+                  .reduce((acc, s) => acc + (s.fee_balance || 0), 0)
+                  .toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#14532d', marginTop: '2px' }}>
+                {defaultersList.filter((s) => s.fee_payment_plan === 'monthly').length} student(s) on monthly plans
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#eff6ff',
+                padding: '1.15rem',
+                borderRadius: '14px',
+                border: '1px solid #bfdbfe',
+              }}
+            >
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase' }}>
+                Weekly Installments Plan
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#2563eb', marginTop: '2px' }}>
+                {currency}{' '}
+                {defaultersList
+                  .filter((s) => s.fee_payment_plan === 'weekly')
+                  .reduce((acc, s) => acc + (s.fee_balance || 0), 0)
+                  .toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#1e3a8a', marginTop: '2px' }}>
+                {defaultersList.filter((s) => s.fee_payment_plan === 'weekly').length} student(s) on weekly plans
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#faf5ff',
+                padding: '1.15rem',
+                borderRadius: '14px',
+                border: '1px solid #e9d5ff',
+              }}
+            >
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#6b21a8', textTransform: 'uppercase' }}>
+                Termly / Custom Plans
+              </div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#9333ea', marginTop: '2px' }}>
+                {currency}{' '}
+                {defaultersList
+                  .filter((s) => !s.fee_payment_plan || s.fee_payment_plan === 'termly' || s.fee_payment_plan === 'custom')
+                  .reduce((acc, s) => acc + (s.fee_balance || 0), 0)
+                  .toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#581c87', marginTop: '2px' }}>
+                {defaultersList.filter((s) => !s.fee_payment_plan || s.fee_payment_plan === 'termly' || s.fee_payment_plan === 'custom').length} student(s) pending
+              </div>
             </div>
           </div>
 
@@ -1285,7 +1408,7 @@ export function TenantBursarDesk({
               marginBottom: '1.25rem',
             }}
           >
-            <div style={{ flex: '1 1 240px' }}>
+            <div style={{ flex: '1 1 200px' }}>
               <input
                 type="text"
                 placeholder="Search student, admission #, guardian..."
@@ -1320,6 +1443,28 @@ export function TenantBursarDesk({
                     {c}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={arrearsPlanFilter}
+                onChange={(e) => setArrearsPlanFilter(e.target.value as any)}
+                style={{
+                  padding: '0.55rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1.5px solid #0284c7',
+                  fontSize: '0.84rem',
+                  background: '#ffffff',
+                  fontWeight: 700,
+                  color: '#0369a1',
+                }}
+              >
+                <option value="ALL">All Payment Plans</option>
+                <option value="monthly">📅 Monthly Installments</option>
+                <option value="weekly">📆 Weekly Installments</option>
+                <option value="termly">🏫 One-Time / Termly</option>
+                <option value="custom">⚙️ Custom Installments</option>
               </select>
             </div>
 
@@ -1362,25 +1507,27 @@ export function TenantBursarDesk({
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a' }}>Admission No</th>
-                    <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a' }}>Student &amp; Class</th>
-                    <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a' }}>Guardian Contact</th>
-                    <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Adm No &amp; Enrolled</th>
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Student &amp; Class</th>
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Guardian Contact</th>
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Payment Plan &amp; Rate</th>
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Installments Tracked</th>
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>
                       Billed Total
                     </th>
-                    <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>
                       Paid to Date
                     </th>
-                    <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>
-                      Outstanding Arrears
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#dc2626', textAlign: 'right' }}>
+                      Pending Balance
                     </th>
-                    <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
-                      Exam Permit
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
+                      Permit
                     </th>
-                    <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
                       Recovery Action
                     </th>
                   </tr>
@@ -1390,7 +1537,13 @@ export function TenantBursarDesk({
                     const pctPaid = s.fee_total > 0 ? Math.round((s.fee_paid / s.fee_total) * 100) : 0
                     const isPermitted = examClearanceOverrides[s.admission_number] || false
                     const cleanPhone = (s.guardian_phone || '').replace(/[^0-9]/g, '')
-                    const whatsappMsg = `Dear ${s.guardian_name}, this is an official fee reminder from ${school.name} Bursar's Office regarding student ${s.full_name} (${s.admission_number}). The outstanding tuition balance is ${currency} ${s.fee_balance.toLocaleString()}. Kindly arrange clearance before the upcoming assessment period. For inquiries, contact ${school.contact_phone}. Thank you.`
+                    const plan = s.fee_payment_plan || 'termly'
+                    const totalInst = s.fee_installments_count || 1
+                    const instAmount = s.fee_installment_amount || (totalInst > 0 ? Math.round(s.fee_total / totalInst) : s.fee_total)
+                    const instPaid = instAmount > 0 ? Math.floor(s.fee_paid / instAmount) : 0
+                    const instPending = Math.max(0, totalInst - instPaid)
+
+                    const whatsappMsg = `Dear ${s.guardian_name}, this is an official fee reminder from ${school.name} Bursar's Office regarding student ${s.full_name} (${s.admission_number}). The outstanding tuition balance is ${currency} ${s.fee_balance.toLocaleString()}${plan !== 'termly' ? ` (${instPending} installment(s) pending)` : ''}. Kindly arrange clearance before the upcoming assessment period. For inquiries, contact ${school.contact_phone}. Thank you.`
 
                     return (
                       <tr
@@ -1399,28 +1552,88 @@ export function TenantBursarDesk({
                         onMouseEnter={(e) => (e.currentTarget.style.background = '#fcfdfe')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <td style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: primaryColor }}>
-                          <span style={{ fontFamily: 'monospace' }}>{s.admission_number}</span>
+                        <td style={{ padding: '0.85rem 0.65rem' }}>
+                          <div style={{ fontWeight: 800, color: primaryColor, fontFamily: 'monospace' }}>{s.admission_number}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                            📅 {s.admission_date || 'Enrolled'}
+                          </div>
                         </td>
-                        <td style={{ padding: '0.85rem 0.75rem' }}>
+                        <td style={{ padding: '0.85rem 0.65rem' }}>
                           <div style={{ fontWeight: 800, color: '#0f172a' }}>{s.full_name}</div>
                           <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{s.grade_class}</div>
                         </td>
-                        <td style={{ padding: '0.85rem 0.75rem' }}>
+                        <td style={{ padding: '0.85rem 0.65rem' }}>
                           <div style={{ fontWeight: 700, color: '#334155' }}>{s.guardian_name || 'Guardian'}</div>
                           <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{s.guardian_phone || 'No phone'}</div>
                         </td>
-                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#475569' }}>
+                        <td style={{ padding: '0.85rem 0.65rem' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '2px 7px',
+                              borderRadius: '4px',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              background:
+                                plan === 'monthly'
+                                  ? '#dbeafe'
+                                  : plan === 'weekly'
+                                  ? '#e0e7ff'
+                                  : plan === 'custom'
+                                  ? '#fef3c7'
+                                  : '#f1f5f9',
+                              color:
+                                plan === 'monthly'
+                                  ? '#1d4ed8'
+                                  : plan === 'weekly'
+                                  ? '#4338ca'
+                                  : plan === 'custom'
+                                  ? '#b45309'
+                                  : '#475569',
+                            }}
+                          >
+                            {plan === 'monthly'
+                              ? `Monthly (${totalInst} mo)`
+                              : plan === 'weekly'
+                              ? `Weekly (${totalInst} wk)`
+                              : plan === 'custom'
+                              ? `Custom (${totalInst} inst)`
+                              : 'Termly (1-Pay)'}
+                          </span>
+                          {plan !== 'termly' && (
+                            <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '2px', fontWeight: 600 }}>
+                              {currency} {instAmount.toLocaleString()} / inst
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '0.85rem 0.65rem' }}>
+                          {plan === 'termly' ? (
+                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                              {pctPaid}% Paid
+                            </span>
+                          ) : (
+                            <div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: instPending > 0 ? '#b91c1c' : '#15803d' }}>
+                                {instPaid} / {totalInst} paid • <span style={{ color: '#dc2626' }}>{instPending} pending</span>
+                              </div>
+                              <div style={{ width: '80px', height: '4px', background: '#e2e8f0', borderRadius: '2px', marginTop: '4px', overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.min(100, Math.round((instPaid / totalInst) * 100))}%`, height: '100%', background: '#16a34a' }} />
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '0.85rem 0.65rem', textAlign: 'right', color: '#475569' }}>
                           {currency} {s.fee_total.toLocaleString()}
                         </td>
-                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', color: '#16a34a', fontWeight: 700 }}>
+                        <td style={{ padding: '0.85rem 0.65rem', textAlign: 'right', color: '#16a34a', fontWeight: 700 }}>
                           <div>{currency} {s.fee_paid.toLocaleString()}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>({pctPaid}% cleared)</div>
+                          <div style={{ fontSize: '0.7rem', color: '#64748b' }}>({pctPaid}%)</div>
                         </td>
-                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: 900, color: '#dc2626', fontSize: '0.95rem' }}>
+                        <td style={{ padding: '0.85rem 0.65rem', textAlign: 'right', fontWeight: 900, color: '#dc2626', fontSize: '0.95rem' }}>
                           {currency} {s.fee_balance.toLocaleString()}
                         </td>
-                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
+                        <td style={{ padding: '0.85rem 0.65rem', textAlign: 'center' }}>
                           <button
                             type="button"
                             onClick={() => {
@@ -1433,7 +1646,7 @@ export function TenantBursarDesk({
                               background: isPermitted ? '#dcfce7' : '#fee2e2',
                               color: isPermitted ? '#15803d' : '#991b1b',
                               border: `1px solid ${isPermitted ? '#86efac' : '#fca5a5'}`,
-                              padding: '0.3rem 0.65rem',
+                              padding: '0.3rem 0.55rem',
                               borderRadius: '6px',
                               fontSize: '0.72rem',
                               fontWeight: 800,
@@ -1443,86 +1656,22 @@ export function TenantBursarDesk({
                             {isPermitted ? '✓ Cleared' : '⛔ Restricted'}
                           </button>
                         </td>
-                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                            {/* WhatsApp Demand Notice */}
-                            <a
-                              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMsg)}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{
-                                background: '#25D366',
-                                color: '#ffffff',
-                                padding: '0.35rem 0.65rem',
-                                borderRadius: '6px',
-                                textDecoration: 'none',
-                                fontSize: '0.74rem',
-                                fontWeight: 800,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                              }}
-                              title="Send WhatsApp Notice"
-                            >
-                              <span>💬</span> WhatsApp
-                            </a>
-
-                            {/* Direct Call */}
-                            {s.guardian_phone && (
-                              <a
-                                href={`tel:${s.guardian_phone}`}
-                                style={{
-                                  background: '#f1f5f9',
-                                  color: '#334155',
-                                  padding: '0.35rem 0.65rem',
-                                  borderRadius: '6px',
-                                  textDecoration: 'none',
-                                  fontSize: '0.74rem',
-                                  fontWeight: 700,
-                                  border: '1px solid #cbd5e1',
-                                }}
-                                title="Call Guardian"
-                              >
-                                📞 Call
-                              </a>
-                            )}
-
-                            {/* Official Statement / Fee Invoice PDF */}
-                            {onOpenInvoice && (
-                              <button
-                                type="button"
-                                onClick={() => onOpenInvoice(s)}
-                                style={{
-                                  background: '#ffffff',
-                                  color: '#0f172a',
-                                  border: '1px solid #cbd5e1',
-                                  padding: '0.35rem 0.65rem',
-                                  borderRadius: '6px',
-                                  fontSize: '0.74rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                }}
-                                title="Print Official Fee Invoice & Account Statement"
-                              >
-                                <span>📄</span> Invoice
-                              </button>
-                            )}
-
-                            {/* Record Quick Payment for this student */}
+                        <td style={{ padding: '0.85rem 0.65rem', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            {/* Quick Installment / Arrears Payment Button */}
                             <button
                               type="button"
                               onClick={() => {
+                                const payVal = plan !== 'termly' && instAmount > 0 && s.fee_balance >= instAmount ? instAmount : s.fee_balance
                                 setNewPaymentInput({
                                   student_id: s.id,
                                   student_search: '',
-                                  amount: s.fee_balance,
+                                  amount: payVal,
                                   payment_method: 'Mobile Money (M-Pesa)',
                                   reference_code: '',
                                   period_name: activePeriod,
-                                  bursar_notes: '',
+                                  bursar_notes: plan !== 'termly' ? `Installment #${instPaid + 1} of ${totalInst}` : 'Tuition clearance',
+                                  installment_label: plan !== 'termly' ? `Installment #${instPaid + 1}` : undefined as any,
                                 })
                                 setShowRecordPaymentModal(true)
                               }}
@@ -1535,11 +1684,58 @@ export function TenantBursarDesk({
                                 fontSize: '0.74rem',
                                 fontWeight: 800,
                                 cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
                               }}
-                              title="Record Payment for Student"
+                              title={plan !== 'termly' ? `Record Installment #${instPaid + 1} (${currency} ${instAmount.toLocaleString()})` : `Record Payment (${currency} ${s.fee_balance.toLocaleString()})`}
                             >
-                              💳 Pay
+                              ⚡ {plan !== 'termly' ? 'Pay Inst' : 'Pay Bal'}
                             </button>
+
+                            {/* WhatsApp Demand Notice */}
+                            <a
+                              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMsg)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                background: '#25D366',
+                                color: '#ffffff',
+                                padding: '0.35rem 0.55rem',
+                                borderRadius: '6px',
+                                textDecoration: 'none',
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                              }}
+                              title="Send WhatsApp Notice"
+                            >
+                              💬
+                            </a>
+
+                            {/* Official Statement / Fee Invoice PDF */}
+                            {onOpenInvoice && (
+                              <button
+                                type="button"
+                                onClick={() => onOpenInvoice(s)}
+                                style={{
+                                  background: '#ffffff',
+                                  color: '#0f172a',
+                                  border: '1px solid #cbd5e1',
+                                  padding: '0.35rem 0.55rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                }}
+                                title="Print Official Fee Invoice & Account Statement"
+                              >
+                                📄
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -2147,49 +2343,81 @@ export function TenantBursarDesk({
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                        <th style={{ padding: '0.65rem', fontWeight: 800 }}>Adm No</th>
+                        <th style={{ padding: '0.65rem', fontWeight: 800 }}>Adm No &amp; Enrolled</th>
                         <th style={{ padding: '0.65rem', fontWeight: 800 }}>Student Name</th>
                         <th style={{ padding: '0.65rem', fontWeight: 800 }}>Class Cohort</th>
+                        <th style={{ padding: '0.65rem', fontWeight: 800 }}>Payment Plan &amp; Schedule</th>
                         <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Current Invoiced</th>
                         <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Paid to Date</th>
-                        <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Current Balance</th>
+                        <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Pending Balance</th>
                         <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'center' }}>Billing Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {studentList.slice(0, 15).map((s) => (
-                        <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '0.65rem', fontWeight: 800, color: primaryColor }}>{s.admission_number}</td>
-                          <td style={{ padding: '0.65rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
-                          <td style={{ padding: '0.65rem', color: '#64748b' }}>{s.grade_class}</td>
-                          <td style={{ padding: '0.65rem', textAlign: 'right' }}>{currency} {s.fee_total.toLocaleString()}</td>
-                          <td style={{ padding: '0.65rem', textAlign: 'right', color: '#16a34a' }}>{currency} {s.fee_paid.toLocaleString()}</td>
-                          <td style={{ padding: '0.65rem', textAlign: 'right', fontWeight: 900, color: s.fee_balance > 0 ? '#dc2626' : '#16a34a' }}>
-                            {currency} {s.fee_balance.toLocaleString()}
-                          </td>
-                          <td style={{ padding: '0.65rem', textAlign: 'center' }}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedStudentForAdjustment(s)
-                                setAdjustedFeeTotalInput(s.fee_total)
-                                setShowStudentFeeAdjustmentModal(true)
-                              }}
-                              style={{
-                                background: '#ffffff',
-                                border: '1px solid #cbd5e1',
-                                padding: '0.3rem 0.65rem',
-                                borderRadius: '6px',
-                                fontSize: '0.74rem',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              ✏️ Adjust Fee
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {studentList.slice(0, 25).map((s) => {
+                        const plan = s.fee_payment_plan || 'termly'
+                        const count = s.fee_installments_count || 1
+                        const instAmt = s.fee_installment_amount || (count > 0 ? Math.round(s.fee_total / count) : s.fee_total)
+                        return (
+                          <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '0.65rem' }}>
+                              <div style={{ fontWeight: 800, color: primaryColor }}>{s.admission_number}</div>
+                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>📅 {s.admission_date || 'Enrolled'}</div>
+                            </td>
+                            <td style={{ padding: '0.65rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
+                            <td style={{ padding: '0.65rem', color: '#64748b' }}>{s.grade_class}</td>
+                            <td style={{ padding: '0.65rem' }}>
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  textTransform: 'uppercase',
+                                  background: plan === 'monthly' ? '#dbeafe' : plan === 'weekly' ? '#e0e7ff' : '#f1f5f9',
+                                  color: plan === 'monthly' ? '#1d4ed8' : plan === 'weekly' ? '#4338ca' : '#475569',
+                                }}
+                              >
+                                {plan} ({count}x)
+                              </span>
+                              {plan !== 'termly' && (
+                                <div style={{ fontSize: '0.72rem', color: '#475569', marginTop: '2px' }}>
+                                  {currency} {instAmt.toLocaleString()} / inst
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ padding: '0.65rem', textAlign: 'right' }}>{currency} {s.fee_total.toLocaleString()}</td>
+                            <td style={{ padding: '0.65rem', textAlign: 'right', color: '#16a34a' }}>{currency} {s.fee_paid.toLocaleString()}</td>
+                            <td style={{ padding: '0.65rem', textAlign: 'right', fontWeight: 900, color: s.fee_balance > 0 ? '#dc2626' : '#16a34a' }}>
+                              {currency} {s.fee_balance.toLocaleString()}
+                            </td>
+                            <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedStudentForAdjustment(s)
+                                  setAdjustedFeeTotalInput(s.fee_total)
+                                  setAdjustedPaymentPlanInput(s.fee_payment_plan || 'termly')
+                                  setAdjustedInstallmentsCountInput(s.fee_installments_count || 1)
+                                  setShowStudentFeeAdjustmentModal(true)
+                                }}
+                                style={{
+                                  background: '#ffffff',
+                                  border: '1px solid #cbd5e1',
+                                  padding: '0.3rem 0.65rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                ✏️ Adjust Schedule
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2552,92 +2780,145 @@ export function TenantBursarDesk({
               </div>
 
               {/* Student Balance Intelligence Box */}
-              {selectedStudentForPayment && (
-                <div
-                  style={{
-                    background: '#f8fafc',
-                    padding: '0.85rem 1rem',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    marginBottom: '1.25rem',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>CURRENT OUTSTANDING BALANCE</div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 900, color: selectedStudentForPayment.fee_balance > 0 ? '#dc2626' : '#16a34a' }}>
-                      {currency} {selectedStudentForPayment.fee_balance.toLocaleString()}
+              {selectedStudentForPayment && (() => {
+                const plan = selectedStudentForPayment.fee_payment_plan || 'termly'
+                const totalInst = selectedStudentForPayment.fee_installments_count || 1
+                const instAmount = selectedStudentForPayment.fee_installment_amount || (totalInst > 0 ? Math.round(selectedStudentForPayment.fee_total / totalInst) : selectedStudentForPayment.fee_total)
+                const instPaid = instAmount > 0 ? Math.floor(selectedStudentForPayment.fee_paid / instAmount) : 0
+                const nextInstNumber = Math.min(totalInst, instPaid + 1)
+
+                return (
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      padding: '0.85rem 1rem',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      marginBottom: '1.25rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>CURRENT PENDING BALANCE</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 900, color: selectedStudentForPayment.fee_balance > 0 ? '#dc2626' : '#16a34a' }}>
+                          {currency} {selectedStudentForPayment.fee_balance.toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>BILLED TOTAL (PAID: {currency} {selectedStudentForPayment.fee_paid.toLocaleString()})</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+                          {currency} {selectedStudentForPayment.fee_total.toLocaleString()}
+                        </div>
+                      </div>
                     </div>
+
+                    {plan !== 'termly' && (
+                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
+                        <span style={{ color: '#0369a1', fontWeight: 700 }}>
+                          📅 {plan.toUpperCase()} SCHEDULE: <strong>{totalInst}</strong> installments @ <strong>{currency} {instAmount.toLocaleString()}</strong>
+                        </span>
+                        <span style={{ color: '#059669', fontWeight: 800 }}>
+                          Progress: {instPaid} of {totalInst} paid
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>BILLED TOTAL</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
-                      {currency} {selectedStudentForPayment.fee_total.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* Quick Preset Buttons */}
-              {selectedStudentForPayment && selectedStudentForPayment.fee_balance > 0 && (
-                <div style={{ marginBottom: '1.15rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, marginBottom: '6px', color: '#64748b' }}>
-                    Quick Amount Presets:
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => setNewPaymentInput((prev) => ({ ...prev, amount: selectedStudentForPayment.fee_balance }))}
-                      style={{
-                        background: '#dcfce7',
-                        color: '#15803d',
-                        border: '1px solid #86efac',
-                        padding: '0.35rem 0.65rem',
-                        borderRadius: '6px',
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      ⚡ Clear Full Balance ({currency} {selectedStudentForPayment.fee_balance.toLocaleString()})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewPaymentInput((prev) => ({ ...prev, amount: Math.round(selectedStudentForPayment.fee_balance * 0.5) }))}
-                      style={{
-                        background: '#f1f5f9',
-                        color: '#334155',
-                        border: '1px solid #cbd5e1',
-                        padding: '0.35rem 0.65rem',
-                        borderRadius: '6px',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      50% Installment ({currency} {Math.round(selectedStudentForPayment.fee_balance * 0.5).toLocaleString()})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewPaymentInput((prev) => ({ ...prev, amount: Math.round(selectedStudentForPayment.fee_balance * 0.25) }))}
-                      style={{
-                        background: '#f1f5f9',
-                        color: '#334155',
-                        border: '1px solid #cbd5e1',
-                        padding: '0.35rem 0.65rem',
-                        borderRadius: '6px',
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      25% Installment
-                    </button>
+              {selectedStudentForPayment && selectedStudentForPayment.fee_balance > 0 && (() => {
+                const plan = selectedStudentForPayment.fee_payment_plan || 'termly'
+                const totalInst = selectedStudentForPayment.fee_installments_count || 1
+                const instAmount = selectedStudentForPayment.fee_installment_amount || (totalInst > 0 ? Math.round(selectedStudentForPayment.fee_total / totalInst) : selectedStudentForPayment.fee_total)
+                const instPaid = instAmount > 0 ? Math.floor(selectedStudentForPayment.fee_paid / instAmount) : 0
+                const nextInstNumber = Math.min(totalInst, instPaid + 1)
+
+                return (
+                  <div style={{ marginBottom: '1.15rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, marginBottom: '6px', color: '#64748b' }}>
+                      Quick Amount Presets:
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {plan !== 'termly' && instAmount > 0 && selectedStudentForPayment.fee_balance >= instAmount && (
+                        <button
+                          type="button"
+                          onClick={() => setNewPaymentInput((prev) => ({
+                            ...prev,
+                            amount: instAmount,
+                            installment_label: `Installment #${nextInstNumber} of ${totalInst}`,
+                            bursar_notes: `Tuition installment #${nextInstNumber}`,
+                          }))}
+                          style={{
+                            background: '#eff6ff',
+                            color: '#1d4ed8',
+                            border: '1.5px solid #93c5fd',
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '6px',
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ⚡ Pay Installment #{nextInstNumber} ({currency} {instAmount.toLocaleString()})
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setNewPaymentInput((prev) => ({
+                          ...prev,
+                          amount: selectedStudentForPayment.fee_balance,
+                          installment_label: 'Full Balance Clearance',
+                        }))}
+                        style={{
+                          background: '#dcfce7',
+                          color: '#15803d',
+                          border: '1px solid #86efac',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '6px',
+                          fontSize: '0.74rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ⚡ Clear Full Balance ({currency} {selectedStudentForPayment.fee_balance.toLocaleString()})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewPaymentInput((prev) => ({ ...prev, amount: Math.round(selectedStudentForPayment.fee_balance * 0.5) }))}
+                        style={{
+                          background: '#f1f5f9',
+                          color: '#334155',
+                          border: '1px solid #cbd5e1',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '6px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        50% ({currency} {Math.round(selectedStudentForPayment.fee_balance * 0.5).toLocaleString()})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewPaymentInput((prev) => ({ ...prev, amount: Math.round(selectedStudentForPayment.fee_balance * 0.25) }))}
+                        style={{
+                          background: '#f1f5f9',
+                          color: '#334155',
+                          border: '1px solid #cbd5e1',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '6px',
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        25%
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* Amount and Payment Method */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.15rem' }}>
@@ -2932,6 +3213,56 @@ export function TenantBursarDesk({
                     ).toLocaleString()}
                   </span>
                 </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid #e2e8f0' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                      Cohort Tuition Payment Plan
+                    </label>
+                    <select
+                      value={batchInvoiceForm.fee_payment_plan}
+                      onChange={(e) => {
+                        const plan = e.target.value as 'termly' | 'monthly' | 'weekly' | 'custom'
+                        let defaultCount = 1
+                        if (plan === 'monthly') defaultCount = 3
+                        if (plan === 'weekly') defaultCount = 12
+                        if (plan === 'custom') defaultCount = 2
+                        setBatchInvoiceForm({ ...batchInvoiceForm, fee_payment_plan: plan, fee_installments_count: defaultCount })
+                      }}
+                      style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#ffffff', boxSizing: 'border-box' }}
+                    >
+                      <option value="termly">One-Time / Termly (1 Payment)</option>
+                      <option value="monthly">Monthly Installments</option>
+                      <option value="weekly">Weekly Installments</option>
+                      <option value="custom">Custom Installment Count</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                      Number of Installments
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="52"
+                      disabled={batchInvoiceForm.fee_payment_plan === 'termly'}
+                      value={batchInvoiceForm.fee_payment_plan === 'termly' ? 1 : batchInvoiceForm.fee_installments_count}
+                      onChange={(e) => setBatchInvoiceForm({ ...batchInvoiceForm, fee_installments_count: Math.max(1, Number(e.target.value)) })}
+                      style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: batchInvoiceForm.fee_payment_plan === 'termly' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                {batchInvoiceForm.fee_payment_plan !== 'termly' && (
+                  <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.75rem', background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0', fontSize: '0.75rem', color: '#065f46', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>
+                      Installment Amount: <strong>{currency} {Math.round((Number(batchInvoiceForm.tuition_component) + Number(batchInvoiceForm.exam_component) + Number(batchInvoiceForm.activity_component) + Number(batchInvoiceForm.lab_component) + Number(batchInvoiceForm.library_component)) / Math.max(1, batchInvoiceForm.fee_installments_count)).toLocaleString()}</strong> {batchInvoiceForm.fee_payment_plan === 'monthly' ? '/ month' : batchInvoiceForm.fee_payment_plan === 'weekly' ? '/ week' : '/ installment'}
+                    </span>
+                    <span style={{ fontWeight: 800 }}>
+                      {batchInvoiceForm.fee_installments_count} Total Payments
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
@@ -2995,23 +3326,23 @@ export function TenantBursarDesk({
               boxSizing: 'border-box',
               background: '#ffffff',
               borderRadius: '24px',
-              maxWidth: '480px',
+              maxWidth: '520px',
               width: '100%',
               padding: 'clamp(1.25rem, 4vw, 2rem)',
               border: '2px solid #0284c7',
             }}
           >
             <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: '0 0 0.5rem', color: '#0f172a' }}>
-              Adjust Student Invoiced Total
+              Adjust Student Billing Schedule &amp; Plan
             </h3>
             <p style={{ fontSize: '0.84rem', color: '#64748b', margin: '0 0 1.25rem' }}>
               Student: <strong>{selectedStudentForAdjustment.full_name}</strong> ({selectedStudentForAdjustment.admission_number})
             </p>
 
             <form onSubmit={handleExecuteStudentFeeAdjustment}>
-              <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ marginBottom: '1.15rem' }}>
                 <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px', color: '#0f172a' }}>
-                  New Invoiced Total ({currency})
+                  Total Invoiced Term Tuition ({currency})
                 </label>
                 <input
                   type="number"
@@ -3030,9 +3361,55 @@ export function TenantBursarDesk({
                   }}
                 />
                 <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px' }}>
-                  Paid to date: {currency} {selectedStudentForAdjustment.fee_paid.toLocaleString()} • Resulting balance will update automatically.
+                  Paid to date: {currency} {selectedStudentForAdjustment.fee_paid.toLocaleString()} • Resulting pending balance: <strong>{currency} {Math.max(0, adjustedFeeTotalInput - selectedStudentForAdjustment.fee_paid).toLocaleString()}</strong>
                 </div>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.15rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                    Payment Plan
+                  </label>
+                  <select
+                    value={adjustedPaymentPlanInput}
+                    onChange={(e) => {
+                      const plan = e.target.value as 'termly' | 'monthly' | 'weekly' | 'custom'
+                      let defaultCount = 1
+                      if (plan === 'monthly') defaultCount = 3
+                      if (plan === 'weekly') defaultCount = 12
+                      if (plan === 'custom') defaultCount = 2
+                      setAdjustedPaymentPlanInput(plan)
+                      setAdjustedInstallmentsCountInput(defaultCount)
+                    }}
+                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#ffffff', boxSizing: 'border-box' }}
+                  >
+                    <option value="termly">Termly (1-Pay)</option>
+                    <option value="monthly">Monthly Installments</option>
+                    <option value="weekly">Weekly Installments</option>
+                    <option value="custom">Custom Installments</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#334155', marginBottom: '4px' }}>
+                    Installments Count
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="52"
+                    disabled={adjustedPaymentPlanInput === 'termly'}
+                    value={adjustedPaymentPlanInput === 'termly' ? 1 : adjustedInstallmentsCountInput}
+                    onChange={(e) => setAdjustedInstallmentsCountInput(Math.max(1, Number(e.target.value)))}
+                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: adjustedPaymentPlanInput === 'termly' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {adjustedPaymentPlanInput !== 'termly' && (
+                <div style={{ padding: '0.6rem 0.85rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac', marginBottom: '1.25rem', fontSize: '0.76rem', color: '#166534' }}>
+                  Schedule: <strong>{adjustedInstallmentsCountInput}</strong> payments @ <strong>{currency} {Math.round(adjustedFeeTotalInput / Math.max(1, adjustedInstallmentsCountInput)).toLocaleString()}</strong> {adjustedPaymentPlanInput === 'monthly' ? '/ month' : adjustedPaymentPlanInput === 'weekly' ? '/ week' : '/ installment'}
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                 <button
@@ -3062,7 +3439,7 @@ export function TenantBursarDesk({
                     fontSize: '0.85rem',
                   }}
                 >
-                  Save Adjustment
+                  Save Schedule Adjustment
                 </button>
               </div>
             </form>

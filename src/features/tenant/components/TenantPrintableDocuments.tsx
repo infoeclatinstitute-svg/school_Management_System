@@ -188,7 +188,7 @@ export function StudentAdmissionLetterModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '1rem',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -203,7 +203,13 @@ export function StudentAdmissionLetterModal({
             </div>
             <div>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Admission Number</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: primaryColor }}>{student.admission_number}</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: primaryColor, fontFamily: 'monospace' }}>{student.admission_number}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Date of Enrollment</div>
+              <div style={{ fontSize: '1rem', fontWeight: 900, color: '#0f172a' }}>
+                📅 {student.admission_date || new Date().toISOString().split('T')[0]}
+              </div>
             </div>
             <div>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Class / Form Cohort</div>
@@ -215,6 +221,12 @@ export function StudentAdmissionLetterModal({
                 {student.guardian_name} ({student.guardian_phone})
               </div>
             </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Tuition Payment Plan</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0369a1' }}>
+                {(student.fee_payment_plan || 'termly').toUpperCase()} ({student.fee_installments_count || 1} installment(s))
+              </div>
+            </div>
           </div>
 
           {/* Formal Body Paragraphs */}
@@ -223,10 +235,10 @@ export function StudentAdmissionLetterModal({
               Dear <strong>{student.full_name}</strong> and Guardian <strong>{student.guardian_name}</strong>,
             </p>
             <p>
-              On behalf of the Governing Academic Board of <strong>{school.name}</strong>, we are pleased to inform you that you have been formally admitted to undertake your studies in <strong>{student.grade_class}</strong> commencing with <strong>{school.active_period_name}</strong>.
+              On behalf of the Governing Academic Board of <strong>{school.name}</strong>, we are pleased to inform you that you have been formally admitted to undertake your studies in <strong>{student.grade_class}</strong> effective from your enrollment date of <strong>{student.admission_date || new Date().toISOString().split('T')[0]}</strong> commencing with <strong>{school.active_period_name}</strong>.
             </p>
             <p>
-              Your admission has been confirmed under our accredited <strong>{school.curriculum_type}</strong> framework. You are required to observe all institutional regulations, maintain a continuous attendance threshold of not less than 85%, and participate diligently in all scheduled coursework, continuous assessment tests (CATs), and examination series.
+              Your admission has been confirmed under our accredited <strong>{school.curriculum_type}</strong> framework. Tuition billing has been scheduled under the <strong>{(student.fee_payment_plan || 'termly').toUpperCase()}</strong> plan (Total: {school.currency || 'KES'} {(student.fee_total || 0).toLocaleString()}{student.fee_installments_count && student.fee_installments_count > 1 ? `, payable in ${student.fee_installments_count} installments of ${school.currency || 'KES'} ${Math.round((student.fee_total || 0) / student.fee_installments_count).toLocaleString()}` : ''}). You are required to observe all institutional regulations, maintain a continuous attendance threshold of not less than 85%, and participate diligently in all scheduled coursework, continuous assessment tests (CATs), and examination series.
             </p>
           </div>
 
@@ -1616,7 +1628,7 @@ export function StudentFeeInvoiceModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: '1rem',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -1632,14 +1644,25 @@ export function StudentFeeInvoiceModal({
               <div style={{ color: primaryColor, fontWeight: 700, fontFamily: 'monospace' }}>{student.admission_number}</div>
             </div>
             <div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>DATE OF ENROLLMENT</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>📅 {student.admission_date || 'Enrolled'}</div>
+              <div style={{ color: '#64748b' }}>Status: Active Scholar</div>
+            </div>
+            <div>
               <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>ACADEMIC PROGRAM &amp; COHORT</div>
               <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{student.grade_class}</div>
               <div style={{ color: '#64748b' }}>Curriculum: {school.curriculum_type}</div>
             </div>
             <div>
-              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>GUARDIAN / SPONSOR</div>
-              <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{student.guardian_name || 'Self-Sponsored'}</div>
-              <div style={{ color: '#64748b' }}>{student.guardian_phone || student.phone || '-'}</div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 700 }}>PAYMENT SCHEDULE</div>
+              <div style={{ fontWeight: 800, color: '#0369a1', marginTop: '2px', textTransform: 'uppercase' }}>
+                {student.fee_payment_plan || 'termly'} ({student.fee_installments_count || 1}x)
+              </div>
+              <div style={{ color: '#64748b' }}>
+                {student.fee_payment_plan && student.fee_payment_plan !== 'termly'
+                  ? `${currency} ${(student.fee_installment_amount || Math.round(totalInvoiced / (student.fee_installments_count || 1))).toLocaleString()} / inst`
+                  : 'Full Term Payment'}
+              </div>
             </div>
           </div>
 
@@ -1718,6 +1741,43 @@ export function StudentFeeInvoiceModal({
             </tbody>
           </table>
 
+          {/* Installment Plan Breakdown Schedule (if not single termly) */}
+          {(() => {
+            const plan = student.fee_payment_plan || 'termly'
+            const totalInst = student.fee_installments_count || 1
+            const instAmount = student.fee_installment_amount || (totalInst > 0 ? Math.round(totalInvoiced / totalInst) : totalInvoiced)
+            const instPaid = instAmount > 0 ? Math.floor(totalPaid / instAmount) : 0
+            const instPending = Math.max(0, totalInst - instPaid)
+
+            if (plan === 'termly' && totalInst <= 1) return null
+
+            return (
+              <div
+                style={{
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '12px',
+                  padding: '1rem 1.25rem',
+                  marginBottom: '1.5rem',
+                  fontSize: '0.8rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontWeight: 800, color: '#166534', textTransform: 'uppercase', fontSize: '0.74rem' }}>
+                    📅 {plan.toUpperCase()} INSTALLMENT TRACKER
+                  </span>
+                  <span style={{ fontWeight: 800, color: '#15803d' }}>
+                    {instPaid} of {totalInst} Installments Cleared
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#334155', fontSize: '0.78rem' }}>
+                  <span>Installment Rate: <strong>{currency} {instAmount.toLocaleString()}</strong> per payment</span>
+                  <span>Pending Installments: <strong style={{ color: instPending > 0 ? '#dc2626' : '#16a34a' }}>{instPending} pending</strong></span>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* Statement Balance Due Banner */}
           <div
             style={{
@@ -1738,7 +1798,7 @@ export function StudentFeeInvoiceModal({
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800 }}>OUTSTANDING BALANCE DUE</div>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 800 }}>OUTSTANDING PENDING BALANCE</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 900, color: balanceDue === 0 ? '#16a34a' : '#b91c1c', marginTop: '2px' }}>
                 {currency} {balanceDue.toLocaleString()}
               </div>

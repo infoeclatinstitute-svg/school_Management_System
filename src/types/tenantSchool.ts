@@ -218,6 +218,9 @@ export interface TenantStudentMember {
   campus?: string
   status: 'active' | 'graduated' | 'suspended'
   admission_date: string
+  fee_payment_plan?: 'termly' | 'monthly' | 'weekly' | 'custom'
+  fee_installments_count?: number
+  fee_installment_amount?: number
 }
 
 export interface TenantPayrollRecord {
@@ -310,6 +313,8 @@ export interface TenantFeePayment {
   payment_method: 'Bank Wire' | 'Mobile Money (M-Pesa)' | 'Credit Card' | 'Cash'
   date: string
   recorded_by: string
+  installment_label?: string
+  notes?: string
 }
 
 export interface TenantTimetableEntry {

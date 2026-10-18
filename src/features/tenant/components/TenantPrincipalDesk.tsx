@@ -294,8 +294,11 @@ export function TenantPrincipalDesk({
     guardian_name: '',
     guardian_phone: '',
     guardian_email: '',
+    admission_date: new Date().toISOString().split('T')[0],
     fee_total: 0,
     fee_paid: 0,
+    fee_payment_plan: 'termly' as 'termly' | 'monthly' | 'weekly' | 'custom',
+    fee_installments_count: 1,
   })
 
   // Add/Edit Timetable Entry State
@@ -440,8 +443,11 @@ export function TenantPrincipalDesk({
       guardian_name: app.guardian_name || '',
       guardian_phone: app.guardian_phone || app.phone,
       guardian_email: app.email,
+      admission_date: new Date().toISOString().split('T')[0],
       fee_total: 0,
       fee_paid: 0,
+      fee_payment_plan: 'termly',
+      fee_installments_count: 1,
     })
     // Update status to Admitted
     tenantSchoolStore.updateApplicationStatus(
@@ -637,8 +643,11 @@ export function TenantPrincipalDesk({
       guardian_name: '',
       guardian_phone: '',
       guardian_email: '',
+      admission_date: new Date().toISOString().split('T')[0],
       fee_total: 0,
       fee_paid: 0,
+      fee_payment_plan: 'termly',
+      fee_installments_count: 1,
     })
     setShowAdmitStudentModal(true)
   }
@@ -652,8 +661,11 @@ export function TenantPrincipalDesk({
       guardian_name: student.guardian_name || '',
       guardian_phone: student.guardian_phone || '',
       guardian_email: student.guardian_email || '',
+      admission_date: student.admission_date || new Date().toISOString().split('T')[0],
       fee_total: student.fee_total || 0,
       fee_paid: student.fee_paid || 0,
+      fee_payment_plan: student.fee_payment_plan || 'termly',
+      fee_installments_count: student.fee_installments_count || 1,
     })
     setShowAdmitStudentModal(true)
   }
@@ -678,6 +690,9 @@ export function TenantPrincipalDesk({
       tenantSchoolStore.updateSchoolBranding(school.slug, { classes_list: updatedClasses })
     }
 
+    const installmentsCount = studentForm.fee_installments_count || (studentForm.fee_payment_plan === 'monthly' ? 3 : studentForm.fee_payment_plan === 'weekly' ? 10 : 1)
+    const installmentAmount = installmentsCount > 1 && Number(studentForm.fee_total) > 0 ? Math.ceil(Number(studentForm.fee_total) / installmentsCount) : Number(studentForm.fee_total) || 0
+
     if (editingStudentMember) {
       tenantSchoolStore.updateStudent(editingStudentMember.id, {
         full_name: studentForm.full_name.trim(),
@@ -685,8 +700,12 @@ export function TenantPrincipalDesk({
         guardian_name: studentForm.guardian_name.trim(),
         guardian_phone: studentForm.guardian_phone.trim(),
         guardian_email: studentForm.guardian_email.trim(),
+        admission_date: studentForm.admission_date || new Date().toISOString().split('T')[0],
         fee_total: Number(studentForm.fee_total) || 0,
         fee_paid: Number(studentForm.fee_paid) || 0,
+        fee_payment_plan: studentForm.fee_payment_plan,
+        fee_installments_count: installmentsCount,
+        fee_installment_amount: installmentAmount,
       })
       setShowAdmitStudentModal(false)
       setEditingStudentMember(null)
@@ -709,8 +728,12 @@ export function TenantPrincipalDesk({
           studentForm.guardian_email.trim() || `${admNo.toLowerCase()}@${school.slug}.portal`,
         username,
         temp_password: tempPin,
+        admission_date: studentForm.admission_date || new Date().toISOString().split('T')[0],
         fee_total: Number(studentForm.fee_total) || 0,
         fee_paid: Number(studentForm.fee_paid) || 0,
+        fee_payment_plan: studentForm.fee_payment_plan,
+        fee_installments_count: installmentsCount,
+        fee_installment_amount: installmentAmount,
       })
 
       setShowAdmitStudentModal(false)
@@ -2661,9 +2684,10 @@ export function TenantPrincipalDesk({
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Adm Number</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Student Name</th>
+                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Date of Enrollment</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Class Cohort</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Guardian Contact</th>
-                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>Fee Balance</th>
+                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>Fee Balance &amp; Plan</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>Official Slip</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>Actions</th>
                 </tr>
@@ -2671,7 +2695,7 @@ export function TenantPrincipalDesk({
               <tbody>
                 {filteredStudents.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan={8} style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b' }}>
                       No students match the selected filters.
                     </td>
                   </tr>
@@ -2683,6 +2707,9 @@ export function TenantPrincipalDesk({
                       </td>
                       <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>
                         {s.full_name}
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#334155', fontWeight: 700, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                        📅 {s.admission_date || 'N/A'}
                       </td>
                       <td style={{ padding: '0.75rem', color: '#475569', fontWeight: 600 }}>{s.grade_class}</td>
                       <td style={{ padding: '0.75rem', color: '#64748b' }}>
@@ -2700,6 +2727,11 @@ export function TenantPrincipalDesk({
                         <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
                           {(s.fee_balance || 0) <= 0 ? '✓ Cleared' : `Paid ${currency} ${(s.fee_paid || 0).toLocaleString()}`}
                         </div>
+                        {s.fee_payment_plan && s.fee_payment_plan !== 'termly' && (
+                          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '1px 6px', borderRadius: '4px', display: 'inline-block', marginTop: '3px' }}>
+                            {s.fee_payment_plan === 'monthly' ? `Monthly (${s.fee_installments_count || 3} mo)` : s.fee_payment_plan === 'weekly' ? `Weekly (${s.fee_installments_count || 10} wk)` : 'Installments'}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                         <button
@@ -4639,6 +4671,18 @@ export function TenantPrincipalDesk({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
+                    📅 Date of Enrollment / Admission *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={studentForm.admission_date || new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setStudentForm({ ...studentForm, admission_date: e.target.value })}
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1.5px solid #3b82f6', background: '#eff6ff', fontSize: '0.85rem', fontWeight: 700, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
                     Guardian Full Name *
                   </label>
                   <input
@@ -4650,6 +4694,9 @@ export function TenantPrincipalDesk({
                     style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
                     Guardian Phone Number *
@@ -4663,36 +4710,36 @@ export function TenantPrincipalDesk({
                     style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
+                    Guardian Email Address
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="e.g. parent@example.com (or leave blank)"
+                    value={studentForm.guardian_email}
+                    onChange={(e) => setStudentForm({ ...studentForm, guardian_email: e.target.value })}
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
-                  Guardian Email Address
-                </label>
-                <input
-                  type="email"
-                  placeholder="e.g. parent@example.com (or leave blank to auto-create)"
-                  value={studentForm.guardian_email}
-                  onChange={(e) => setStudentForm({ ...studentForm, guardian_email: e.target.value })}
-                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              {/* Tuition & Fee Schedule */}
+              {/* Tuition & Fee Schedule with Installments Plan */}
               <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>
                     Tuition &amp; Fees Schedule ({currency})
                   </div>
                   <div style={{ fontSize: '0.78rem', fontWeight: 900, color: Number(studentForm.fee_total) - Number(studentForm.fee_paid) > 0 ? '#dc2626' : '#16a34a' }}>
-                    Balance: {currency}{' '}
+                    Pending Balance: {currency}{' '}
                     {Math.max(0, Number(studentForm.fee_total) - Number(studentForm.fee_paid)).toLocaleString()}
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.75rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '4px' }}>
-                      Total Term Tuition ({currency})
+                      Total Term Tuition ({currency}) *
                     </label>
                     <input
                       type="number"
@@ -4715,6 +4762,61 @@ export function TenantPrincipalDesk({
                     />
                   </div>
                 </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '4px' }}>
+                      Fee Payment Plan
+                    </label>
+                    <select
+                      value={studentForm.fee_payment_plan || 'termly'}
+                      onChange={(e) => {
+                        const plan = e.target.value as 'termly' | 'monthly' | 'weekly' | 'custom'
+                        let defaultCount = 1
+                        if (plan === 'monthly') defaultCount = 3
+                        if (plan === 'weekly') defaultCount = 12
+                        if (plan === 'custom') defaultCount = 2
+                        setStudentForm({ ...studentForm, fee_payment_plan: plan, fee_installments_count: defaultCount })
+                      }}
+                      style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
+                    >
+                      <option value="termly">One-Time / Full Term (1 Payment)</option>
+                      <option value="monthly">Monthly Installments</option>
+                      <option value="weekly">Weekly Installments</option>
+                      <option value="custom">Custom Installment Count</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '4px' }}>
+                      Number of Installments
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="52"
+                      disabled={studentForm.fee_payment_plan === 'termly'}
+                      value={studentForm.fee_payment_plan === 'termly' ? 1 : (studentForm.fee_installments_count || 1)}
+                      onChange={(e) => setStudentForm({ ...studentForm, fee_installments_count: Math.max(1, Number(e.target.value)) })}
+                      style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: studentForm.fee_payment_plan === 'termly' ? '#f1f5f9' : '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                {studentForm.fee_payment_plan && studentForm.fee_payment_plan !== 'termly' && (
+                  <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.75rem', background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0', fontSize: '0.75rem', color: '#065f46', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>
+                      Schedule: <strong>{studentForm.fee_installments_count || 1}</strong> ×{' '}
+                      <strong>
+                        {currency} {Math.round((Number(studentForm.fee_total) || 0) / Math.max(1, studentForm.fee_installments_count || 1)).toLocaleString()}
+                      </strong>{' '}
+                      {studentForm.fee_payment_plan === 'monthly' ? '/ month' : studentForm.fee_payment_plan === 'weekly' ? '/ week' : '/ installment'}
+                    </span>
+                    <span style={{ fontWeight: 800, color: '#047857' }}>
+                      Pending Balance: {currency} {Math.max(0, Number(studentForm.fee_total) - Number(studentForm.fee_paid)).toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
