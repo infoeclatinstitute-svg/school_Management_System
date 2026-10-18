@@ -1395,7 +1395,7 @@ export function TenantStudentDesk({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
                 gap: '1.25rem',
               }}
             >
@@ -1876,7 +1876,7 @@ export function TenantStudentDesk({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
               gap: '2rem',
               alignItems: 'start',
             }}
@@ -1887,7 +1887,7 @@ export function TenantStudentDesk({
                 background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
                 color: '#ffffff',
                 borderRadius: '20px',
-                padding: '2rem',
+                padding: 'clamp(1rem, 4vw, 2rem)',
                 boxShadow: '0 12px 30px -4px rgba(15, 23, 42, 0.3)',
                 border: `2px solid ${accentColor}`,
                 position: 'relative',
@@ -1907,7 +1907,7 @@ export function TenantStudentDesk({
               />
 
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                 <div
                   style={{
                     width: '42px',
@@ -1920,6 +1920,7 @@ export function TenantStudentDesk({
                     fontWeight: 900,
                     fontSize: '1.3rem',
                     border: '1px solid rgba(255,255,255,0.2)',
+                    flexShrink: 0,
                   }}
                 >
                   {school.name.charAt(0)}
@@ -1933,7 +1934,7 @@ export function TenantStudentDesk({
               </div>
 
               {/* Photo & Details */}
-              <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                 <div
                   style={{
                     width: '85px',
@@ -1977,6 +1978,8 @@ export function TenantStudentDesk({
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
                 }}
               >
                 <div>
@@ -1996,7 +1999,7 @@ export function TenantStudentDesk({
               style={{
                 background: '#ffffff',
                 borderRadius: '20px',
-                padding: '1.75rem',
+                padding: 'clamp(1rem, 4vw, 1.75rem)',
                 border: '2px dashed #cbd5e1',
               }}
             >

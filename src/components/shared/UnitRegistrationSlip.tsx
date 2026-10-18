@@ -20,15 +20,17 @@ export function UnitRegistrationSlip({
         style={{
           background: '#ffffff',
           color: '#0f172a',
-          padding: '2.5rem',
+          padding: 'clamp(1rem, 3.5vw, 2.5rem)',
           maxWidth: '820px',
+          width: '100%',
           borderRadius: '12px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          boxSizing: 'border-box',
         }}
       >
         {/* Printable Unit Registration Header */}
         <div style={{ textAlign: 'center', borderBottom: '2px solid #1e3a8a', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#1e3a8a', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 800 }}>
               GC
             </div>
@@ -47,7 +49,7 @@ export function UnitRegistrationSlip({
         </div>
 
         {/* Metadata Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '1rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
           <div>
             <div style={{ marginBottom: '0.4rem' }}>
               <strong style={{ color: '#64748b' }}>Student Name:</strong> <span style={{ fontWeight: 700 }}>{receipt.student_name}</span>
@@ -133,7 +135,7 @@ export function UnitRegistrationSlip({
         </div>
 
         {/* Action Buttons */}
-        <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '2rem' }}>
+        <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '2rem', flexWrap: 'wrap' }}>
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             Close
           </button>

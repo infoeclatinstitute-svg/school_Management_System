@@ -28,13 +28,15 @@ export function ReportCardGenerator({ reportCard, onClose }: ReportCardGenerator
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.25rem' }}>📜</span>
             <strong style={{ fontSize: '1rem' }}>Official College Academic Transcript Preview</strong>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button type="button" className="btn btn-primary" onClick={handlePrint}>
               🖨️ Print / Download Official Transcript PDF
             </button>
@@ -48,10 +50,11 @@ export function ReportCardGenerator({ reportCard, onClose }: ReportCardGenerator
         <div
           id="official-report-card"
           style={{
-            padding: '2.5rem',
+            padding: 'clamp(1rem, 3.5vw, 2.5rem)',
             background: '#ffffff',
             color: '#0f172a',
             fontFamily: 'Inter, system-ui, sans-serif',
+            boxSizing: 'border-box',
           }}
         >
           {/* School Header Banner */}
@@ -125,7 +128,7 @@ export function ReportCardGenerator({ reportCard, onClose }: ReportCardGenerator
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
               gap: '0.75rem',
               background: '#f8fafc',
               padding: '1rem',
@@ -168,74 +171,76 @@ export function ReportCardGenerator({ reportCard, onClose }: ReportCardGenerator
           </div>
 
           {/* Subject Modular Unit Breakdown Table */}
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              marginBottom: '1.5rem',
-              fontSize: '0.82rem',
-            }}
-          >
-            <thead>
-              <tr style={{ background: '#1e3a8a', color: '#ffffff', textAlign: 'left' }}>
-                <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a' }}>Unit Code & Title</th>
-                <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>CAT (30%)</th>
-                <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>Exam (70%)</th>
-                <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>Total (100%)</th>
-                <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>Grade</th>
-                <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>Points</th>
-                <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a' }}>Course Lecturer Remarks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportCard.subjects.map((sub, i) => (
-                <tr
-                  key={sub.subject_id}
-                  style={{ background: i % 2 === 0 ? '#ffffff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}
-                >
-                  <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', fontWeight: 600 }}>
-                    <span style={{ color: 'var(--color-primary)', marginRight: '6px' }}>{sub.subject_code}</span>
-                    {sub.subject_name}
-                  </td>
-                  <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                    {sub.cat_score}
-                  </td>
-                  <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                    {sub.exam_score}
-                  </td>
-                  <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700 }}>
-                    {sub.total_score}%
-                  </td>
-                  <td
-                    style={{
-                      padding: '8px 10px',
-                      border: '1px solid #e2e8f0',
-                      textAlign: 'center',
-                      fontWeight: 800,
-                      color: sub.grade.startsWith('A') ? '#16a34a' : '#1e3a8a',
-                    }}
-                  >
-                    {sub.grade}
-                  </td>
-                  <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 600 }}>
-                    {sub.points}
-                  </td>
-                  <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', color: '#334155' }}>
-                    {sub.remarks}{' '}
-                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic' }}>
-                      — {sub.teacher_name}
-                    </span>
-                  </td>
+          <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: '1.5rem' }}>
+            <table
+              style={{
+                width: '100%',
+                minWidth: '550px',
+                borderCollapse: 'collapse',
+                fontSize: '0.82rem',
+              }}
+            >
+              <thead>
+                <tr style={{ background: '#1e3a8a', color: '#ffffff', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a' }}>Unit Code & Title</th>
+                  <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>CAT (30%)</th>
+                  <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>Exam (70%)</th>
+                  <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>Total (100%)</th>
+                  <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>Grade</th>
+                  <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a', textAlign: 'center' }}>Points</th>
+                  <th style={{ padding: '8px 10px', border: '1px solid #1e3a8a' }}>Course Lecturer Remarks</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {reportCard.subjects.map((sub, i) => (
+                  <tr
+                    key={sub.subject_id}
+                    style={{ background: i % 2 === 0 ? '#ffffff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}
+                  >
+                    <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', fontWeight: 600 }}>
+                      <span style={{ color: 'var(--color-primary)', marginRight: '6px' }}>{sub.subject_code}</span>
+                      {sub.subject_name}
+                    </td>
+                    <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                      {sub.cat_score}
+                    </td>
+                    <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                      {sub.exam_score}
+                    </td>
+                    <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 700 }}>
+                      {sub.total_score}%
+                    </td>
+                    <td
+                      style={{
+                        padding: '8px 10px',
+                        border: '1px solid #e2e8f0',
+                        textAlign: 'center',
+                        fontWeight: 800,
+                        color: sub.grade.startsWith('A') ? '#16a34a' : '#1e3a8a',
+                      }}
+                    >
+                      {sub.grade}
+                    </td>
+                    <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 600 }}>
+                      {sub.points}
+                    </td>
+                    <td style={{ padding: '8px 10px', border: '1px solid #e2e8f0', color: '#334155' }}>
+                      {sub.remarks}{' '}
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic' }}>
+                        — {sub.teacher_name}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* Performance Aggregate Box */}
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',
               gap: '0.75rem',
               background: '#eff6ff',
               border: '2px solid #3b82f6',
@@ -330,7 +335,7 @@ export function ReportCardGenerator({ reportCard, onClose }: ReportCardGenerator
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
               gap: '1rem',
               paddingTop: '1rem',
               borderTop: '2px solid #e2e8f0',

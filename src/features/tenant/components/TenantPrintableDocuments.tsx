@@ -36,7 +36,7 @@ export function StudentAdmissionLetterModal({
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: 'clamp(0.4rem, 2vw, 1.5rem)',
         overflowY: 'auto',
       }}
     >
@@ -52,6 +52,7 @@ export function StudentAdmissionLetterModal({
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           border: `2px solid ${primaryColor}`,
           position: 'relative',
+          boxSizing: 'border-box',
         }}
       >
         {/* Print & Close Actions Toolbar */}
@@ -66,12 +67,14 @@ export function StudentAdmissionLetterModal({
             borderBottom: '1px solid #e2e8f0',
             borderTopLeftRadius: '18px',
             borderTopRightRadius: '18px',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
             Official Institutional Document • Registry Reference: ADM-{student.admission_number}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => window.print()}
@@ -107,7 +110,7 @@ export function StudentAdmissionLetterModal({
         </div>
 
         {/* Printable Document Body */}
-        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+        <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a', boxSizing: 'border-box' }}>
           {/* Institution Header */}
           <div
             style={{
@@ -378,7 +381,7 @@ export function StaffLoginSlipModal({
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: 'clamp(0.4rem, 2vw, 1.5rem)',
         overflowY: 'auto',
       }}
     >
@@ -394,6 +397,7 @@ export function StaffLoginSlipModal({
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           border: `2px solid ${primaryColor}`,
           position: 'relative',
+          boxSizing: 'border-box',
         }}
       >
         <div
@@ -407,12 +411,14 @@ export function StaffLoginSlipModal({
             borderBottom: '1px solid #e2e8f0',
             borderTopLeftRadius: '18px',
             borderTopRightRadius: '18px',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
             Official Staff Provisioning Slip • Staff ID: {staff.id.toUpperCase()}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => window.print()}
@@ -447,7 +453,7 @@ export function StaffLoginSlipModal({
           </div>
         </div>
 
-        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+        <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a', boxSizing: 'border-box' }}>
           <div
             style={{
               display: 'flex',
@@ -520,7 +526,7 @@ export function StaffLoginSlipModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
               gap: '1rem',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -637,7 +643,7 @@ export function StaffPayslipModal({
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: 'clamp(0.4rem, 2vw, 1.5rem)',
         overflowY: 'auto',
       }}
     >
@@ -652,6 +658,7 @@ export function StaffPayslipModal({
           overflowY: 'auto',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           border: `2px solid ${primaryColor}`,
+          boxSizing: 'border-box',
         }}
       >
         <div
@@ -665,12 +672,14 @@ export function StaffPayslipModal({
             borderBottom: '1px solid #e2e8f0',
             borderTopLeftRadius: '18px',
             borderTopRightRadius: '18px',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
             Official Payslip • Period: {payslip.month_period} • Batch ID: {payslip.id.toUpperCase()}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => window.print()}
@@ -705,7 +714,7 @@ export function StaffPayslipModal({
           </div>
         </div>
 
-        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+        <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a', boxSizing: 'border-box' }}>
           <div
             style={{
               display: 'flex',
@@ -749,7 +758,7 @@ export function StaffPayslipModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
               gap: '1rem',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -777,7 +786,7 @@ export function StaffPayslipModal({
           </div>
 
           {/* Earnings vs Deductions Breakdown */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
             {/* Earnings */}
             <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '1.25rem', border: '1px solid #bbf7d0' }}>
               <h3 style={{ fontSize: '0.9rem', fontWeight: 900, color: '#166534', margin: '0 0 1rem', textTransform: 'uppercase' }}>
@@ -895,7 +904,7 @@ export function FeeReceiptModal({
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: 'clamp(0.4rem, 2vw, 1.5rem)',
         overflowY: 'auto',
       }}
     >
@@ -910,6 +919,7 @@ export function FeeReceiptModal({
           overflowY: 'auto',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           border: `2px solid ${primaryColor}`,
+          boxSizing: 'border-box',
         }}
       >
         <div
@@ -923,12 +933,14 @@ export function FeeReceiptModal({
             borderBottom: '1px solid #e2e8f0',
             borderTopLeftRadius: '18px',
             borderTopRightRadius: '18px',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
             Official Payment Receipt • Serial: {receipt.receipt_number}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => window.print()}
@@ -963,7 +975,7 @@ export function FeeReceiptModal({
           </div>
         </div>
 
-        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+        <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a', boxSizing: 'border-box' }}>
           <div
             style={{
               display: 'flex',
@@ -1006,7 +1018,7 @@ export function FeeReceiptModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
               gap: '1rem',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -1170,7 +1182,7 @@ export function StudentTranscriptModal({
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: 'clamp(0.4rem, 2vw, 1.5rem)',
         overflowY: 'auto',
       }}
     >
@@ -1186,6 +1198,7 @@ export function StudentTranscriptModal({
           overflowY: 'auto',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           border: `2px solid ${primaryColor}`,
+          boxSizing: 'border-box',
         }}
       >
         {/* Actions Toolbar */}
@@ -1200,12 +1213,14 @@ export function StudentTranscriptModal({
             borderBottom: '1px solid #e2e8f0',
             borderTopLeftRadius: '18px',
             borderTopRightRadius: '18px',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
             Official Institutional Transcript • Registry Ref: TRN-{student.admission_number}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => window.print()}
@@ -1241,7 +1256,7 @@ export function StudentTranscriptModal({
         </div>
 
         {/* Printable Body */}
-        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+        <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a', boxSizing: 'border-box' }}>
           {/* Header */}
           <div
             style={{
@@ -1252,9 +1267,10 @@ export function StudentTranscriptModal({
               paddingBottom: '1.5rem',
               marginBottom: '1.75rem',
               gap: '1.5rem',
+              flexWrap: 'wrap',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <div
                 style={{
                   width: '72px',
@@ -1314,7 +1330,7 @@ export function StudentTranscriptModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))',
               gap: '1rem',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -1345,73 +1361,75 @@ export function StudentTranscriptModal({
           </div>
 
           {/* Subject Grades Table */}
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '0.82rem',
-              marginBottom: '1.75rem',
-            }}
-          >
-            <thead>
-              <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>#</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>Course / Unit Title</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 1</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 2</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Exam Score</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Total (/100%)</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Grade</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>Remark</th>
-              </tr>
-            </thead>
-            <tbody>
-              {grades.length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
-                    No recorded continuous assessments or examination scores for this session yet.
-                  </td>
+          <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: '1.75rem' }}>
+            <table
+              style={{
+                width: '100%',
+                minWidth: '580px',
+                borderCollapse: 'collapse',
+                fontSize: '0.82rem',
+              }}
+            >
+              <thead>
+                <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>#</th>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>Course / Unit Title</th>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 1</th>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 2</th>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Exam Score</th>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Total (/100%)</th>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Grade</th>
+                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>Remark</th>
                 </tr>
-              ) : (
-                grades.map((g, idx) => (
-                  <tr key={g.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
-                    <td style={{ padding: '0.65rem 0.5rem', fontWeight: 700, color: '#0f172a' }}>{g.subject_name}</td>
-                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>
-                      {g.cat1_score !== undefined ? `${g.cat1_score}${g.cat1_max ? `/${g.cat1_max}` : ''}` : '-'}
-                    </td>
-                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>
-                      {g.cat2_score !== undefined ? `${g.cat2_score}${g.cat2_max ? `/${g.cat2_max}` : ''}` : '-'}
-                    </td>
-                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>
-                      {g.exam_score !== undefined ? `${g.exam_score}${g.exam_max ? `/${g.exam_max}` : ''}` : '-'}
-                    </td>
-                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>
-                      {g.total_score}%
-                    </td>
-                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontWeight: 900,
-                          fontSize: '0.78rem',
-                          background: g.total_score >= 70 ? '#dcfce7' : g.total_score >= 50 ? '#fef3c7' : '#fee2e2',
-                          color: g.total_score >= 70 ? '#166534' : g.total_score >= 50 ? '#92400e' : '#991b1b',
-                        }}
-                      >
-                        {g.grade || 'P'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.65rem 0.5rem', color: '#475569', fontSize: '0.78rem' }}>
-                      {g.remarks || 'Satisfactory'}
+              </thead>
+              <tbody>
+                {grades.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                      No recorded continuous assessments or examination scores for this session yet.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  grades.map((g, idx) => (
+                    <tr key={g.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
+                      <td style={{ padding: '0.65rem 0.5rem', fontWeight: 700, color: '#0f172a' }}>{g.subject_name}</td>
+                      <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>
+                        {g.cat1_score !== undefined ? `${g.cat1_score}${g.cat1_max ? `/${g.cat1_max}` : ''}` : '-'}
+                      </td>
+                      <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>
+                        {g.cat2_score !== undefined ? `${g.cat2_score}${g.cat2_max ? `/${g.cat2_max}` : ''}` : '-'}
+                      </td>
+                      <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>
+                        {g.exam_score !== undefined ? `${g.exam_score}${g.exam_max ? `/${g.exam_max}` : ''}` : '-'}
+                      </td>
+                      <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>
+                        {g.total_score}%
+                      </td>
+                      <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontWeight: 900,
+                            fontSize: '0.78rem',
+                            background: g.total_score >= 70 ? '#dcfce7' : g.total_score >= 50 ? '#fef3c7' : '#fee2e2',
+                            color: g.total_score >= 70 ? '#166534' : g.total_score >= 50 ? '#92400e' : '#991b1b',
+                          }}
+                        >
+                          {g.grade || 'P'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.65rem 0.5rem', color: '#475569', fontSize: '0.78rem' }}>
+                        {g.remarks || 'Satisfactory'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Performance Summary Banner */}
           <div
@@ -1424,6 +1442,8 @@ export function StudentTranscriptModal({
               borderRadius: '12px',
               padding: '1rem 1.5rem',
               marginBottom: '1.75rem',
+              flexWrap: 'wrap',
+              gap: '1rem',
             }}
           >
             <div>
@@ -1444,7 +1464,7 @@ export function StudentTranscriptModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.2fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
               gap: '2rem',
               paddingTop: '1.5rem',
               borderTop: '2px solid #e2e8f0',
@@ -1527,7 +1547,7 @@ export function StudentFeeInvoiceModal({
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: 'clamp(0.4rem, 2vw, 1.5rem)',
         overflowY: 'auto',
       }}
     >
@@ -1543,6 +1563,7 @@ export function StudentFeeInvoiceModal({
           overflowY: 'auto',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           border: `2px solid ${primaryColor}`,
+          boxSizing: 'border-box',
         }}
       >
         <div
@@ -1556,12 +1577,14 @@ export function StudentFeeInvoiceModal({
             borderBottom: '1px solid #e2e8f0',
             borderTopLeftRadius: '18px',
             borderTopRightRadius: '18px',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
             Fee Statement &amp; Tuition Invoice • Ref: INV-{student.admission_number}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => window.print()}
@@ -1596,7 +1619,7 @@ export function StudentFeeInvoiceModal({
           </div>
         </div>
 
-        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+        <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a', boxSizing: 'border-box' }}>
           {/* Header */}
           <div
             style={{
@@ -1606,9 +1629,11 @@ export function StudentFeeInvoiceModal({
               borderBottom: `2.5px solid ${primaryColor}`,
               paddingBottom: '1.5rem',
               marginBottom: '1.75rem',
+              flexWrap: 'wrap',
+              gap: '1.25rem',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <div
                 style={{
                   width: '68px',
@@ -1665,7 +1690,7 @@ export function StudentFeeInvoiceModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
               gap: '1rem',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -1707,76 +1732,80 @@ export function StudentFeeInvoiceModal({
           <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.6rem' }}>
             Itemized Tuition &amp; Statutory Assessment Fees
           </h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.5rem' }}>
-            <thead>
-              <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
-                <th style={{ padding: '0.65rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Fee Item</th>
-                <th style={{ padding: '0.65rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Billing Schedule</th>
-                <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>Amount ({currency})</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Academic Tuition &amp; Faculty Instruction</td>
-                <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Core Term Instruction</td>
-                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.75).toLocaleString()}</td>
-              </tr>
-              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Examinations &amp; Continuous Assessment</td>
-                <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Assessment Registry</td>
-                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.12).toLocaleString()}</td>
-              </tr>
-              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>ICT, Cloud LMS &amp; Digital Library Portal</td>
-                <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Digital Campus Access</td>
-                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.08).toLocaleString()}</td>
-              </tr>
-              <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Activity &amp; Institutional Amenities</td>
-                <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Annual Registration</td>
-                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.05).toLocaleString()}</td>
-              </tr>
-              <tr style={{ background: '#f8fafc', fontWeight: 900 }}>
-                <td colSpan={2} style={{ padding: '0.75rem', textAlign: 'right' }}>Total Invoiced Charges:</td>
-                <td style={{ padding: '0.75rem', textAlign: 'right', color: '#0f172a' }}>{currency} {totalInvoiced.toLocaleString()}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: '1.5rem' }}>
+            <table style={{ width: '100%', minWidth: '480px', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
+                  <th style={{ padding: '0.65rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Fee Item</th>
+                  <th style={{ padding: '0.65rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Billing Schedule</th>
+                  <th style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>Amount ({currency})</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Academic Tuition &amp; Faculty Instruction</td>
+                  <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Core Term Instruction</td>
+                  <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.75).toLocaleString()}</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Examinations &amp; Continuous Assessment</td>
+                  <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Assessment Registry</td>
+                  <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.12).toLocaleString()}</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>ICT, Cloud LMS &amp; Digital Library Portal</td>
+                  <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Digital Campus Access</td>
+                  <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.08).toLocaleString()}</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Activity &amp; Institutional Amenities</td>
+                  <td style={{ padding: '0.65rem 0.75rem', color: '#64748b' }}>Annual Registration</td>
+                  <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>{Math.round(totalInvoiced * 0.05).toLocaleString()}</td>
+                </tr>
+                <tr style={{ background: '#f8fafc', fontWeight: 900 }}>
+                  <td colSpan={2} style={{ padding: '0.75rem', textAlign: 'right' }}>Total Invoiced Charges:</td>
+                  <td style={{ padding: '0.75rem', textAlign: 'right', color: '#0f172a' }}>{currency} {totalInvoiced.toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
           {/* Payment Receipts Record */}
           <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.6rem' }}>
             Payments Credited to Date
           </h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.75rem' }}>
-            <thead>
-              <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
-                <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Receipt #</th>
-                <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Date</th>
-                <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Channel</th>
-                <th style={{ padding: '0.55rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>Amount Paid ({currency})</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.length === 0 ? (
-                <tr>
-                  <td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>
-                    No recorded payments on this statement.
-                  </td>
+          <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: '1.75rem' }}>
+            <table style={{ width: '100%', minWidth: '480px', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                  <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Receipt #</th>
+                  <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Date</th>
+                  <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 800 }}>Channel</th>
+                  <th style={{ padding: '0.55rem 0.75rem', textAlign: 'right', fontWeight: 800 }}>Amount Paid ({currency})</th>
                 </tr>
-              ) : (
-                payments.map((p) => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '0.55rem 0.75rem', fontFamily: 'monospace', fontWeight: 800, color: primaryColor }}>{p.receipt_number}</td>
-                    <td style={{ padding: '0.55rem 0.75rem', color: '#334155' }}>{p.date}</td>
-                    <td style={{ padding: '0.55rem 0.75rem', color: '#334155' }}>{p.payment_method}</td>
-                    <td style={{ padding: '0.55rem 0.75rem', textAlign: 'right', fontWeight: 800, color: '#16a34a' }}>
-                      {currency} {p.amount.toLocaleString()}
+              </thead>
+              <tbody>
+                {payments.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '1rem', textAlign: 'center', color: '#64748b' }}>
+                      No recorded payments on this statement.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  payments.map((p) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '0.55rem 0.75rem', fontFamily: 'monospace', fontWeight: 800, color: primaryColor }}>{p.receipt_number}</td>
+                      <td style={{ padding: '0.55rem 0.75rem', color: '#334155' }}>{p.date}</td>
+                      <td style={{ padding: '0.55rem 0.75rem', color: '#334155' }}>{p.payment_method}</td>
+                      <td style={{ padding: '0.55rem 0.75rem', textAlign: 'right', fontWeight: 800, color: '#16a34a' }}>
+                        {currency} {p.amount.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Installment Plan Breakdown Schedule (if not single termly) */}
           {(() => {
@@ -1826,6 +1855,8 @@ export function StudentFeeInvoiceModal({
               borderRadius: '12px',
               padding: '1.25rem 1.75rem',
               marginBottom: '1.75rem',
+              flexWrap: 'wrap',
+              gap: '1rem',
             }}
           >
             <div>
@@ -1846,7 +1877,7 @@ export function StudentFeeInvoiceModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.2fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
               gap: '2rem',
               paddingTop: '1.5rem',
               borderTop: '2px solid #e2e8f0',
@@ -1909,7 +1940,7 @@ export function ExamClearancePassModal({
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: 'clamp(0.4rem, 2vw, 1.5rem)',
         overflowY: 'auto',
       }}
     >
@@ -1925,6 +1956,7 @@ export function ExamClearancePassModal({
           overflowY: 'auto',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           border: `2px solid ${primaryColor}`,
+          boxSizing: 'border-box',
         }}
       >
         <div
@@ -1938,12 +1970,14 @@ export function ExamClearancePassModal({
             borderBottom: '1px solid #e2e8f0',
             borderTopLeftRadius: '18px',
             borderTopRightRadius: '18px',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
             Official Examination Hall Clearance Pass • Serial: EXAM-{student.admission_number}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => window.print()}
@@ -1978,7 +2012,7 @@ export function ExamClearancePassModal({
           </div>
         </div>
 
-        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+        <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a', boxSizing: 'border-box' }}>
           {/* Header */}
           <div
             style={{
@@ -1988,9 +2022,11 @@ export function ExamClearancePassModal({
               borderBottom: `2.5px solid ${primaryColor}`,
               paddingBottom: '1.25rem',
               marginBottom: '1.5rem',
+              flexWrap: 'wrap',
+              gap: '1rem',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <div
                 style={{
                   width: '64px',
@@ -2050,6 +2086,8 @@ export function ExamClearancePassModal({
               borderRadius: '14px',
               padding: '1.25rem 1.5rem',
               marginBottom: '1.5rem',
+              flexWrap: 'wrap',
+              gap: '1rem',
             }}
           >
             <div>
@@ -2090,7 +2128,7 @@ export function ExamClearancePassModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
               gap: '1rem',
               marginBottom: '1.5rem',
             }}
@@ -2137,7 +2175,7 @@ export function ExamClearancePassModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
               gap: '0.5rem',
               marginBottom: '1.5rem',
               fontSize: '0.8rem',
@@ -2171,7 +2209,7 @@ export function ExamClearancePassModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.2fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
               gap: '2rem',
               paddingTop: '1.25rem',
               borderTop: '2px solid #e2e8f0',
@@ -2184,7 +2222,7 @@ export function ExamClearancePassModal({
               2. Mobile devices, smartwatches, and programmable memory devices are strictly prohibited in the exam hall.
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1.5rem', textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1.5rem', textAlign: 'center', flexWrap: 'wrap' }}>
               <div>
                 <div style={{ height: '32px', borderBottom: '1px dotted #94a3b8', width: '120px', margin: '0 auto' }} />
                 <div style={{ marginTop: '4px', fontWeight: 700, color: '#0f172a' }}>Chief Invigilator</div>
@@ -2227,7 +2265,7 @@ export function StaffAppointmentOfferLetterModal({
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '1.5rem',
+        padding: 'clamp(0.4rem, 2vw, 1.5rem)',
         overflowY: 'auto',
       }}
     >
@@ -2243,6 +2281,7 @@ export function StaffAppointmentOfferLetterModal({
           overflowY: 'auto',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
           border: `2px solid ${primaryColor}`,
+          boxSizing: 'border-box',
         }}
       >
         <div
@@ -2256,12 +2295,14 @@ export function StaffAppointmentOfferLetterModal({
             borderBottom: '1px solid #e2e8f0',
             borderTopLeftRadius: '18px',
             borderTopRightRadius: '18px',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
           }}
         >
           <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
             Official Appointment Letter • HR Ref: HR-OFFER-{staff.id.slice(0, 8).toUpperCase()}
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => window.print()}
@@ -2296,7 +2337,7 @@ export function StaffAppointmentOfferLetterModal({
           </div>
         </div>
 
-        <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+        <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a' }}>
           {/* Header */}
           <div
             style={{
@@ -2306,9 +2347,11 @@ export function StaffAppointmentOfferLetterModal({
               borderBottom: `2.5px solid ${primaryColor}`,
               paddingBottom: '1.5rem',
               marginBottom: '1.75rem',
+              flexWrap: 'wrap',
+              gap: '1rem',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <div
                 style={{
                   width: '68px',
@@ -2322,6 +2365,7 @@ export function StaffAppointmentOfferLetterModal({
                   fontSize: '2rem',
                   fontWeight: 900,
                   border: `2px solid ${accentColor}`,
+                  flexShrink: 0,
                 }}
               >
                 {school.name.charAt(0)}
@@ -2339,7 +2383,7 @@ export function StaffAppointmentOfferLetterModal({
               </div>
             </div>
 
-            <div style={{ textAlign: 'right' }}>
+            <div style={{ textAlign: 'left' }}>
               <div
                 style={{
                   display: 'inline-block',
@@ -2383,7 +2427,7 @@ export function StaffAppointmentOfferLetterModal({
               }}
             >
               <h4 style={{ margin: '0 0 0.5rem', color: '#0f172a', fontWeight: 800 }}>Terms of Remuneration &amp; Allowance Package:</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', fontSize: '0.82rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: '1rem', fontSize: '0.82rem' }}>
                 <div>
                   <span style={{ color: '#64748b' }}>Base Monthly Salary:</span>
                   <div style={{ fontWeight: 800, color: '#0f172a' }}>{currency} {(staff.salary_base ?? 0).toLocaleString()}</div>
@@ -2418,7 +2462,7 @@ export function StaffAppointmentOfferLetterModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
               gap: '2rem',
               marginTop: '2.5rem',
               paddingTop: '1.5rem',
@@ -2434,8 +2478,8 @@ export function StaffAppointmentOfferLetterModal({
               <div style={{ color: '#64748b' }}>{school.principal_title || 'Principal & CEO'}, {school.name}</div>
             </div>
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ height: '40px', borderBottom: '1px dotted #94a3b8', width: '180px', marginLeft: 'auto' }} />
+            <div>
+              <div style={{ height: '40px', borderBottom: '1px dotted #94a3b8', width: '180px' }} />
               <div style={{ marginTop: '6px', fontWeight: 800, color: '#0f172a' }}>
                 Candidate Acceptance Signature
               </div>

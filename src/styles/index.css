@@ -593,6 +593,11 @@ textarea { resize: vertical; min-height: 100px; }
     box-sizing: border-box !important;
   }
 
+  body {
+    padding-left: env(safe-area-inset-left, 0px) !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
+  }
+
   /* Prevent CSS Grid 1fr (minmax(auto, 1fr)) and Flex items from expanding past mobile viewport */
   section > div,
   main > div,

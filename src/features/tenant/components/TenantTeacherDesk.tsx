@@ -1460,7 +1460,7 @@ export function TenantTeacherDesk({
           </div>
 
           {/* Session Notes Textarea & Historical Log Drawer */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.25rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
                 Class Instructor Session Remarks
@@ -2115,7 +2115,7 @@ export function TenantTeacherDesk({
           </div>
 
           {/* Cards Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1rem' }}>
             {filteredLessonNotes.length === 0 ? (
               <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: '#64748b' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📁</div>
@@ -2443,7 +2443,7 @@ export function TenantTeacherDesk({
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1rem' }}>
             {atRiskStudents.length === 0 ? (
               <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: '#15803d' }}>
                 <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>🎉</div>
@@ -2867,7 +2867,7 @@ export function TenantTeacherDesk({
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'center',
-            padding: '1.5rem',
+            padding: 'clamp(0.4rem, 2vw, 1.5rem)',
             overflowY: 'auto',
           }}
         >
@@ -2883,6 +2883,7 @@ export function TenantTeacherDesk({
               overflowY: 'auto',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
               border: `2px solid ${primaryColor}`,
+              boxSizing: 'border-box',
             }}
           >
             <div
@@ -2896,12 +2897,14 @@ export function TenantTeacherDesk({
                 borderBottom: '1px solid #e2e8f0',
                 borderTopLeftRadius: '18px',
                 borderTopRightRadius: '18px',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
               }}
             >
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
                 Official Faculty Marksheet • Cohort: {selectedClassForGradebook} • Subject: {selectedSubjectForGradebook}
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => window.print()}
@@ -2936,7 +2939,7 @@ export function TenantTeacherDesk({
               </div>
             </div>
 
-            <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+            <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a', boxSizing: 'border-box' }}>
               <div
                 style={{
                   display: 'flex',
@@ -2945,6 +2948,8 @@ export function TenantTeacherDesk({
                   borderBottom: `2.5px solid ${primaryColor}`,
                   paddingBottom: '1.25rem',
                   marginBottom: '1.5rem',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
                 }}
               >
                 <div>
@@ -2980,7 +2985,7 @@ export function TenantTeacherDesk({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))',
                   gap: '1rem',
                   background: '#f8fafc',
                   border: '1px solid #e2e8f0',
@@ -3005,68 +3010,70 @@ export function TenantTeacherDesk({
               </div>
 
               {/* Table */}
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.5rem' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>#</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Admission #</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Candidate Name</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 1 (/{cat1MaxWeight})</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 2 (/{cat2MaxWeight})</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Exam (/{examMaxWeight})</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Total (/100%)</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Grade</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {gradebookStudents.map((s, idx) => {
-                    const gradeRec = gradeList.find(
-                      (g) =>
-                        g.student_id === s.id &&
-                        g.subject_name.toLowerCase() === selectedSubjectForGradebook.toLowerCase()
-                    )
-                    return (
-                      <tr key={s.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '0.6rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
-                        <td style={{ padding: '0.6rem 0.5rem', fontFamily: 'monospace', fontWeight: 700, color: primaryColor }}>
-                          {s.admission_number}
-                        </td>
-                        <td style={{ padding: '0.6rem 0.5rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
-                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#334155' }}>{gradeRec?.cat1_score ?? '-'}</td>
-                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#334155' }}>{gradeRec?.cat2_score ?? '-'}</td>
-                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#334155' }}>{gradeRec?.exam_score ?? '-'}</td>
-                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', fontWeight: 900, color: '#0f172a' }}>
-                          {gradeRec?.total_score ?? '-'}%
-                        </td>
-                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }}>
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              fontWeight: 900,
-                              fontSize: '0.78rem',
-                              background: (gradeRec?.total_score || 0) >= 70 ? '#dcfce7' : '#f1f5f9',
-                              color: (gradeRec?.total_score || 0) >= 70 ? '#166534' : '#334155',
-                            }}
-                          >
-                            {gradeRec?.grade || 'P'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.6rem 0.5rem', color: '#64748b', fontSize: '0.75rem' }}>
-                          {gradeRec?.remarks || 'In Progress'}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+              <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: '1.5rem' }}>
+                <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>#</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Admission #</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Candidate Name</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 1 (/{cat1MaxWeight})</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 2 (/{cat2MaxWeight})</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Exam (/{examMaxWeight})</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Total (/100%)</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Grade</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {gradebookStudents.map((s, idx) => {
+                      const gradeRec = gradeList.find(
+                        (g) =>
+                          g.student_id === s.id &&
+                          g.subject_name.toLowerCase() === selectedSubjectForGradebook.toLowerCase()
+                      )
+                      return (
+                        <tr key={s.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '0.6rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
+                          <td style={{ padding: '0.6rem 0.5rem', fontFamily: 'monospace', fontWeight: 700, color: primaryColor }}>
+                            {s.admission_number}
+                          </td>
+                          <td style={{ padding: '0.6rem 0.5rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
+                          <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#334155' }}>{gradeRec?.cat1_score ?? '-'}</td>
+                          <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#334155' }}>{gradeRec?.cat2_score ?? '-'}</td>
+                          <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#334155' }}>{gradeRec?.exam_score ?? '-'}</td>
+                          <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', fontWeight: 900, color: '#0f172a' }}>
+                            {gradeRec?.total_score ?? '-'}%
+                          </td>
+                          <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }}>
+                            <span
+                              style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 900,
+                                fontSize: '0.78rem',
+                                background: (gradeRec?.total_score || 0) >= 70 ? '#dcfce7' : '#f1f5f9',
+                                color: (gradeRec?.total_score || 0) >= 70 ? '#166534' : '#334155',
+                              }}
+                            >
+                              {gradeRec?.grade || 'P'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.6rem 0.5rem', color: '#64748b', fontSize: '0.75rem' }}>
+                            {gradeRec?.remarks || 'In Progress'}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
               {/* Signatures */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
                   gap: '2rem',
                   paddingTop: '1.5rem',
                   borderTop: '2px solid #e2e8f0',
@@ -3104,7 +3111,7 @@ export function TenantTeacherDesk({
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'center',
-            padding: '1.5rem',
+            padding: 'clamp(0.4rem, 2vw, 1.5rem)',
             overflowY: 'auto',
           }}
         >
@@ -3120,6 +3127,7 @@ export function TenantTeacherDesk({
               overflowY: 'auto',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
               border: `2px solid ${primaryColor}`,
+              boxSizing: 'border-box',
             }}
           >
             <div
@@ -3133,12 +3141,14 @@ export function TenantTeacherDesk({
                 borderBottom: '1px solid #e2e8f0',
                 borderTopLeftRadius: '18px',
                 borderTopRightRadius: '18px',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
               }}
             >
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#475569' }}>
                 Official Attendance Register • Cohort: {selectedClassForAttendance} • Date: {attendanceDate}
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => window.print()}
@@ -3173,7 +3183,7 @@ export function TenantTeacherDesk({
               </div>
             </div>
 
-            <div style={{ padding: '2.5rem 3rem', color: '#0f172a' }}>
+            <div style={{ padding: 'clamp(1rem, 3.5vw, 2.5rem) clamp(0.75rem, 3.5vw, 3rem)', color: '#0f172a', boxSizing: 'border-box' }}>
               <div
                 style={{
                   display: 'flex',
@@ -3182,6 +3192,8 @@ export function TenantTeacherDesk({
                   borderBottom: `2.5px solid ${primaryColor}`,
                   paddingBottom: '1.25rem',
                   marginBottom: '1.5rem',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
                 }}
               >
                 <div>
@@ -3217,7 +3229,7 @@ export function TenantTeacherDesk({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))',
                   gap: '1rem',
                   background: '#f8fafc',
                   border: '1px solid #e2e8f0',
@@ -3242,65 +3254,67 @@ export function TenantTeacherDesk({
               </div>
 
               {/* Attendance Table */}
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', marginBottom: '1.5rem' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>#</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Admission #</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Candidate Full Name</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Roll-Call Status</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Candidate Signature</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {classStudents.map((s, idx) => {
-                    const rec = rollCallMap[s.id]
-                    return (
-                      <tr key={s.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '0.6rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
-                        <td style={{ padding: '0.6rem 0.5rem', fontFamily: 'monospace', fontWeight: 700, color: primaryColor }}>
-                          {s.admission_number}
-                        </td>
-                        <td style={{ padding: '0.6rem 0.5rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
-                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }}>
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              padding: '2px 10px',
-                              borderRadius: '6px',
-                              fontWeight: 800,
-                              fontSize: '0.74rem',
-                              background:
-                                rec?.status === 'present'
-                                  ? '#dcfce7'
-                                  : rec?.status === 'late'
-                                  ? '#fef3c7'
-                                  : '#fee2e2',
-                              color:
-                                rec?.status === 'present'
-                                  ? '#166534'
-                                  : rec?.status === 'late'
-                                  ? '#92400e'
-                                  : '#991b1b',
-                            }}
-                          >
-                            {rec?.status?.toUpperCase() || 'PRESENT'}
-                          </span>
-                        </td>
-                        <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#94a3b8' }}>
-                          _______________________
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+              <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: '1.5rem' }}>
+                <table style={{ width: '100%', minWidth: '550px', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>#</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Admission #</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Candidate Full Name</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Roll-Call Status</th>
+                      <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Candidate Signature</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {classStudents.map((s, idx) => {
+                      const rec = rollCallMap[s.id]
+                      return (
+                        <tr key={s.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '0.6rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
+                          <td style={{ padding: '0.6rem 0.5rem', fontFamily: 'monospace', fontWeight: 700, color: primaryColor }}>
+                            {s.admission_number}
+                          </td>
+                          <td style={{ padding: '0.6rem 0.5rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
+                          <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }}>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                padding: '2px 10px',
+                                borderRadius: '6px',
+                                fontWeight: 800,
+                                fontSize: '0.74rem',
+                                background:
+                                  rec?.status === 'present'
+                                    ? '#dcfce7'
+                                    : rec?.status === 'late'
+                                    ? '#fef3c7'
+                                    : '#fee2e2',
+                                color:
+                                  rec?.status === 'present'
+                                    ? '#166534'
+                                    : rec?.status === 'late'
+                                    ? '#92400e'
+                                    : '#991b1b',
+                              }}
+                            >
+                              {rec?.status?.toUpperCase() || 'PRESENT'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center', color: '#94a3b8' }}>
+                            _______________________
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
               {/* Signatures */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
                   gap: '2rem',
                   paddingTop: '1.5rem',
                   borderTop: '2px solid #e2e8f0',

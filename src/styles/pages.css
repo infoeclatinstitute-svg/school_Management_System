@@ -680,6 +680,7 @@ html, body, #root, .app-layout {
     padding: 0.85rem 0.85rem calc(75px + env(safe-area-inset-bottom, 0px)) !important;
     max-width: 100% !important;
     width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   /* Force table inside table-responsive to not push outer container */
@@ -692,6 +693,74 @@ html, body, #root, .app-layout {
     padding: 0 0 calc(80px + env(safe-area-inset-bottom, 0px)) !important;
     max-width: 100% !important;
     width: 100% !important;
+  }
+
+  /* ============================================================
+     PRINTABLE & PREVIEW MODALS MOBILE FLUIDITY (<= 768px)
+     ============================================================ */
+  .printable-modal-overlay {
+    padding: max(0.4rem, env(safe-area-inset-top, 0.4rem)) 0.4rem max(1rem, env(safe-area-inset-bottom, 1rem)) !important;
+    align-items: flex-start !important;
+    box-sizing: border-box !important;
+  }
+
+  .printable-modal-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    border-radius: 14px !important;
+    max-height: calc(100vh - 1rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .printable-modal-card > div[style*="padding: 2.5rem 3rem"],
+  .printable-modal-card > div[style*="padding: 2.5rem"],
+  .printable-modal-card > div[style*="padding: 2rem"],
+  .printable-modal-card > div[style*="padding:2.5rem"],
+  #official-report-card,
+  #official-certificate-document {
+    padding: 1.15rem 0.75rem !important;
+    box-sizing: border-box !important;
+  }
+
+  .printable-modal-card .no-print,
+  .modal-overlay .no-print {
+    padding: 0.75rem 0.85rem !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+
+  .printable-modal-card .no-print > div,
+  .modal-overlay .no-print > div {
+    flex-wrap: wrap !important;
+    gap: 0.4rem !important;
+  }
+
+  /* Universal grid collapse inside modals and cards on mobile */
+  .printable-modal-card [style*="grid-template-columns: repeat(4"],
+  .printable-modal-card [style*="grid-template-columns: repeat(3"],
+  .printable-modal-card [style*="grid-template-columns: 1fr 1fr"],
+  .printable-modal-card [style*="grid-template-columns: 1.2fr 1fr"],
+  .printable-modal-card [style*="gridTemplateColumns: repeat(4"],
+  .printable-modal-card [style*="gridTemplateColumns: repeat(3"],
+  .printable-modal-card [style*="gridTemplateColumns: 1fr 1fr"],
+  .printable-modal-card [style*="gridTemplateColumns: 1.2fr 1fr"],
+  .modal-box [style*="grid-template-columns: repeat(4"],
+  .modal-box [style*="grid-template-columns: repeat(3"],
+  .modal-box [style*="grid-template-columns: 1fr 1fr"],
+  .modal-content [style*="grid-template-columns: repeat(4"],
+  .modal-content [style*="grid-template-columns: repeat(3"],
+  .modal-content [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Safe table container behavior */
+  .card, .modal-box, .modal-content, .printable-modal-card {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
   }
 }
 
