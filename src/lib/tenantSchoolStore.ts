@@ -1527,13 +1527,24 @@ class TenantSchoolStore {
     input: Omit<TenantStaffMember, 'id' | 'joined_date' | 'net_salary' | 'status'>
   ): TenantStaffMember {
     if (this.staff.length === 0) this.loadStaff()
-    const gross = (input.salary_base || 0) + (input.salary_housing || 0) + (input.salary_transport || 0)
-    const deductions = (input.salary_tax || 0) + (input.salary_pension || 0)
+    const salaryBase = typeof input.salary_base === 'number' ? input.salary_base : (Number(input.salary_base) || 0)
+    const salaryHousing = typeof input.salary_housing === 'number' ? input.salary_housing : (Number(input.salary_housing) || 0)
+    const salaryTransport = typeof input.salary_transport === 'number' ? input.salary_transport : (Number(input.salary_transport) || 0)
+    const salaryTax = typeof input.salary_tax === 'number' ? input.salary_tax : (Number(input.salary_tax) || 0)
+    const salaryPension = typeof input.salary_pension === 'number' ? input.salary_pension : (Number(input.salary_pension) || 0)
+
+    const gross = salaryBase + salaryHousing + salaryTransport
+    const deductions = salaryTax + salaryPension
     const net = Math.max(0, gross - deductions)
 
     const newStaff: TenantStaffMember = {
       ...input,
       id: `staff_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      salary_base: salaryBase,
+      salary_housing: salaryHousing,
+      salary_transport: salaryTransport,
+      salary_tax: salaryTax,
+      salary_pension: salaryPension,
       net_salary: net,
       status: 'active',
       joined_date: new Date().toISOString().split('T')[0],
@@ -1544,7 +1555,7 @@ class TenantSchoolStore {
 
     // Automatically add to active monthly payroll register
     if (this.payroll.length === 0) this.loadPayroll()
-    const curMonth = 'October 2026'
+    const curMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     const newPayroll: TenantPayrollRecord = {
       id: `pr_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       school_slug: newStaff.school_slug,
@@ -1553,12 +1564,12 @@ class TenantSchoolStore {
       staff_name: newStaff.full_name,
       role: newStaff.role,
       department: newStaff.department,
-      base_salary: input.salary_base || 3000,
-      housing_allowance: input.salary_housing || 400,
-      transport_allowance: input.salary_transport || 200,
+      base_salary: salaryBase,
+      housing_allowance: salaryHousing,
+      transport_allowance: salaryTransport,
       gross_salary: gross,
-      tax_deduction: input.salary_tax || Math.round(gross * 0.18),
-      pension_deduction: input.salary_pension || Math.round(gross * 0.06),
+      tax_deduction: salaryTax,
+      pension_deduction: salaryPension,
       net_salary: net,
       status: 'approved',
       payment_method: 'Bank Wire',
@@ -1582,9 +1593,57 @@ class TenantSchoolStore {
     if (this.staff.length === 0) this.loadStaff()
     const idx = this.staff.findIndex((s) => s.id === id)
     if (idx === -1) return null
-    const updated: TenantStaffMember = { ...this.staff[idx], ...updates }
+
+    const existing = this.staff[idx]
+    const salaryBase = typeof updates.salary_base === 'number' ? updates.salary_base : existing.salary_base
+    const salaryHousing = typeof updates.salary_housing === 'number' ? updates.salary_housing : existing.salary_housing
+    const salaryTransport = typeof updates.salary_transport === 'number' ? updates.salary_transport : existing.salary_transport
+    const salaryTax = typeof updates.salary_tax === 'number' ? updates.salary_tax : existing.salary_tax
+    const salaryPension = typeof updates.salary_pension === 'number' ? updates.salary_pension : existing.salary_pension
+
+    const gross = (salaryBase || 0) + (salaryHousing || 0) + (salaryTransport || 0)
+    const deductions = (salaryTax || 0) + (salaryPension || 0)
+    const net = Math.max(0, gross - deductions)
+
+    const updated: TenantStaffMember = {
+      ...existing,
+      ...updates,
+      salary_base: salaryBase,
+      salary_housing: salaryHousing,
+      salary_transport: salaryTransport,
+      salary_tax: salaryTax,
+      salary_pension: salaryPension,
+      net_salary: net,
+    }
     this.staff[idx] = updated
     this.saveStaff()
+
+    // Also sync existing payroll records for this staff member
+    if (this.payroll.length === 0) this.loadPayroll()
+    let payrollChanged = false
+    this.payroll = this.payroll.map((p) => {
+      if (p.staff_id === id) {
+        payrollChanged = true
+        return {
+          ...p,
+          staff_name: updated.full_name,
+          role: updated.title || updated.role,
+          department: updated.department,
+          base_salary: salaryBase,
+          housing_allowance: salaryHousing,
+          transport_allowance: salaryTransport,
+          gross_salary: gross,
+          tax_deduction: salaryTax,
+          pension_deduction: salaryPension,
+          net_salary: net,
+        }
+      }
+      return p
+    })
+    if (payrollChanged) {
+      this.savePayroll()
+    }
+
     return updated
   }
 

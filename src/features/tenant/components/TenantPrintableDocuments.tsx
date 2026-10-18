@@ -2289,7 +2289,7 @@ export function StaffAppointmentOfferLetterModal({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', fontSize: '0.82rem' }}>
                 <div>
                   <span style={{ color: '#64748b' }}>Base Monthly Salary:</span>
-                  <div style={{ fontWeight: 800, color: '#0f172a' }}>{currency} {(staff.salary_base || 65000).toLocaleString()}</div>
+                  <div style={{ fontWeight: 800, color: '#0f172a' }}>{currency} {(staff.salary_base ?? 0).toLocaleString()}</div>
                 </div>
                 <div>
                   <span style={{ color: '#64748b' }}>Housing &amp; Travel Stipend:</span>
@@ -2297,9 +2297,15 @@ export function StaffAppointmentOfferLetterModal({
                 </div>
                 <div>
                   <span style={{ color: '#64748b' }}>Net Monthly Compensation:</span>
-                  <div style={{ fontWeight: 900, color: '#16a34a' }}>{currency} {(staff.net_salary || 65000).toLocaleString()}</div>
+                  <div style={{ fontWeight: 900, color: '#16a34a' }}>{currency} {(staff.net_salary ?? staff.salary_base ?? 0).toLocaleString()}</div>
                 </div>
               </div>
+              {((staff.salary_tax || 0) + (staff.salary_pension || 0)) > 0 && (
+                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1', fontSize: '0.78rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                  <span>Agreed Withholdings &amp; Deductions:</span>
+                  <span style={{ fontWeight: 700, color: '#b91c1c' }}>-{currency} {((staff.salary_tax || 0) + (staff.salary_pension || 0)).toLocaleString()} (Tax: {currency} {(staff.salary_tax || 0).toLocaleString()}, Pension: {currency} {(staff.salary_pension || 0).toLocaleString()})</span>
+                </div>
+              )}
             </div>
 
             <p>
