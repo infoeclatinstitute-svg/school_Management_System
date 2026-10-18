@@ -164,8 +164,9 @@ export function ReportCardGenerator({ reportCard, onClose }: ReportCardGenerator
                 Lecture Attendance:
               </span>
               <strong>
-                {reportCard.attendance_present_days} / {reportCard.attendance_total_days} Sessions (
-                {Math.round((reportCard.attendance_present_days / reportCard.attendance_total_days) * 100)}%)
+                {reportCard.attendance_total_days > 0
+                  ? `${reportCard.attendance_present_days} / ${reportCard.attendance_total_days} Sessions (${Math.round((reportCard.attendance_present_days / reportCard.attendance_total_days) * 100)}%)`
+                  : `${reportCard.attendance_present_days || 0} Sessions Logged`}
               </strong>
             </div>
           </div>

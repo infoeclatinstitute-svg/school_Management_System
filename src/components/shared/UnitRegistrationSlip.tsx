@@ -75,11 +75,11 @@ export function UnitRegistrationSlip({
         </div>
 
         {/* Registered Units Table */}
-        <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ marginBottom: '1.5rem', width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e3a8a', marginBottom: '0.75rem' }}>
             Approved Course Units ({receipt.registered_units?.length || 0})
           </h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <table style={{ width: '100%', minWidth: '550px', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
               <tr style={{ background: '#1e3a8a', color: '#ffffff', textAlign: 'left' }}>
                 <th style={{ padding: '8px 12px' }}>#</th>
@@ -111,7 +111,7 @@ export function UnitRegistrationSlip({
         </div>
 
         {/* Certification & Sign-off Block */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #cbd5e1' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '2rem', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #cbd5e1' }}>
           <div>
             <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '0.25rem' }}>
               Fee Clearance Certification
@@ -124,9 +124,9 @@ export function UnitRegistrationSlip({
             </div>
           </div>
 
-          <div style={{ textAlign: 'right' }}>
+          <div>
             <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, marginBottom: '2.5rem' }}>
-              Official College Seal & Registrar Signature
+              Official College Seal &amp; Registrar Signature
             </div>
             <div style={{ borderTop: '1px dashed #94a3b8', display: 'inline-block', width: '220px', textAlign: 'center', paddingTop: '4px', fontSize: '0.8rem', fontWeight: 700, color: '#1e3a8a' }}>
               Registrar of Academic Affairs

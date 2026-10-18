@@ -2181,28 +2181,40 @@ export function ExamClearancePassModal({
               fontSize: '0.8rem',
             }}
           >
-            {(subjects && subjects.length > 0 ? subjects : [
-              'Paper 1: Core Theory & Conceptual Foundations',
-              'Paper 2: Applied Laboratory & Practical Assessment',
-              'Paper 3: Quantitative Methods & Analytics',
-              'Paper 4: Professional Case Analysis',
-            ]).map((subj, idx) => (
+            {subjects && subjects.length > 0 ? (
+              subjects.map((subj, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '0.6rem 0.85rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{subj}</span>
+                  <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 800 }}>Cleared ✓</span>
+                </div>
+              ))
+            ) : (
               <div
-                key={idx}
                 style={{
+                  gridColumn: '1 / -1',
+                  padding: '1.25rem',
                   background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  padding: '0.6rem 0.85rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '10px',
+                  color: '#64748b',
+                  textAlign: 'center',
+                  fontSize: '0.82rem',
                 }}
               >
-                <span style={{ fontWeight: 700, color: '#0f172a' }}>{subj}</span>
-                <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 800 }}>Cleared ✓</span>
+                All modular examination papers for <strong>{student.grade_class}</strong> are cleared for sitting.
               </div>
-            ))}
+            )}
           </div>
 
           {/* Hall Instructions & Signatures */}
@@ -2473,7 +2485,7 @@ export function StaffAppointmentOfferLetterModal({
             <div>
               <div style={{ height: '40px', borderBottom: '1px dotted #94a3b8', width: '180px' }} />
               <div style={{ marginTop: '6px', fontWeight: 800, color: '#0f172a' }}>
-                {school.principal_name || 'Prof. Harrison Odhiambo'}
+                {school.principal_name || 'Office of the Principal'}
               </div>
               <div style={{ color: '#64748b' }}>{school.principal_title || 'Principal & CEO'}, {school.name}</div>
             </div>

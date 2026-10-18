@@ -2820,6 +2820,16 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         <ExamClearancePassModal
           school={school}
           student={selectedExamPassStudent}
+          subjects={(() => {
+            const studentUnitGrades = gradeList.filter((g) => g.student_id === selectedExamPassStudent.id)
+            if (studentUnitGrades.length > 0) {
+              return Array.from(new Set(studentUnitGrades.map((g) => g.subject_name)))
+            }
+            if (school.subjects_list && school.subjects_list.length > 0) {
+              return school.subjects_list
+            }
+            return []
+          })()}
           onClose={() => setSelectedExamPassStudent(null)}
         />
       )}

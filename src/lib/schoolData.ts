@@ -355,7 +355,7 @@ class SchoolDataStore {
       const local = map.get(key)
       if (local) {
         const isCleared = cs.fee_cleared === true || local.fee_cleared === true || (cs.fee_balance === 0) || (local.fee_balance === 0)
-        const lowestBalance = isCleared ? 0 : Math.min(cs.fee_balance ?? 0, local.fee_balance ?? 60)
+        const lowestBalance = isCleared ? 0 : Math.min(cs.fee_balance ?? 0, local.fee_balance ?? cs.fee_balance ?? 0)
         map.set(key, {
           ...local,
           ...cs,
@@ -646,7 +646,7 @@ class SchoolDataStore {
           )
       )
       const totalPaid = studentReceipts.reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
-      const billed = Number(s.term_fee_total) || 60
+      const billed = typeof s.term_fee_total === 'number' && !isNaN(s.term_fee_total) ? s.term_fee_total : (Number(s.term_fee_total) || 0)
       const liveBalance = Math.max(0, billed - totalPaid)
       
       const isExplicitlyCleared = s.fee_cleared === true || s.fee_balance === 0
@@ -855,8 +855,8 @@ class SchoolDataStore {
               student_id: merged.id,
               student_name: merged.full_name,
               admission_number: merged.admission_number,
-              amount: merged.term_fee_total || 60,
-              amount_paid: merged.term_fee_total || 60,
+              amount: merged.term_fee_total ?? 0,
+              amount_paid: merged.term_fee_total ?? 0,
               payment_method: 'Bank Transfer',
               reference_code: `INSTITUTIONAL-CLEAR-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
               payment_date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
@@ -1150,7 +1150,7 @@ class SchoolDataStore {
           (inv.admission_number && inv.admission_number.toLowerCase() === stdAdmClean))
       )
       if (!hasInv) {
-        const billed = Number(std.term_fee_total) || 60
+        const billed = typeof std.term_fee_total === 'number' && !isNaN(std.term_fee_total) ? std.term_fee_total : (Number(std.term_fee_total) || 0)
         invoiceList.push({
           id: `inv-${std.id}`,
           invoice_number: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -1185,7 +1185,7 @@ class SchoolDataStore {
           (r.admission_number && r.admission_number.toLowerCase() === inv.admission_number.toLowerCase())
       )
       const paid = matchingReceipts.reduce((acc, r) => acc + (Number(r.amount) || 0), 0)
-      const total = Number(inv.total_amount) || 60
+      const total = typeof inv.total_amount === 'number' && !isNaN(inv.total_amount) ? inv.total_amount : (Number(inv.total_amount) || 0)
       const balance = Math.max(0, total - paid)
       const status: 'Paid' | 'Partial' | 'Overdue' | 'Pending' =
         balance === 0 && paid > 0 ? 'Paid' : paid > 0 ? 'Partial' : 'Pending'
@@ -1433,7 +1433,7 @@ class SchoolDataStore {
         const students = this.getStudents()
         const stdIndex = students.findIndex((s) => s.id === merged.student_id || s.admission_number.toLowerCase() === merged.admission_number.toLowerCase())
         if (stdIndex !== -1) {
-          const billed = Number(students[stdIndex].term_fee_total) || 60
+          const billed = typeof students[stdIndex].term_fee_total === 'number' && !isNaN(students[stdIndex].term_fee_total) ? students[stdIndex].term_fee_total : (Number(students[stdIndex].term_fee_total) || 0)
           students[stdIndex].fee_balance = Math.max(0, billed - totalPaid)
           students[stdIndex].fee_cleared = students[stdIndex].fee_balance === 0
           this.set('students', students)
@@ -1468,7 +1468,7 @@ class SchoolDataStore {
         const students = this.getStudents()
         const stdIndex = students.findIndex((s) => s.id === target.student_id || s.admission_number.toLowerCase() === target.admission_number.toLowerCase())
         if (stdIndex !== -1) {
-          const billed = Number(students[stdIndex].term_fee_total) || 60
+          const billed = typeof students[stdIndex].term_fee_total === 'number' && !isNaN(students[stdIndex].term_fee_total) ? students[stdIndex].term_fee_total : (Number(students[stdIndex].term_fee_total) || 0)
           students[stdIndex].fee_balance = Math.max(0, billed - totalPaid)
           students[stdIndex].fee_cleared = students[stdIndex].fee_balance === 0
           this.set('students', students)
@@ -2167,7 +2167,7 @@ class SchoolDataStore {
             guardian: { name: '', relationship: 'Guardian', phone: '', email: '' },
             emergency_contact: '',
             fee_balance: 0,
-            term_fee_total: studentReg?.fee_amount || registeredUnit?.fee || registeredSubject?.fee || 60,
+            term_fee_total: studentReg?.fee_amount ?? registeredUnit?.fee ?? registeredSubject?.fee ?? 0,
             fee_cleared: true,
             attendance_rate: 0,
             discipline_points: 0,
@@ -2200,7 +2200,7 @@ class SchoolDataStore {
           })
           this.set('invoices', invoices)
         } else {
-          const unitFee = targetStudent.term_fee_total || 60
+          const unitFee = targetStudent.term_fee_total ?? 0
           const newInv: FeeInvoice = {
             id: `inv-${Date.now()}`,
             invoice_number: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -2542,7 +2542,7 @@ class SchoolDataStore {
             name: updated.name || 'Certified Course',
             department_id: updated.department_id || 'dept-general',
             department_name: updated.department_name || 'Academic Faculty',
-            fee: updated.fee || 60,
+            fee: typeof updated.fee === 'number' ? updated.fee : 0,
             duration: updated.duration || '3 Months Certificate',
             color_hex: updated.color_hex || '#1e3a8a',
             created_at: new Date().toISOString(),
