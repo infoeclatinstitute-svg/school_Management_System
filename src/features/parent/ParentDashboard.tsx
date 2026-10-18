@@ -3,6 +3,7 @@ import { schoolStore, schoolEventBus } from '@/lib/schoolData'
 import type { ReportCard, StudentRecord } from '@/types/school'
 import { ReportCardGenerator } from '@/features/exams/ReportCardGenerator'
 import { getCoursePhoto } from '@/config/courseImages'
+import { INSTITUTION_CONFIG } from '@/config/institution'
 import { Link } from 'react-router-dom'
 
 export function ParentDashboard() {
@@ -39,6 +40,14 @@ export function ParentDashboard() {
 
   const activeWard = students.find((s) => s.id === selectedStudentId) || students[0]
   const wardReportCard = activeWard ? reportCards.find((r) => r.student_id === activeWard.id || r.admission_number === activeWard.admission_number) : null
+
+  const allUnits = schoolStore.getCourseUnits()
+  const wardUnits = activeWard
+    ? (activeWard.enrolled_courses && activeWard.enrolled_courses.length > 0)
+      ? allUnits.filter((u) => activeWard.enrolled_courses?.includes(u.id) || activeWard.enrolled_courses?.includes(u.code) || activeWard.enrolled_courses?.includes(u.title))
+      : allUnits.filter((u) => !u.department || (activeWard.class_name && (u.department.toLowerCase().includes(activeWard.class_name.toLowerCase()) || activeWard.class_name.toLowerCase().includes(u.department.toLowerCase()))))
+    : []
+  const displayUnits = wardUnits.length > 0 ? wardUnits : allUnits.slice(0, 4)
 
   if (students.length === 0) {
     return (
@@ -165,13 +174,15 @@ export function ParentDashboard() {
             <div style={{ fontSize: '1.85rem', fontWeight: 700, color: 'var(--color-primary)', marginTop: '0.25rem' }}>
               {activeWard.attendance_rate}%
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.2rem' }}>✓ Above Minimum Requirement</div>
+            <div style={{ fontSize: '0.75rem', color: activeWard.attendance_rate >= 75 ? '#16a34a' : '#ea580c', marginTop: '0.2rem' }}>
+              {activeWard.attendance_rate >= 75 ? '✓ Above Minimum Requirement' : '⚠️ Below 75% Requirement'}
+            </div>
           </div>
 
           <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #16a34a' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Fee Clearance Status</div>
             <div style={{ fontSize: '1.65rem', fontWeight: 700, color: activeWard.fee_cleared ? '#16a34a' : '#ea580c', marginTop: '0.25rem' }}>
-              {activeWard.fee_cleared ? 'Cleared' : `$${activeWard.fee_balance.toLocaleString()}`}
+              {activeWard.fee_cleared ? 'Cleared' : `${INSTITUTION_CONFIG.pricing.currencySymbol} ${activeWard.fee_balance.toLocaleString()}`}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.2rem' }}>
               {activeWard.fee_cleared ? '0.00 Balance Outstanding' : 'Due for Current Course Period'}
@@ -213,12 +224,12 @@ export function ParentDashboard() {
               </p>
             </div>
             <span className="badge badge-primary" style={{ fontWeight: 700 }}>
-              {schoolStore.getCourseUnits().slice(0, 4).length} Active Units
+              {displayUnits.length} Active Units
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {schoolStore.getCourseUnits().slice(0, 4).map((unit) => (
+            {displayUnits.map((unit) => (
               <div
                 key={unit.id}
                 style={{

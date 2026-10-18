@@ -170,7 +170,7 @@ export function CertificateGenerator({
   }, [activeCert])
 
   const verifyUrl = useMemo(() => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://cloud.eclat.institute'
+    const origin = typeof window !== 'undefined' ? window.location.origin : (INSTITUTION_CONFIG.websiteUrl || 'https://globalcollege.cloud')
     return `${origin}/#verify?cert=${encodeURIComponent(activeCert.certificate_no)}`
   }, [activeCert.certificate_no])
 
