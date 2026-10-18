@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { schoolStore } from '@/lib/schoolData'
 import { courseStore } from '@/lib/courseStore'
 import { seedCloudDatabase } from '@/lib/databaseSeeder'
+import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
@@ -13,6 +14,8 @@ import type { Profile, Course } from '@/lib/database.types'
 export function AdminDashboard() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const primarySchool = tenantSchoolStore.getSchools()[0]
+  const institutionName = primarySchool?.name || 'Institutional Management'
 
   // Automatically sync & seed cloud database in the background
   useEffect(() => {
@@ -139,44 +142,177 @@ export function AdminDashboard() {
   return (
     <PageWrapper
       title="School Administration Control Panel"
-      subtitle="Global College • Student admissions, activation codes, school terms & content moderation."
+      subtitle={`${institutionName} • Student admissions, activation codes, school terms & content moderation.`}
     >
-      {/* Quick Action Control Bar */}
-      <div className="card mb-6" style={{ background: 'linear-gradient(135deg, #1a2a6e 0%, #243A8E 100%)', color: 'white' }}>
-        <div className="card-body flex justify-between items-center flex-wrap gap-4">
-          <div>
-            <h2 style={{ color: 'white', fontFamily: 'var(--font-heading)', margin: 0, fontSize: 'var(--text-xl)' }}>
-              Administrator Quick Actions
-            </h2>
-            <p style={{ color: 'rgba(255,255,255,0.85)', margin: 'var(--space-1) 0 0', fontSize: 'var(--text-xs)' }}>
-              Issue admission numbers, schedule cohort intakes, and manage academic operations.
-            </p>
+      {/* Quick Action Navigation Deck */}
+      <div className="card mb-6" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white', border: '1px solid #334155' }}>
+        <div className="card-body">
+          <div className="flex justify-between items-center flex-wrap gap-4 mb-4">
+            <div>
+              <h2 style={{ color: 'white', fontFamily: 'var(--font-heading)', margin: 0, fontSize: 'var(--text-xl)' }}>
+                Administrator Quick Actions
+              </h2>
+              <p style={{ color: '#94a3b8', margin: 'var(--space-1) 0 0', fontSize: 'var(--text-xs)' }}>
+                Direct shortcuts to institution onboarding, candidate admissions, curriculum management, and security controls.
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="accent" size="sm" onClick={() => navigate('/register-school')} style={{ fontWeight: 800 }}>
-              🏛️ Onboard School / College
-            </Button>
-            <Button variant="accent" size="sm" onClick={() => navigate('/admin/intakes')} style={{ fontWeight: 800 }}>
-              🗓️ Intake Scheduler &amp; Adverts
-            </Button>
-            <Button variant="accent" size="sm" onClick={() => navigate('/teacher/courses/new')}>
-              + 📖 Build Course Unit
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => navigate('/admin/classes')} style={{ fontWeight: 800 }}>
-              📚 Manage Courses
-            </Button>
-            <Button variant="outline" size="sm" style={{ color: 'white', borderColor: 'white' }} onClick={() => navigate('/library')}>
-              + 📚 Upload E-Resource
-            </Button>
-            <Button variant="accent" size="sm" onClick={() => navigate('/admin/users')}>
-              + Issue Admission / User
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => navigate('/admin/activations')}>
-              🔑 Manage Access &amp; Codes
-            </Button>
-            <Button variant="outline" size="sm" style={{ color: 'white', borderColor: 'white' }} onClick={() => navigate('/admin/moderation')}>
-              🛡️ Content Moderation
-            </Button>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '0.65rem' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/register-school')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '10px',
+                padding: '0.65rem 0.85rem',
+                color: '#ffffff',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>🏛️</span>
+              <div>
+                <div>Onboard Institution</div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>Multi-tenant setup</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/admin/users')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '10px',
+                padding: '0.65rem 0.85rem',
+                color: '#ffffff',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>👤</span>
+              <div>
+                <div>Admissions &amp; Users</div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>Issue numbers &amp; accounts</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/admin/intakes')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '10px',
+                padding: '0.65rem 0.85rem',
+                color: '#ffffff',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>🗓️</span>
+              <div>
+                <div>Intake Scheduler</div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>Cohort advertisements</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/admin/classes')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '10px',
+                padding: '0.65rem 0.85rem',
+                color: '#ffffff',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>📚</span>
+              <div>
+                <div>Manage Courses</div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>Curriculum &amp; units</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/admin/activations')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '10px',
+                padding: '0.65rem 0.85rem',
+                color: '#ffffff',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>🔑</span>
+              <div>
+                <div>Access Codes</div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>Student activation keys</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/admin/moderation')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '10px',
+                padding: '0.65rem 0.85rem',
+                color: '#ffffff',
+                cursor: 'pointer',
+                textAlign: 'left',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: '1.2rem' }}>🛡️</span>
+              <div>
+                <div>Content Moderation</div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>Platform security review</div>
+              </div>
+            </button>
           </div>
         </div>
       </div>

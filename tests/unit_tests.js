@@ -611,7 +611,7 @@ test('5-Step School & College Onboarding Wizard & Cloud Provisioning verificatio
 
   // Verify all 4 institution categories (school, college, university, academy)
   assert.ok(tenantTypes.includes("'school' | 'college' | 'university' | 'academy'"), 'InstitutionCategory must support school, college, university, and academy')
-  assert.ok(regPage.includes('College / TVET / Polytechnic'), 'Wizard must include College / TVET / Polytechnic category')
+  assert.ok(regPage.includes('College / Polytechnic'), 'Wizard must include College / Polytechnic category')
   assert.ok(regPage.includes('Primary / High School (K-12)'), 'Wizard must include Primary / High School (K-12) category')
   assert.ok(regPage.includes('University / Higher Education'), 'Wizard must include University / Higher Education category')
   assert.ok(regPage.includes('Professional & Tech Academy'), 'Wizard must include Professional & Tech Academy category')

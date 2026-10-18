@@ -116,18 +116,8 @@ export function TenantPrincipalDesk({
         set.add(s.grade_class.trim())
       }
     })
-    const list = Array.from(set)
-    if (list.length > 0) return list
-
-    // Category-specific defaults if no classes or programs are defined yet
-    if (school.institution_category === 'university') {
-      return ['Undergraduate Year 1', 'Postgraduate Cohort']
-    }
-    if (school.institution_category === 'school') {
-      return ['Grade 1', 'Grade 2']
-    }
-    return ['Diploma Cohort', 'Certificate Cohort']
-  }, [school.classes_list, school.institution_category, schoolPrograms, studentList])
+    return Array.from(set).filter(Boolean)
+  }, [school.classes_list, schoolPrograms, studentList])
 
   // Dynamic Departments
   const availableDepartments = useMemo(() => {
@@ -137,8 +127,33 @@ export function TenantPrincipalDesk({
         list.push(st.department)
       }
     })
-    return list.length > 0 ? list : ['Academic Faculty', 'Administration', 'Student Services']
+    return list.filter(Boolean)
   }, [school.departments_list, staffList])
+
+  // Dynamic Available Subjects / Units / Modules
+  const availableSubjects = useMemo(() => {
+    const subs = new Set<string>()
+    if (Array.isArray(school.subjects_list)) {
+      school.subjects_list.forEach((s) => s && subs.add(s.trim()))
+    }
+    const tt = tenantSchoolStore.getTimetableBySchool(school.slug)
+    tt.forEach((entry) => {
+      if (entry.subject_name) subs.add(entry.subject_name.trim())
+    })
+    const grades = tenantSchoolStore.getGradesBySchool(school.slug)
+    grades.forEach((g) => {
+      if (g.subject_name) subs.add(g.subject_name.trim())
+    })
+    staffList.forEach((st) => {
+      if (st.assigned_subjects) {
+        const sList = Array.isArray(st.assigned_subjects)
+          ? st.assigned_subjects
+          : String(st.assigned_subjects).split(',')
+        sList.forEach((s) => s.trim() && subs.add(s.trim()))
+      }
+    })
+    return Array.from(subs).filter(Boolean)
+  }, [school.subjects_list, school.slug, staffList])
 
   // Dynamic Teachers List for Timetable
   const teachersList = useMemo(() => {
@@ -147,12 +162,14 @@ export function TenantPrincipalDesk({
 
   // Active Timetable Class
   const [selectedTimetableClass, setSelectedTimetableClass] = useState<string>(
-    availableClasses[0] || 'Main Cohort'
+    availableClasses[0] || ''
   )
 
   useEffect(() => {
     if (!availableClasses.includes(selectedTimetableClass) && availableClasses.length > 0) {
       setSelectedTimetableClass(availableClasses[0])
+    } else if (availableClasses.length === 0 && selectedTimetableClass !== '') {
+      setSelectedTimetableClass('')
     }
   }, [availableClasses, selectedTimetableClass])
 
@@ -238,6 +255,14 @@ export function TenantPrincipalDesk({
   // Currency Setting
   const [currencySetting, setCurrencySetting] = useState(currency)
   const [currencySavedMessage, setCurrencySavedMessage] = useState(false)
+
+  // Quick Academic Allocation Modal (Assign Units & Classes to Instructor)
+  const [assigningStaffMember, setAssigningStaffMember] = useState<TenantStaffMember | null>(null)
+  const [assignSelectedClasses, setAssignSelectedClasses] = useState<string[]>([])
+  const [assignSelectedSubjects, setAssignSelectedSubjects] = useState<string[]>([])
+  const [newAssignClassInput, setNewAssignClassInput] = useState('')
+  const [newAssignSubjectInput, setNewAssignSubjectInput] = useState('')
+  const [assignSuccessMsg, setAssignSuccessMsg] = useState('')
 
   // Add/Edit Staff Form State (Zero hardcoded defaults)
   const [staffForm, setStaffForm] = useState({
@@ -408,9 +433,9 @@ export function TenantPrincipalDesk({
     setEditingStudentMember(null)
     setStudentForm({
       full_name: app.full_name,
-      grade_class: app.program_title || availableClasses[0] || 'Main Cohort',
+      grade_class: app.program_title || availableClasses[0] || '',
       custom_class: '',
-      guardian_name: app.guardian_name || 'Primary Guardian',
+      guardian_name: app.guardian_name || '',
       guardian_phone: app.guardian_phone || app.phone,
       guardian_email: app.email,
       fee_total: 0,
@@ -494,12 +519,17 @@ export function TenantPrincipalDesk({
 
     const finalDept =
       staffForm.department === '__new__'
-        ? staffForm.custom_department.trim() || 'General'
-        : staffForm.department.trim() || availableDepartments[0] || 'General'
+        ? staffForm.custom_department.trim()
+        : staffForm.department.trim() || staffForm.custom_department.trim() || availableDepartments[0] || ''
+
+    if (!finalDept) {
+      alert('Please select or specify a department for this staff member.')
+      return
+    }
 
     // If new department created, also save to school departments list
-    if (staffForm.department === '__new__' && staffForm.custom_department.trim()) {
-      const updatedDepts = Array.from(new Set([...availableDepartments, staffForm.custom_department.trim()]))
+    if ((staffForm.department === '__new__' || !availableDepartments.includes(finalDept)) && finalDept) {
+      const updatedDepts = Array.from(new Set([...availableDepartments, finalDept]))
       tenantSchoolStore.updateSchoolBranding(school.slug, { departments_list: updatedDepts })
     }
 
@@ -514,7 +544,7 @@ export function TenantPrincipalDesk({
         full_name: staffForm.full_name.trim(),
         role: staffForm.role,
         department: finalDept,
-        title: staffForm.title.trim() || 'Faculty Member',
+        title: staffForm.title.trim() || (staffForm.role === 'teacher' ? 'Lecturer / Instructor' : 'Staff Member'),
         email: staffForm.email.trim() || `${nameSlug}@${slug}.edu`,
         phone: staffForm.phone.trim(),
         username: staffForm.username.trim() || editingStaffMember.username,
@@ -632,12 +662,17 @@ export function TenantPrincipalDesk({
 
     const finalClass =
       studentForm.grade_class === '__new__'
-        ? studentForm.custom_class.trim() || 'General Cohort'
-        : studentForm.grade_class.trim() || availableClasses[0] || 'General Cohort'
+        ? studentForm.custom_class.trim()
+        : studentForm.grade_class.trim() || studentForm.custom_class.trim() || availableClasses[0] || ''
+
+    if (!finalClass) {
+      alert('Please select or specify a class/cohort for this student.')
+      return
+    }
 
     // If new class created, also persist to classes_list
-    if (studentForm.grade_class === '__new__' && studentForm.custom_class.trim()) {
-      const updatedClasses = Array.from(new Set([...availableClasses, studentForm.custom_class.trim()]))
+    if ((studentForm.grade_class === '__new__' || !availableClasses.includes(finalClass)) && finalClass) {
+      const updatedClasses = Array.from(new Set([...availableClasses, finalClass]))
       tenantSchoolStore.updateSchoolBranding(school.slug, { classes_list: updatedClasses })
     }
 
@@ -848,6 +883,51 @@ export function TenantPrincipalDesk({
   }
 
   // ==========================================
+  // HANDLERS: ACADEMIC ALLOCATIONS (UNITS & CLASSES)
+  // ==========================================
+  const handleOpenAssignModal = (staff: TenantStaffMember) => {
+    setAssigningStaffMember(staff)
+    const classes = Array.isArray(staff.assigned_classes)
+      ? staff.assigned_classes
+      : String(staff.assigned_classes || '')
+          .split(',')
+          .map((c) => c.trim())
+          .filter(Boolean)
+    const subjects = Array.isArray(staff.assigned_subjects)
+      ? staff.assigned_subjects
+      : String(staff.assigned_subjects || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+    setAssignSelectedClasses(classes)
+    setAssignSelectedSubjects(subjects)
+    setNewAssignClassInput('')
+    setNewAssignSubjectInput('')
+    setAssignSuccessMsg('')
+  }
+
+  const handleSaveAllocation = () => {
+    if (!assigningStaffMember) return
+    tenantSchoolStore.updateStaffMember(assigningStaffMember.id, {
+      assigned_classes: assignSelectedClasses,
+      assigned_subjects: assignSelectedSubjects,
+    })
+    // Also save any newly introduced classes or subjects to the school branding lists
+    const updatedClasses = Array.from(new Set([...(school.classes_list || []), ...assignSelectedClasses]))
+    const updatedSubjects = Array.from(new Set([...(school.subjects_list || []), ...assignSelectedSubjects]))
+    tenantSchoolStore.updateSchoolBranding(school.slug, {
+      classes_list: updatedClasses,
+      subjects_list: updatedSubjects,
+    })
+    setAssignSuccessMsg(`Teaching allocations saved successfully for ${assigningStaffMember.full_name}!`)
+    setTimeout(() => {
+      setAssignSuccessMsg('')
+      setAssigningStaffMember(null)
+    }, 1100)
+    onReloadData()
+  }
+
+  // ==========================================
   // HANDLERS: PAYROLL
   // ==========================================
   const handleDisbursePayroll = () => {
@@ -1007,7 +1087,7 @@ export function TenantPrincipalDesk({
                 Institutional Product Key Activation Required
               </div>
               <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
-                This institutional campus is awaiting license activation. Silver Tier (KES {((school.campus_count || 1) * 2500).toLocaleString()}/mo) or Gold Tier (KES {((school.campus_count || 1) * 3000).toLocaleString()}/mo — includes Dedicated Public Showcase &amp; Offerings). Administrative creation and editing features on this desk are disabled until activated.
+                This institutional campus is awaiting license activation. Silver Tier ({currency} {((school.campus_count || 1) * 2500).toLocaleString()}/mo) or Gold Tier ({currency} {((school.campus_count || 1) * 3000).toLocaleString()}/mo — includes Dedicated Public Showcase &amp; Offerings). Administrative creation and editing features on this desk are disabled until activated.
               </div>
             </div>
           </div>
@@ -1203,56 +1283,103 @@ export function TenantPrincipalDesk({
           </div>
         </div>
 
-        {/* Sub-tab Navigation Pills */}
-        <div
+        {/* Modern Executive Navigation Command Bar */}
+        <nav
+          aria-label="Institutional Admin Navigation"
           style={{
-            display: 'flex',
-            gap: '0.35rem',
-            flexWrap: 'wrap',
-            background: '#f8fafc',
-            padding: '5px',
-            borderRadius: '16px',
+            position: 'sticky',
+            top: '0.5rem',
+            zIndex: 40,
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: '18px',
             border: '1px solid #e2e8f0',
+            padding: '6px',
+            boxShadow: '0 8px 24px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04)',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
-          {[
-            { id: 'overview', label: 'Command Center', icon: '📊' },
-            { id: 'staff', label: `Staff & HR (${staffList.length})`, icon: '👥' },
-            { id: 'admissions', label: `Admissions (${studentList.length})`, icon: '🎓' },
-            { id: 'programs', label: 'Programs & Courses', icon: '📚' },
-            { id: 'timetable', label: 'Class Timetables', icon: '🗓️' },
-            { id: 'payroll', label: 'Payroll Oversight', icon: '💼' },
-            { id: 'calendar', label: 'Academic Calendar', icon: '📅' },
-            { id: 'notices', label: 'Campus Noticeboard', icon: '📢' },
-            { id: 'governance', label: 'Governance & Setup', icon: '⚙️' },
-          ].map((tab) => {
-            const active = principalSubTab === tab.id
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setPrincipalSubTab(tab.id as PrincipalSubTab)}
-                style={{
-                  background: active ? primaryColor : 'transparent',
-                  color: active ? '#ffffff' : '#475569',
-                  border: 'none',
-                  padding: '0.55rem 1.05rem',
-                  borderRadius: '10px',
-                  fontSize: '0.82rem',
-                  fontWeight: active ? 800 : 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: active ? `0 4px 12px ${primaryColor}33` : 'none',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>{tab.icon}</span> {tab.label}
-              </button>
-            )
-          })}
-        </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              minWidth: 'max-content',
+            }}
+          >
+            {[
+              { id: 'overview' as const, label: 'Command Center', icon: '📊', count: null },
+              { id: 'staff' as const, label: 'Staff & HR', icon: '👥', count: staffList.length },
+              { id: 'admissions' as const, label: 'Admissions & SIS', icon: '🎓', count: studentList.length },
+              { id: 'programs' as const, label: 'Programs & Catalog', icon: '📚', count: schoolPrograms.length },
+              { id: 'timetable' as const, label: 'Class Timetables', icon: '🗓️', count: null },
+              { id: 'payroll' as const, label: 'Payroll Oversight', icon: '💼', count: payrollList.length > 0 ? payrollList.length : null },
+              { id: 'calendar' as const, label: 'Academic Calendar', icon: '📅', count: null },
+              { id: 'notices' as const, label: 'Campus Noticeboard', icon: '📢', count: null },
+              { id: 'governance' as const, label: 'Governance & Setup', icon: '⚙️', count: null },
+            ].map((tab, idx) => {
+              const active = principalSubTab === tab.id
+              // Show divider before programs and payroll to group tabs logically
+              const isGroupBoundary = idx === 3 || idx === 6
+              return (
+                <React.Fragment key={tab.id}>
+                  {isGroupBoundary && (
+                    <div
+                      style={{
+                        width: '1px',
+                        height: '24px',
+                        background: '#e2e8f0',
+                        margin: '0 4px',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPrincipalSubTab(tab.id as PrincipalSubTab)}
+                    style={{
+                      background: active ? primaryColor : 'transparent',
+                      color: active ? '#ffffff' : '#475569',
+                      border: active ? `1px solid ${primaryColor}` : '1px solid transparent',
+                      padding: '0.6rem 1.05rem',
+                      borderRadius: '12px',
+                      fontSize: '0.82rem',
+                      fontWeight: active ? 800 : 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      whiteSpace: 'nowrap',
+                      boxShadow: active ? `0 4px 14px ${primaryColor}40` : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.95rem' }}>{tab.icon}</span>
+                    <span>{tab.label}</span>
+                    {tab.count !== null && (
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          background: active ? 'rgba(255, 255, 255, 0.25)' : '#f1f5f9',
+                          color: active ? '#ffffff' : '#64748b',
+                          border: active ? 'none' : '1px solid #e2e8f0',
+                          padding: '1px 6px',
+                          borderRadius: '999px',
+                          fontWeight: 800,
+                        }}
+                      >
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                </React.Fragment>
+              )
+            })}
+          </div>
+        </nav>
       </div>
 
       {/* ========================================== */}
@@ -1997,6 +2124,7 @@ export function TenantPrincipalDesk({
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Staff Member</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Role</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Department</th>
+                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Teaching Allocations</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Login Username</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>Net Salary</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>Official Slip</th>
@@ -2006,7 +2134,7 @@ export function TenantPrincipalDesk({
               <tbody>
                 {filteredStaff.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan={8} style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b' }}>
                       No staff members match the selected filters.
                     </td>
                   </tr>
@@ -2037,6 +2165,81 @@ export function TenantPrincipalDesk({
                         </span>
                       </td>
                       <td style={{ padding: '0.75rem', color: '#475569', fontWeight: 600 }}>{s.department}</td>
+                      <td style={{ padding: '0.75rem', minWidth: '220px' }}>
+                        {s.role === 'teacher' ? (
+                          <div>
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                              {s.assigned_classes && s.assigned_classes.length > 0 ? (
+                                s.assigned_classes.map((cls) => (
+                                  <span
+                                    key={cls}
+                                    style={{
+                                      background: '#eff6ff',
+                                      color: '#1d4ed8',
+                                      border: '1px solid #bfdbfe',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    🎓 {cls}
+                                  </span>
+                                ))
+                              ) : (
+                                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                                  No cohorts assigned
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                              {s.assigned_subjects && s.assigned_subjects.length > 0 ? (
+                                s.assigned_subjects.map((sub) => (
+                                  <span
+                                    key={sub}
+                                    style={{
+                                      background: '#f0fdf4',
+                                      color: '#15803d',
+                                      border: '1px solid #bbf7d0',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    📚 {sub}
+                                  </span>
+                                ))
+                              ) : (
+                                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                                  No units assigned
+                                </span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAssignModal(s)}
+                              style={{
+                                background: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                color: '#0f172a',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <span>🎯</span> Assign / Edit Load
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>N/A (Staff)</span>
+                        )}
+                      </td>
                       <td style={{ padding: '0.75rem', fontWeight: 700, color: primaryColor }}>{s.username}</td>
                       <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 900, color: '#0f172a' }}>
                         {currency} {s.net_salary.toLocaleString()}
@@ -2081,6 +2284,25 @@ export function TenantPrincipalDesk({
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                         <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                          {s.role === 'teacher' && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAssignModal(s)}
+                              style={{
+                                background: '#f0fdf4',
+                                border: '1px solid #86efac',
+                                color: '#166534',
+                                padding: '0.35rem 0.65rem',
+                                borderRadius: '6px',
+                                fontSize: '0.74rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                              }}
+                              title="Assign classes and units"
+                            >
+                              🎯 Assign
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => {
@@ -2883,11 +3105,15 @@ export function TenantPrincipalDesk({
                   background: '#f8fafc',
                 }}
               >
-                {availableClasses.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
+                {availableClasses.length === 0 ? (
+                  <option value="">No Classes Configured</option>
+                ) : (
+                  availableClasses.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))
+                )}
               </select>
               <button
                 type="button"
@@ -3453,7 +3679,7 @@ export function TenantPrincipalDesk({
                   </span>
                 </div>
                 <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '4px' }}>
-                  <strong>KES {((school.campus_count || 1) * (SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500))).toLocaleString()} / month</strong> ({school.campus_count || 1} Campus @ KES {(SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500)).toLocaleString()}/mo)
+                  <strong>{currency} {((school.campus_count || 1) * (SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500))).toLocaleString()} / month</strong> ({school.campus_count || 1} Campus @ {currency} {(SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500)).toLocaleString()}/mo)
                 </div>
                 <div
                   style={{
@@ -3470,7 +3696,7 @@ export function TenantPrincipalDesk({
                 {school.subscription_tier !== 'gold' && school.subscription_tier !== 'platinum' && (
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px' }}>
-                      Upgrade to <strong>Gold Tier (KES 3,000/mo)</strong> to unlock your Dedicated Public Landing Page, Academic Programs Catalog &amp; Campus Facilities showcase.
+                      Upgrade to <strong>Gold Tier ({currency} 3,000/mo)</strong> to unlock your Dedicated Public Landing Page, Academic Programs Catalog &amp; Campus Facilities showcase.
                     </div>
                     {onOpenLicenseModal && (
                       <button
@@ -3590,6 +3816,9 @@ export function TenantPrincipalDesk({
                     onChange={(e) => setStaffForm({ ...staffForm, department: e.target.value })}
                     style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   >
+                    {availableDepartments.length === 0 && (
+                      <option value="">-- No Departments Configured --</option>
+                    )}
                     {availableDepartments.map((d) => (
                       <option key={d} value={d}>
                         {d}
@@ -3648,6 +3877,120 @@ export function TenantPrincipalDesk({
                   />
                 </div>
               </div>
+
+              {/* Teaching Allocations (For Teachers / Faculty) */}
+              {staffForm.role === 'teacher' && (
+                <div style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '12px', border: '1px solid #bbf7d0', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>
+                      🎯 Teaching Load Allocation (Classes &amp; Units)
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: '#15803d' }}>
+                      Determines which classes and units this instructor teaches
+                    </span>
+                  </div>
+
+                  {/* Assigned Classes */}
+                  <div style={{ marginBottom: '0.85rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 800, color: '#14532d', marginBottom: '4px' }}>
+                      Assigned Class Cohorts (Click to toggle)
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                      {availableClasses.length === 0 ? (
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic', marginBottom: '6px' }}>
+                          No pre-configured classes. Enter classes in the input below.
+                        </div>
+                      ) : (
+                        availableClasses.map((cls) => {
+                          const currentArr = staffForm.assigned_classes.split(',').map((c) => c.trim()).filter(Boolean)
+                          const isSelected = currentArr.includes(cls)
+                          return (
+                            <button
+                              key={cls}
+                              type="button"
+                              onClick={() => {
+                                const next = isSelected
+                                  ? currentArr.filter((c) => c !== cls)
+                                  : [...currentArr, cls]
+                                setStaffForm({ ...staffForm, assigned_classes: next.join(', ') })
+                              }}
+                              style={{
+                                background: isSelected ? '#15803d' : '#ffffff',
+                                color: isSelected ? '#ffffff' : '#334155',
+                                border: `1.5px solid ${isSelected ? '#15803d' : '#cbd5e1'}`,
+                                padding: '0.25rem 0.65rem',
+                                borderRadius: '20px',
+                                fontSize: '0.74rem',
+                                fontWeight: isSelected ? 800 : 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {isSelected ? '✓ ' : '+ '} {cls}
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Or enter comma-separated class cohorts (e.g. Diploma Year 1, Certificate A)"
+                      value={staffForm.assigned_classes}
+                      onChange={(e) => setStaffForm({ ...staffForm, assigned_classes: e.target.value })}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  {/* Assigned Subjects / Units */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 800, color: '#14532d', marginBottom: '4px' }}>
+                      Assigned Subjects / Course Units (Click to toggle)
+                    </label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                      {availableSubjects.length === 0 ? (
+                        <div style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic', marginBottom: '6px' }}>
+                          No pre-configured subjects. Enter subjects/units in the input below.
+                        </div>
+                      ) : (
+                        availableSubjects.map((sub) => {
+                          const currentArr = staffForm.assigned_subjects.split(',').map((s) => s.trim()).filter(Boolean)
+                          const isSelected = currentArr.includes(sub)
+                          return (
+                            <button
+                              key={sub}
+                              type="button"
+                              onClick={() => {
+                                const next = isSelected
+                                  ? currentArr.filter((s) => s !== sub)
+                                  : [...currentArr, sub]
+                                setStaffForm({ ...staffForm, assigned_subjects: next.join(', ') })
+                              }}
+                              style={{
+                                background: isSelected ? '#0369a1' : '#ffffff',
+                                color: isSelected ? '#ffffff' : '#334155',
+                                border: `1.5px solid ${isSelected ? '#0369a1' : '#cbd5e1'}`,
+                                padding: '0.25rem 0.65rem',
+                                borderRadius: '20px',
+                                fontSize: '0.74rem',
+                                fontWeight: isSelected ? 800 : 600,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {isSelected ? '✓ ' : '+ '} {sub}
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Or enter comma-separated subjects/units (e.g. Mathematics, Programming, Web Development)"
+                      value={staffForm.assigned_subjects}
+                      onChange={(e) => setStaffForm({ ...staffForm, assigned_subjects: e.target.value })}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Portal Login Credentials Section */}
               <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
@@ -3777,6 +4120,317 @@ export function TenantPrincipalDesk({
       )}
 
       {/* ========================================== */}
+      {/* MODAL: ASSIGN CLASSES & UNITS TO TEACHER   */}
+      {/* ========================================== */}
+      {assigningStaffMember && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '680px',
+              width: '100%',
+              padding: '2rem',
+              maxHeight: 'calc(100dvh - 2rem)',
+              overflowY: 'auto',
+              border: `2px solid ${primaryColor}`,
+              boxSizing: 'border-box',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
+                  🎯 Assign Units &amp; Classes
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
+                  Allocating teaching load for <strong>{assigningStaffMember.full_name}</strong> ({assigningStaffMember.title || 'Faculty Member'}, {assigningStaffMember.department})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssigningStaffMember(null)}
+                style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {assignSuccessMsg && (
+              <div
+                style={{
+                  background: '#dcfce7',
+                  border: '1.5px solid #86efac',
+                  color: '#15803d',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '10px',
+                  fontSize: '0.84rem',
+                  fontWeight: 800,
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span>✓</span> {assignSuccessMsg}
+              </div>
+            )}
+
+            {/* Instruction Banner */}
+            <div style={{ background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '1.25rem', fontSize: '0.8rem', color: '#475569', lineHeight: 1.5 }}>
+              Click on any class cohort or subject/unit to toggle assignment for this instructor. The teacher&apos;s portal will automatically filter to their assigned cohorts and curriculum units.
+            </div>
+
+            {/* Section 1: Assigned Classes / Cohorts */}
+            <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>
+                    🎓 Class Cohorts ({assignSelectedClasses.length} selected)
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    Cohorts this instructor is responsible for teaching, roll-call, and grading
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setAssignSelectedClasses([...availableClasses])}
+                    style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssignSelectedClasses([])}
+                    style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              {/* Class Chips */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                {availableClasses.length === 0 ? (
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', padding: '0.25rem 0' }}>
+                    No classes or cohorts configured yet. Type a class name below to assign and create it.
+                  </div>
+                ) : (
+                  availableClasses.map((cls) => {
+                    const isChecked = assignSelectedClasses.includes(cls)
+                    return (
+                      <button
+                        key={cls}
+                        type="button"
+                        onClick={() => {
+                          setAssignSelectedClasses((prev) =>
+                            isChecked ? prev.filter((c) => c !== cls) : [...prev, cls]
+                          )
+                        }}
+                        style={{
+                          background: isChecked ? '#1d4ed8' : '#ffffff',
+                          color: isChecked ? '#ffffff' : '#1e293b',
+                          border: `1.5px solid ${isChecked ? '#1d4ed8' : '#cbd5e1'}`,
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '20px',
+                          fontSize: '0.8rem',
+                          fontWeight: isChecked ? 800 : 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <span>{isChecked ? '✓' : '+'}</span>
+                        <span>{cls}</span>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* Add Custom Class Inline */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Introduce &amp; assign new class cohort..."
+                  value={newAssignClassInput}
+                  onChange={(e) => setNewAssignClassInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const val = newAssignClassInput.trim()
+                      if (val && !assignSelectedClasses.includes(val)) {
+                        setAssignSelectedClasses([...assignSelectedClasses, val])
+                        setNewAssignClassInput('')
+                      }
+                    }
+                  }}
+                  style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = newAssignClassInput.trim()
+                    if (val && !assignSelectedClasses.includes(val)) {
+                      setAssignSelectedClasses([...assignSelectedClasses, val])
+                      setNewAssignClassInput('')
+                    }
+                  }}
+                  style={{ background: '#2563eb', color: '#ffffff', border: 'none', padding: '0.5rem 0.85rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  + Add &amp; Select
+                </button>
+              </div>
+            </div>
+
+            {/* Section 2: Assigned Subjects / Units */}
+            <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 900, color: '#0f172a' }}>
+                    📚 Subjects / Course Units ({assignSelectedSubjects.length} selected)
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    Subjects and curriculum units this instructor teaches
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setAssignSelectedSubjects([...availableSubjects])}
+                    style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssignSelectedSubjects([])}
+                    style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '0.25rem 0.55rem', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              {/* Subject Chips */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                {availableSubjects.length === 0 ? (
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', padding: '0.25rem 0' }}>
+                    No subjects configured yet. Type a subject name below to assign and create it.
+                  </div>
+                ) : (
+                  availableSubjects.map((sub) => {
+                    const isChecked = assignSelectedSubjects.includes(sub)
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => {
+                          setAssignSelectedSubjects((prev) =>
+                            isChecked ? prev.filter((s) => s !== sub) : [...prev, sub]
+                          )
+                        }}
+                        style={{
+                          background: isChecked ? '#047857' : '#ffffff',
+                          color: isChecked ? '#ffffff' : '#1e293b',
+                          border: `1.5px solid ${isChecked ? '#047857' : '#cbd5e1'}`,
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '20px',
+                          fontSize: '0.8rem',
+                          fontWeight: isChecked ? 800 : 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <span>{isChecked ? '✓' : '+'}</span>
+                        <span>{sub}</span>
+                      </button>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* Add Custom Subject Inline */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Introduce &amp; assign new subject or course unit..."
+                  value={newAssignSubjectInput}
+                  onChange={(e) => setNewAssignSubjectInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      const val = newAssignSubjectInput.trim()
+                      if (val && !assignSelectedSubjects.includes(val)) {
+                        setAssignSelectedSubjects([...assignSelectedSubjects, val])
+                        setNewAssignSubjectInput('')
+                      }
+                    }
+                  }}
+                  style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.8rem' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = newAssignSubjectInput.trim()
+                    if (val && !assignSelectedSubjects.includes(val)) {
+                      setAssignSelectedSubjects([...assignSelectedSubjects, val])
+                      setNewAssignSubjectInput('')
+                    }
+                  }}
+                  style={{ background: '#059669', color: '#ffffff', border: 'none', padding: '0.5rem 0.85rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  + Add &amp; Select
+                </button>
+              </div>
+            </div>
+
+            {/* Summary preview & Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                Summary: <strong>{assignSelectedClasses.length} class{assignSelectedClasses.length === 1 ? '' : 'es'}</strong> and{' '}
+                <strong>{assignSelectedSubjects.length} subject{assignSelectedSubjects.length === 1 ? '' : 's'}/unit{assignSelectedSubjects.length === 1 ? '' : 's'}</strong> allocated.
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setAssigningStaffMember(null)}
+                  style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAllocation}
+                  style={{ padding: '0.6rem 1.5rem', borderRadius: '8px', border: 'none', background: primaryColor, color: '#ffffff', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem' }}
+                >
+                  Save &amp; Apply Allocations
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================== */}
       {/* MODAL: ADMIT / EDIT STUDENT                */}
       {/* ========================================== */}
       {showAdmitStudentModal && (
@@ -3846,6 +4500,9 @@ export function TenantPrincipalDesk({
                     onChange={(e) => setStudentForm({ ...studentForm, grade_class: e.target.value })}
                     style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   >
+                    {availableClasses.length === 0 && (
+                      <option value="">-- No Classes Configured --</option>
+                    )}
                     {availableClasses.map((cls) => (
                       <option key={cls} value={cls}>
                         {cls}
@@ -4222,7 +4879,12 @@ export function TenantPrincipalDesk({
             </form>
 
             <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {availableClasses.map((className) => {
+              {availableClasses.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '1.5rem', color: '#64748b', fontSize: '0.85rem' }}>
+                  No class cohorts added yet. Use the field above to add your first class cohort.
+                </div>
+              ) : (
+                availableClasses.map((className) => {
                 const count = studentList.filter((s) => s.grade_class === className).length
                 return (
                   <div
@@ -4250,7 +4912,7 @@ export function TenantPrincipalDesk({
                     </button>
                   </div>
                 )
-              })}
+              }))}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
@@ -4329,7 +4991,12 @@ export function TenantPrincipalDesk({
             </form>
 
             <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {availableDepartments.map((deptName) => {
+              {availableDepartments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '1.5rem', color: '#64748b', fontSize: '0.85rem' }}>
+                  No departments added yet. Use the field above to add your first academic department.
+                </div>
+              ) : (
+                availableDepartments.map((deptName) => {
                 const count = staffList.filter((s) => s.department === deptName).length
                 return (
                   <div
@@ -4357,7 +5024,7 @@ export function TenantPrincipalDesk({
                     </button>
                   </div>
                 )
-              })}
+              }))}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>

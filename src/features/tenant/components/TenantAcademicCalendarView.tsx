@@ -1014,7 +1014,7 @@ export function TenantAcademicCalendarView({
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
                   {[
-                    { id: 'semester', title: 'Semester System (2 Semesters / Year)', desc: 'Colleges, TVET Institutes & Universities' },
+                    { id: 'semester', title: 'Semester System (2 Semesters / Year)', desc: 'Colleges, Vocational Institutes & Universities' },
                     { id: 'term', title: 'Term System (3 Terms / Year)', desc: 'Primary & High Schools (Term 1, 2, 3)' },
                     { id: 'trimester', title: 'Trimester System (3 Intakes / Year)', desc: 'Fast-Track Professional Colleges & Tech Institutes' },
                     { id: 'quarter', title: 'Quarter System (4 Modular Quarters / Year)', desc: 'Modular Certification & Executive Programs' },

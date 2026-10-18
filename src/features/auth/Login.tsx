@@ -168,7 +168,7 @@ export function Login() {
           </div>
           <div>
             Please access your portal through your <strong>school's dedicated URL</strong> (e.g.,{' '}
-            <span style={{ fontFamily: 'monospace', color: '#1e40af' }}>schoolname.cloud.eclat.institute</span> or{' '}
+            <span style={{ fontFamily: 'monospace', color: '#1e40af' }}>schoolname.globalcollege.cloud</span> or{' '}
             <span style={{ fontFamily: 'monospace', color: '#1e40af' }}>/s/schoolname</span>).
           </div>
         </div>
@@ -535,7 +535,7 @@ export function Login() {
             }}
           >
             <LockIcon size={12} color="#94a3b8" />
-            <span>256-Bit SSL Encrypted • cloud.eclat.institute</span>
+            <span>256-Bit SSL Encrypted • globalcollege.cloud</span>
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '1rem' }}>

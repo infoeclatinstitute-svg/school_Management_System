@@ -1,6 +1,8 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { AppLogo } from '@/components/common/AppLogo'
+import { SupportChatWidget } from './SupportChatWidget'
+import { supportChatService } from '@/lib/supportChatService'
 
 interface FAQItem {
   id: string
@@ -29,12 +31,12 @@ const FAQ_DATA: FAQItem[] = [
     question: 'How do I register a new school or college campus?',
     answer: 'Any institution can be set up in under two minutes via the 5-Step Institution Onboarding Wizard.',
     bullets: [
-      'Navigate to "Register Your School" on the landing page or visit /register-school.',
-      'Step 1: Fill in institutional identity (Campus Name, Slug, Logo, Motto, Curriculum).',
-      'Step 2: Provide contact and physical location details (County, City/Town, Postal Code, Phone, Official Email).',
-      'Step 3: Define academic configuration (Term/Semester structure, grading model, currency, departments).',
-      'Step 4: Provision the Principal / Root Administrator account with encrypted credentials.',
-      'Step 5: Review summary and confirm instant database provisioning and campus activation.',
+      'Online Registration: Navigate to "Register Your School" on the landing page or visit /register-school.',
+      'Step 1 (Identity): Fill in institutional identity (Campus Name, Slug, Logo, Motto, Curriculum).',
+      'Step 2 (Location): Provide contact and physical location details (County, City/Town, Postal Code, Phone, Official Email).',
+      'Step 3 (Academics): Define academic configuration (Term/Semester structure, grading model, currency, departments).',
+      'Step 4 (Root Admin): Provision the Principal / Root Administrator account with encrypted credentials.',
+      'Step 5 (Activation): Review summary and confirm instant database provisioning and campus activation.',
     ],
   },
   {
@@ -49,11 +51,12 @@ const FAQ_DATA: FAQItem[] = [
     id: 'offline-workstation-mode',
     category: 'Workstation & Offline',
     question: 'How does the Desktop App work offline without internet?',
-    answer: 'The Global College PC Desktop Application features an embedded high-speed production engine running locally on 127.0.0.1:42888. It caches and stores data locally in persistent storage (IndexedDB and local database replication), allowing administrators and teachers to operate without interruption when internet connectivity is intermittent or unavailable.',
+    answer: 'The Global College PC Desktop Application features an embedded offline workstation engine with local database replication (IndexedDB), allowing administrators and teachers to operate without interruption when internet connectivity is intermittent or unavailable.',
     bullets: [
-      'Record student attendance, test scores, and bursar receipts completely offline.',
-      'Instantaneous UI performance with zero cloud latency during peak campus hours.',
-      'Dual Gateway Menu: Use Gateway > Live Cloud Hub (Ctrl+Shift+C) or Gateway > Local Offline Workstation (Ctrl+Shift+L) anytime.',
+      'Offline Continuity: Record student attendance, continuous assessments (CATs), and bursar fee receipts without internet access.',
+      'Zero Cloud Latency: Experience instant UI responsiveness and high-throughput data entry during peak campus hours.',
+      'Automatic Cloud Sync: Records are safely stored in secure local database storage and automatically synchronize to the institutional cloud as soon as an internet connection is detected.',
+      'Dual Gateway Switcher: Seamlessly toggle between Live Cloud Hub and Local Workstation mode anytime via the application menu.',
     ],
   },
   {
@@ -88,9 +91,9 @@ const FAQ_DATA: FAQItem[] = [
     question: 'Can I generate student ID cards and admission letters?',
     answer: 'Yes. With a single click, administrators can print standardized institutional documents formatted with the institution logo, official colors, principal signature line, and verification barcodes:',
     bullets: [
-      'Official Admission Offer Letters with fee schedules and term dates.',
-      'Student Identity Cards with photo, department, admission number, and validity period.',
-      'Unit Registration Slips and Examination Clearance Permits.',
+      'Admission Letters: Official offer letters complete with fee schedules, term dates, and orientation details.',
+      'Student ID Cards: High-resolution identity cards with photo, department, admission number, and barcode verification.',
+      'Academic Permits: Unit registration clearance slips and official examination clearance permits.',
     ],
   },
 
@@ -141,10 +144,10 @@ const FAQ_DATA: FAQItem[] = [
     question: 'How is student and financial institutional data protected?',
     answer: 'Security and data protection are fundamental to the architecture:',
     bullets: [
-      '256-bit SSL/TLS end-to-end encryption for all communications.',
-      'SHA-256 salted password hashing and role-based access control (RBAC).',
-      'Row Level Security (RLS) ensuring strict isolation between different schools and campuses.',
-      'Master Passcode Gate protecting root SaaS platform administration.',
+      'Transport Security: 256-bit SSL/TLS end-to-end encryption for all communications.',
+      'Access Control: SHA-256 salted password hashing and role-based access control (RBAC).',
+      'Data Isolation: Row Level Security (RLS) ensuring strict isolation between different schools and campuses.',
+      'Platform Gate: Master passcode security gate protecting root SaaS platform administration.',
     ],
   },
   {
@@ -170,6 +173,19 @@ export function FAQPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [expandedId, setExpandedId] = useState<string | null>('what-is-global-college')
+  const [isSupportChatOpen, setIsSupportChatOpen] = useState(false)
+  const [unreadSupportCount, setUnreadSupportCount] = useState<number>(() => {
+    const t = supportChatService.getClientThread()
+    return t ? t.unreadClientCount || 0 : 0
+  })
+
+  useEffect(() => {
+    const unsub = supportChatService.subscribe(() => {
+      const t = supportChatService.getClientThread()
+      setUnreadSupportCount(t ? t.unreadClientCount || 0 : 0)
+    })
+    return () => unsub()
+  }, [])
 
   const filteredFaqs = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -228,6 +244,42 @@ export function FAQPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button
+            type="button"
+            onClick={() => setIsSupportChatOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+              color: '#ffffff',
+              border: 'none',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 10px rgba(37, 99, 235, 0.35)',
+            }}
+          >
+            <span>💬</span>
+            <span>Directorate Support</span>
+            {unreadSupportCount > 0 && (
+              <span
+                style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.7rem',
+                  fontWeight: 900,
+                  borderRadius: '999px',
+                  padding: '1px 6px',
+                }}
+              >
+                {unreadSupportCount}
+              </span>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -341,6 +393,101 @@ export function FAQPage() {
             </button>
           )}
         </div>
+
+        {/* DIRECTORATE LIVE SUPPORT BANNER */}
+        <div
+          style={{
+            marginTop: '2rem',
+            background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.6) 0%, rgba(15, 23, 42, 0.9) 100%)',
+            border: '1px solid rgba(139, 92, 246, 0.35)',
+            borderRadius: '16px',
+            padding: '1.25rem 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)',
+            textAlign: 'left',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: '260px' }}>
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.4rem',
+                flexShrink: 0,
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
+              }}
+            >
+              💬
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+                  Need Direct Support from Platform Directorate?
+                </h3>
+                <span
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    color: '#34d399',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                  }}
+                >
+                  LIVE DESK
+                </span>
+              </div>
+              <p style={{ margin: '3px 0 0', fontSize: '0.84rem', color: '#94a3b8', lineHeight: 1.4 }}>
+                Send a private inquiry regarding license renewal, bursar M-Pesa setup, or custom institution requests. Our SaaS team replies directly to your portal.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsSupportChatOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+              color: '#ffffff',
+              border: 'none',
+              padding: '0.75rem 1.4rem',
+              borderRadius: '12px',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 18px rgba(37, 99, 235, 0.4)',
+            }}
+          >
+            <span>💬 Open Support Chat</span>
+            {unreadSupportCount > 0 && (
+              <span
+                style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.72rem',
+                  fontWeight: 900,
+                  borderRadius: '999px',
+                  padding: '2px 8px',
+                }}
+              >
+                {unreadSupportCount} NEW
+              </span>
+            )}
+          </button>
+        </div>
       </section>
 
       {/* CATEGORY TABS */}
@@ -353,6 +500,7 @@ export function FAQPage() {
             overflowX: 'auto',
             paddingBottom: '0.5rem',
             scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           {CATEGORIES.map((cat) => {
@@ -441,7 +589,7 @@ export function FAQPage() {
                       width: '100%',
                       background: 'transparent',
                       border: 'none',
-                      padding: '1.1rem 1.4rem',
+                      padding: '1rem 1.15rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
@@ -488,24 +636,39 @@ export function FAQPage() {
                   {isExpanded && (
                     <div
                       style={{
-                        padding: '0 1.4rem 1.4rem',
+                        padding: '0 1.15rem 1.25rem',
                         borderTop: '1px solid rgba(59, 130, 246, 0.15)',
                         marginTop: '0.25rem',
                         paddingTop: '1rem',
                         color: '#cbd5e1',
-                        fontSize: '0.92rem',
+                        fontSize: '0.94rem',
                         lineHeight: 1.65,
                       }}
                     >
-                      <p style={{ margin: '0 0 0.75rem' }}>{faq.answer}</p>
+                      <p style={{ margin: '0 0 0.85rem', color: '#f1f5f9', fontSize: '0.95rem', lineHeight: 1.7, fontWeight: 400 }}>
+                        {faq.answer}
+                      </p>
                       {faq.bullets && faq.bullets.length > 0 && (
-                        <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                          {faq.bullets.map((b, idx) => (
-                            <li key={idx} style={{ color: '#94a3b8' }}>
-                              <strong style={{ color: '#e2e8f0' }}>{b.split(':')[0]}:</strong>
-                              {b.includes(':') ? b.substring(b.indexOf(':') + 1) : ''}
-                            </li>
-                          ))}
+                        <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {faq.bullets.map((b, idx) => {
+                            const hasColon = b.includes(':')
+                            if (hasColon) {
+                              const colonIdx = b.indexOf(':')
+                              const title = b.substring(0, colonIdx).trim()
+                              const desc = b.substring(colonIdx + 1).trim()
+                              return (
+                                <li key={idx} style={{ color: '#cbd5e1', lineHeight: 1.65 }}>
+                                  <strong style={{ color: '#f8fafc', fontWeight: 700 }}>{title}:</strong>{' '}
+                                  <span style={{ color: '#cbd5e1' }}>{desc}</span>
+                                </li>
+                              )
+                            }
+                            return (
+                              <li key={idx} style={{ color: '#cbd5e1', lineHeight: 1.65 }}>
+                                {b}
+                              </li>
+                            )
+                          })}
                         </ul>
                       )}
                     </div>
@@ -533,6 +696,14 @@ export function FAQPage() {
         </div>
         <div>&copy; {new Date().getFullYear()} Global College SMS. 256-Bit SSL Encrypted Campus Network.</div>
       </footer>
+
+      {/* LIVE DIRECTORATE SUPPORT CHAT WIDGET */}
+      <SupportChatWidget
+        isOpen={isSupportChatOpen}
+        onClose={() => setIsSupportChatOpen(false)}
+        onOpen={() => setIsSupportChatOpen(true)}
+        showFloatingButton={true}
+      />
     </div>
   )
 }

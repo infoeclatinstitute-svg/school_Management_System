@@ -392,7 +392,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       )
     })
 
-    const cloudDirectUrl = `https://cloud.eclat.institute/s/${rawTarget || 'hub'}`
+    const cloudDirectUrl = typeof window !== 'undefined' ? `${window.location.origin}/s/${rawTarget || 'hub'}` : `https://globalcollege.cloud/s/${rawTarget || 'hub'}`
 
     return (
       <div style={{ maxWidth: '720px', margin: '3rem auto', textAlign: 'center', padding: '2rem' }}>
@@ -772,7 +772,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', color: '#0f172a', paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 0px))' }}>
       {/* ── Hamburger Drawer Backdrop ── */}
       {drawerOpen && (
         <div
@@ -995,13 +995,21 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               fontWeight: 800,
               padding: '2px 7px',
               borderRadius: '6px',
-              background: isLicenseActive ? '#dcfce7' : '#fef3c7',
-              color: isLicenseActive ? '#15803d' : '#b45309',
+              background: school.subscription_status === 'suspended' ? '#fee2e2' : isLicenseActive ? '#dcfce7' : '#fef3c7',
+              color: school.subscription_status === 'suspended' ? '#991b1b' : isLicenseActive ? '#15803d' : '#b45309',
             }}
           >
-            {isLicenseActive ? '✓ Licensed' : '⚠️ Key Req.'}
+            {school.subscription_status === 'suspended' ? '🔴 Account Suspended' : isLicenseActive ? '✓ Licensed' : '⚠️ Key Req.'}
           </span>
         </div>
+
+        {/* Suspended Notice Banner */}
+        {school.subscription_status === 'suspended' && (
+          <div style={{ background: '#7f1d1d', color: '#fee2e2', padding: '0.75rem 1.1rem', fontSize: '0.78rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>⚠️</span>
+            <span>This institution portal has been suspended by the platform administrator. Access to administrative tools is restricted.</span>
+          </div>
+        )}
 
         {/* Nav sections */}
         {(() => {
@@ -1292,7 +1300,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
             <span>🔒</span>
             <span>Enterprise Encrypted SIS v2.6</span>
           </div>
-          <div>Institutional Cloud Instance • {school.slug}.cloud.eclat.institute</div>
+          <div>Institutional Cloud Instance • {school.slug}.globalcollege.cloud</div>
         </div>
       </nav>
 
@@ -2714,7 +2722,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           onLoginSuccess={(user) => {
             setCurrentSession(user)
             setShowLoginModal(false)
-            if (user.role === 'admin') setActiveTab('principal')
+            if (user.role === 'admin' || user.role === 'principal') setActiveTab('principal')
             else if (user.role === 'teacher') setActiveTab('teacher')
             else if (user.role === 'bursar') setActiveTab('bursar')
             else if (user.role === 'student') setActiveTab('student')
@@ -3076,6 +3084,145 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         hasNativePrompt={hasNativePrompt}
         onNativeInstallPrompt={promptNativeInstall}
       />
+
+      {/* ── Native Mobile Bottom Navigation Dock for School Workstation ── */}
+      <nav
+        className="mobile-bottom-nav hide-on-desktop"
+        aria-label="Campus Mobile Navigation Dock"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 'calc(62px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          background: 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderTop: '1px solid rgba(226, 232, 240, 0.88)',
+          display: 'flex',
+          justifyContent: 'stretch',
+          alignItems: 'stretch',
+          zIndex: 49,
+          boxShadow: '0 -4px 20px rgba(15, 23, 42, 0.06)',
+        }}
+      >
+        {[
+          { id: 'hub' as const, icon: '🏫', label: 'Campus' },
+          ...(activeRole === 'student'
+            ? [{ id: 'student' as const, icon: '🎓', label: 'Student Desk' }]
+            : activeRole === 'teacher'
+            ? [{ id: 'teacher' as const, icon: '📖', label: 'Teacher Desk' }]
+            : activeRole === 'bursar'
+            ? [{ id: 'bursar' as const, icon: '💳', label: 'Bursar Desk' }]
+            : activeRole === 'admin'
+            ? [
+                { id: 'principal' as const, icon: '🛡️', label: 'Principal' },
+                { id: 'bursar' as const, icon: '💳', label: 'Bursar' },
+              ]
+            : [{ id: 'programs' as const, icon: '📚', label: 'Programs', isPrograms: true }]),
+          ...(activeRole === 'public'
+            ? [
+                { id: 'apply' as const, icon: '📝', label: 'Apply', isAction: true, onClick: () => setShowApplyModal(true) },
+                { id: 'login' as const, icon: '🔑', label: 'Sign In', isAction: true, onClick: () => setShowLoginModal(true) },
+              ]
+            : [{ id: 'profile' as const, icon: '👤', label: 'Profile' }]),
+        ].map((item) => {
+          const isActive =
+            (item.id === 'hub' && activeTab === 'hub') ||
+            (item.id === 'student' && activeTab === 'student') ||
+            (item.id === 'teacher' && activeTab === 'teacher') ||
+            (item.id === 'bursar' && activeTab === 'bursar') ||
+            (item.id === 'principal' && activeTab === 'principal') ||
+            (item.id === 'profile' && activeTab === 'profile') ||
+            (item.isPrograms && activeTab === 'principal' && principalInitialSubTab === 'programs')
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                if (item.isAction && item.onClick) {
+                  item.onClick()
+                  return
+                }
+                if (item.isPrograms) {
+                  setActiveTab('principal')
+                  setPrincipalInitialSubTab('programs')
+                  navigate(getDeskRoute('programs'))
+                  return
+                }
+                const targetTab = item.id as typeof activeTab
+                setActiveTab(targetTab)
+                navigate(getDeskRoute(targetTab))
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flex: '1 1 0%',
+                minWidth: 0,
+                height: '100%',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: isActive ? primaryColor : '#64748b',
+                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                padding: '0.2rem 0.15rem',
+                userSelect: 'none',
+                touchAction: 'manipulation',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '3px 8px',
+                  borderRadius: '12px',
+                  background: isActive ? `${primaryColor}14` : 'transparent',
+                  fontSize: '1.25rem',
+                  lineHeight: 1,
+                  transition: 'background 0.18s ease',
+                }}
+              >
+                <span>{item.icon}</span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.67rem',
+                  fontWeight: isActive ? 800 : 600,
+                  marginTop: '1px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%',
+                  lineHeight: 1.15,
+                }}
+              >
+                {item.label}
+              </span>
+              {isActive ? (
+                <span
+                  style={{
+                    display: 'block',
+                    width: '4px',
+                    height: '4px',
+                    borderRadius: '50%',
+                    background: primaryColor,
+                    marginTop: '2px',
+                    boxShadow: `0 0 6px ${primaryColor}99`,
+                  }}
+                />
+              ) : (
+                <span style={{ display: 'block', height: '4px', marginTop: '2px' }} />
+              )}
+            </button>
+          )
+        })}
+      </nav>
     </div>
   )
 }

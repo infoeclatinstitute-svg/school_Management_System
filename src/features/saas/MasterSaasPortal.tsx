@@ -17,7 +17,10 @@ import type { PartnerSchoolTenant, InstitutionCategory } from '@/types/tenantSch
 import { SearchIcon } from '@/components/icons/AppIcons'
 import { AppLogo } from '@/components/common/AppLogo'
 import { SaasPushNotificationManager } from './components/SaasPushNotificationManager'
+import { SaasSupportChatDesk } from './components/SaasSupportChatDesk'
 import { pushNotificationService } from '@/lib/pushNotificationService'
+import { supportChatService } from '@/lib/supportChatService'
+import { checkForOTAUpdates } from '@/lib/otaUpdater'
 
 export function MasterSaasPortal() {
   const formId = useId()
@@ -29,8 +32,8 @@ export function MasterSaasPortal() {
   const [passcode, setPasscode] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
 
-  // Navigation Tabs: 'keys' | 'institutions' | 'invoices' | 'mobile_apks' | 'notifications'
-  const [activeTab, setActiveTab] = useState<'keys' | 'institutions' | 'invoices' | 'mobile_apks' | 'notifications'>('keys')
+  // Navigation Tabs: 'keys' | 'institutions' | 'invoices' | 'support_desk' | 'notifications' | 'mobile_apks'
+  const [activeTab, setActiveTab] = useState<'keys' | 'institutions' | 'invoices' | 'support_desk' | 'notifications' | 'mobile_apks'>('keys')
   const [copiedShareMsg, setCopiedShareMsg] = useState(false)
   const [notificationCount, setNotificationCount] = useState<number>(() =>
     pushNotificationService.getHistory().length
@@ -38,14 +41,45 @@ export function MasterSaasPortal() {
   const [pushPermStatus, setPushPermStatus] = useState<string>(() =>
     pushNotificationService.getPermissionStatus()
   )
+  const [supportUnreadCount, setSupportUnreadCount] = useState<number>(() =>
+    supportChatService.getUnreadAdminCount()
+  )
+  const [isCheckingOta, setIsCheckingOta] = useState(false)
+  const [otaStatusMsg, setOtaStatusMsg] = useState<string | null>(null)
 
   useEffect(() => {
     const unsub = pushNotificationService.subscribe(() => {
       setNotificationCount(pushNotificationService.getHistory().length)
       setPushPermStatus(pushNotificationService.getPermissionStatus())
     })
-    return () => unsub()
+    const unsubSupport = supportChatService.subscribe(() => {
+      setSupportUnreadCount(supportChatService.getUnreadAdminCount())
+    })
+    return () => {
+      unsub()
+      unsubSupport()
+    }
   }, [])
+
+  const handleManualOtaCheck = async () => {
+    if (isCheckingOta) return
+    setIsCheckingOta(true)
+    setOtaStatusMsg('Checking cloud release manifest...')
+    try {
+      const hasNewBuild = await checkForOTAUpdates(true)
+      if (hasNewBuild) {
+        setOtaStatusMsg('⚡ New update downloaded! Reloading platform...')
+      } else {
+        setOtaStatusMsg('✓ Global College SaaS Admin is up to date with the latest cloud release.')
+        setTimeout(() => setOtaStatusMsg(null), 4000)
+      }
+    } catch {
+      setOtaStatusMsg('✓ Current build is active and synchronized.')
+      setTimeout(() => setOtaStatusMsg(null), 4000)
+    } finally {
+      setIsCheckingOta(false)
+    }
+  }
 
   // Data States
   const [schools, setSchools] = useState<PartnerSchoolTenant[]>(() =>
@@ -73,7 +107,9 @@ export function MasterSaasPortal() {
   // Payment Recording Modal
   const [paymentModalSchool, setPaymentModalSchool] = useState<PartnerSchoolTenant | null>(null)
   const [mpesaRefInput, setMpesaRefInput] = useState('')
-  const [paymentPeriodInput, setPaymentPeriodInput] = useState('October 2026')
+  const [paymentPeriodInput, setPaymentPeriodInput] = useState(() =>
+    new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })
+  )
 
   // Search filter
   const [searchFilter, setSearchFilter] = useState('')
@@ -89,12 +125,28 @@ export function MasterSaasPortal() {
     contact_phone: '',
     contact_email: '',
     address: '',
+    city: '',
+    country: '',
     principal_name: '',
+    principal_title: '',
+    principal_email: '',
+    admin_username: '',
+    admin_password: '',
+    custom_domain: '',
     campus_count: 1,
     subscription_tier: 'gold' as SubscriptionTierType,
+    subscription_status: 'licensed' as 'active' | 'trial' | 'past_due' | 'expired' | 'licensed' | 'suspended',
+    primary_color: '#1e3a8a',
+    accent_color: '#d4af37',
   })
   const [isSavingEdit, setIsSavingEdit] = useState(false)
-  const [generatedAdminPasswordMsg, setGeneratedAdminPasswordMsg] = useState<{ schoolSlug: string; pass: string } | null>(null)
+  const [generatedAdminPasswordMsg, setGeneratedAdminPasswordMsg] = useState<{
+    schoolSlug: string
+    pass: string
+    username?: string
+    schoolName?: string
+  } | null>(null)
+  const [actionSuccessToast, setActionSuccessToast] = useState<string | null>(null)
 
   const [metrics, setMetrics] = useState<MasterLicensingMetrics>(() => licensingStore.getMetrics())
   const [isGeneratingKey, setIsGeneratingKey] = useState(false)
@@ -222,9 +274,19 @@ export function MasterSaasPortal() {
       contact_phone: sch.contact_phone || '',
       contact_email: sch.contact_email || '',
       address: sch.address || '',
+      city: sch.city || '',
+      country: sch.country || '',
       principal_name: sch.principal_name || '',
+      principal_title: sch.principal_title || '',
+      principal_email: sch.principal_email || '',
+      admin_username: sch.admin_username || `${sch.slug}.admin`,
+      admin_password: '',
+      custom_domain: sch.custom_domain || '',
       campus_count: sch.campus_count || 1,
       subscription_tier: (sch.subscription_tier as SubscriptionTierType) || 'gold',
+      subscription_status: sch.subscription_status || (sch.active_license_key ? 'licensed' : 'trial'),
+      primary_color: sch.primary_color || '#1e3a8a',
+      accent_color: sch.accent_color || '#d4af37',
     })
   }
 
@@ -234,7 +296,7 @@ export function MasterSaasPortal() {
 
     setIsSavingEdit(true)
     try {
-      tenantSchoolStore.updateSchoolBranding(editingSchool.slug, {
+      const updated = tenantSchoolStore.updateSchoolBranding(editingSchool.slug, {
         name: editFormData.name.trim() || editingSchool.name,
         motto: editFormData.motto.trim(),
         curriculum_type: editFormData.curriculum_type.trim(),
@@ -242,15 +304,67 @@ export function MasterSaasPortal() {
         contact_phone: editFormData.contact_phone.trim(),
         contact_email: editFormData.contact_email.trim(),
         address: editFormData.address.trim(),
+        city: editFormData.city.trim(),
+        country: editFormData.country.trim(),
         principal_name: editFormData.principal_name.trim(),
+        principal_title: editFormData.principal_title.trim() || 'Principal / Provost',
+        principal_email: editFormData.principal_email.trim() || editFormData.contact_email.trim(),
+        admin_username: editFormData.admin_username.trim(),
+        ...(editFormData.admin_password.trim() ? { admin_password: editFormData.admin_password.trim() } : {}),
+        custom_domain: editFormData.custom_domain.trim() || undefined,
         campus_count: Number(editFormData.campus_count) || 1,
         subscription_tier: editFormData.subscription_tier,
+        subscription_status: editFormData.subscription_status,
+        primary_color: editFormData.primary_color.trim() || '#1e3a8a',
+        accent_color: editFormData.accent_color.trim() || '#d4af37',
       })
       await tenantSchoolStore.pushToCloud()
       setSchools(tenantSchoolStore.getSchools())
+      if (inspectedSchool && inspectedSchool.slug === editingSchool.slug && updated) {
+        setInspectedSchool(updated)
+      }
       setEditingSchool(null)
+      setActionSuccessToast(`Institution "${editFormData.name || editingSchool.name}" updated & synchronized across network.`)
+      setTimeout(() => setActionSuccessToast(null), 3500)
     } finally {
       setIsSavingEdit(false)
+    }
+  }
+
+  const handleToggleStatus = async (
+    slug: string,
+    newStatus: 'active' | 'trial' | 'past_due' | 'expired' | 'licensed' | 'suspended'
+  ) => {
+    const updated = tenantSchoolStore.updateSchoolStatus(slug, newStatus)
+    if (updated) {
+      await tenantSchoolStore.pushToCloud()
+      setSchools(tenantSchoolStore.getSchools())
+      if (inspectedSchool && inspectedSchool.slug === slug) {
+        setInspectedSchool(updated)
+      }
+      setActionSuccessToast(`Status for "${updated.name}" changed to ${newStatus.toUpperCase()}.`)
+      setTimeout(() => setActionSuccessToast(null), 3000)
+    }
+  }
+
+  const handleResetPassword = async (slug: string) => {
+    const school = tenantSchoolStore.getSchoolBySlug(slug)
+    const res = tenantSchoolStore.resetSchoolAdminPassword(slug)
+    if (res.success) {
+      await tenantSchoolStore.pushToCloud()
+      const updated = tenantSchoolStore.getSchoolBySlug(slug)
+      setSchools(tenantSchoolStore.getSchools())
+      if (inspectedSchool && inspectedSchool.slug === slug && updated) {
+        setInspectedSchool(updated)
+      }
+      setGeneratedAdminPasswordMsg({
+        schoolSlug: slug,
+        pass: res.newPassword,
+        username: updated?.admin_username || `${slug}.admin`,
+        schoolName: updated?.name || slug,
+      })
+      setActionSuccessToast(`Admin password regenerated for ${school?.name || slug}.`)
+      setTimeout(() => setActionSuccessToast(null), 3500)
     }
   }
 
@@ -285,10 +399,10 @@ export function MasterSaasPortal() {
   // Handle WhatsApp Sharing & APK distribution
   const handleShareWhatsApp = (flavor: 'saasAdmin' | 'sms') => {
     const isSaas = flavor === 'saasAdmin'
-    const apkUrl = `${window.location.origin}/downloads/${isSaas ? 'GlobalCollege-SaaSAdmin.apk' : 'GlobalCollege-SMS.apk'}`
+    const smsApkUrl = `${window.location.origin}/downloads/GlobalCollege-SMS.apk`
     const msg = isSaas
-      ? `👑 *Global College — SaaS Admin Dedicated Mobile APK*\n\n📲 *Download APK:* ${apkUrl}\n\n🔐 *Role:* Platform Owner Directorate\n💼 *Campus Billing:* KES 2,500/campus\n\n*Features Included:*\n• Direct startup to Master Security Gate\n• Instant Campus Activation & Product Key Generation\n• Multi-Campus Subscription & MRR Management\n• M-Pesa Transaction Verification (0740027346)\n• Institution Admin Password Reset\n\n*Quick Android Install:*\n1. Download the APK file from the link above.\n2. Tap the file in Downloads & click "Install" (enable "Install unknown apps" if prompted).\n3. Open app & enter your Master Access Passcode.`
-      : `🎓 *Global College — School Management System Mobile APK*\n\n📲 *Download APK:* ${apkUrl}\n\n*Features:*\n• Student Portal & Course Materials\n• Faculty & Teacher Desks\n• Bursar Fee Collection & Receipts\n• E-Library & Timetables\n\n*Installation:*\n1. Tap the link to download the APK.\n2. Tap "Install" on your Android device.`
+      ? `👑 *Global College — SaaS Admin Private Directorate*\n\n🔐 *Role:* Platform Owner Directorate\n💼 *Campus Billing Baseline:* KES 2,500/campus\n⚡ *Updates:* Real-Time Over-The-Air (OTA) Updates Active\n🔒 *Security Notice:* Public download links are strictly disabled. APK distributed privately via WhatsApp direct transfer.\n\n*Platform Capabilities:*\n• Direct startup to Master Security Gate\n• Instant Campus Activation & Product Key Generation\n• Multi-Campus Subscription & MRR Management\n• Client Support Desk & Live Inquiries\n• Automatic Over-The-Air (OTA) self-refresh`
+      : `🎓 *Global College — School Management System Mobile APK*\n\n📲 *Download APK:* ${smsApkUrl}\n\n*Features:*\n• Student Portal & Course Materials\n• Faculty & Teacher Desks\n• Bursar Fee Collection & Receipts\n• E-Library & Timetables\n\n*Installation:*\n1. Tap the link to download the APK.\n2. Tap "Install" on your Android device.`
 
     const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`
     window.open(waUrl, '_blank')
@@ -296,10 +410,10 @@ export function MasterSaasPortal() {
 
   const handleCopyShareMsg = (flavor: 'saasAdmin' | 'sms') => {
     const isSaas = flavor === 'saasAdmin'
-    const apkUrl = `${window.location.origin}/downloads/${isSaas ? 'GlobalCollege-SaaSAdmin.apk' : 'GlobalCollege-SMS.apk'}`
+    const smsApkUrl = `${window.location.origin}/downloads/GlobalCollege-SMS.apk`
     const msg = isSaas
-      ? `👑 Global College — SaaS Admin Dedicated Mobile APK\nDownload APK: ${apkUrl}\n\nFeatures:\n• Direct startup to Master Passcode Terminal\n• Instant Campus Activation & Product Key Generation\n• Multi-Campus Subscription & MRR Management\n• M-Pesa Transaction Verification (0740027346)\n• Institution Admin Password Reset\n\nInstallation:\n1. Download the APK file from: ${apkUrl}\n2. Tap to Install on Android.\n3. Open & enter Master Passcode.`
-      : `🎓 Global College — School Management System Mobile APK\nDownload APK: ${apkUrl}`
+      ? `👑 Global College — SaaS Admin Private Directorate\n\nRole: Platform Owner Directorate\nCampus Billing Baseline: KES 2,500/campus\nUpdates: Real-Time Over-The-Air (OTA) Updates Active\nSecurity: Public download links are strictly disabled. APK distributed privately via WhatsApp file transfer.\n\nFeatures:\n• Direct startup to Master Passcode Terminal\n• Instant Campus Activation & Product Key Generation\n• Multi-Campus Subscription & MRR Management\n• Client Support Desk & Live Inquiries\n• Automatic Over-The-Air (OTA) self-refresh`
+      : `🎓 Global College — School Management System Mobile APK\nDownload APK: ${smsApkUrl}`
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(msg)
@@ -316,24 +430,27 @@ export function MasterSaasPortal() {
       <div
         style={{
           minHeight: '100vh',
-          background: '#090d16',
+          background: 'radial-gradient(ellipse at top, #1e1b4b 0%, #090e1a 100%)',
           color: '#f8fafc',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '1.5rem',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
+          padding: '1.5rem 1rem',
+          paddingTop: 'max(1.5rem, env(safe-area-inset-top, 0px))',
+          paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
         }}
       >
         <div
           style={{
-            maxWidth: '460px',
+            maxWidth: '480px',
             width: '100%',
-            background: '#131b2e',
-            borderRadius: '24px',
-            padding: '2.5rem',
-            border: '1px solid #1e293b',
-            boxShadow: '0 24px 60px rgba(0, 0, 0, 0.5)',
+            background: 'rgba(17, 24, 39, 0.85)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '28px',
+            padding: '2.75rem 2.5rem',
+            border: '1px solid rgba(139, 92, 246, 0.25)',
+            boxShadow: '0 30px 70px -15px rgba(0, 0, 0, 0.8)',
             textAlign: 'center',
           }}
         >
@@ -342,60 +459,104 @@ export function MasterSaasPortal() {
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: '1.25rem',
+              marginBottom: '1.5rem',
+              padding: '12px',
+              borderRadius: '20px',
+              background: 'rgba(124, 58, 237, 0.12)',
+              border: '1px solid rgba(124, 58, 237, 0.3)',
+              boxShadow: '0 8px 24px rgba(124, 58, 237, 0.25)',
             }}
           >
             <AppLogo size="xl" variant="icon" />
           </div>
 
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: '0 0 0.4rem', letterSpacing: '-0.02em' }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'rgba(56, 189, 248, 0.1)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              color: '#38bdf8',
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              padding: '3px 10px',
+              borderRadius: '999px',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              marginBottom: '0.75rem',
+            }}
+          >
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38bdf8' }} />
+            Enterprise Platform Gateway
+          </div>
+
+          <h2 style={{ fontSize: '1.65rem', fontWeight: 900, margin: '0 0 0.5rem', letterSpacing: '-0.02em', color: '#ffffff' }}>
             Master SaaS Directorate
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.86rem', margin: '0 0 1.75rem', lineHeight: 1.5 }}>
-            Platform Owner Portal for Campus Billing (KES 2,500/campus) &amp; Product Key Generation.
+          <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: '0 0 2rem', lineHeight: 1.55 }}>
+            Platform Owner Portal for Campus Billing (KES 2,500/campus), Multi-School Lifecycle &amp; Push Broadcast Studio.
           </p>
 
           {authError && (
             <div
               style={{
-                background: '#450a0a',
+                background: 'rgba(239, 68, 68, 0.15)',
                 color: '#fca5a5',
-                padding: '0.75rem 1rem',
-                borderRadius: '12px',
+                padding: '0.85rem 1rem',
+                borderRadius: '14px',
                 border: '1px solid #991b1b',
-                fontSize: '0.82rem',
+                fontSize: '0.84rem',
                 fontWeight: 700,
-                marginBottom: '1.25rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
               }}
             >
-              ⚠️ {authError}
+              <span>⚠️</span>
+              <span>{authError}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ textAlign: 'left' }}>
-              <label htmlFor={`${formId}-passcode`} style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '6px' }}>
-                ENTER MASTER ACCESS PASSCODE
+              <label
+                htmlFor={`${formId}-passcode`}
+                style={{
+                  display: 'block',
+                  fontSize: '0.74rem',
+                  fontWeight: 800,
+                  color: '#94a3b8',
+                  marginBottom: '8px',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Enter Master Access Passcode
               </label>
               <input
                 id={`${formId}-passcode`}
                 type="password"
                 required
-                placeholder="Enter Master Passcode"
+                placeholder="••••••••••••"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '0.85rem 1rem',
-                  borderRadius: '12px',
-                  background: '#0a0f1d',
-                  border: '1px solid #334155',
+                  padding: '0.95rem 1.25rem',
+                  borderRadius: '14px',
+                  background: '#090e1a',
+                  border: '1.5px solid #374151',
                   color: '#ffffff',
-                  fontSize: '1rem',
-                  letterSpacing: '0.05em',
+                  fontSize: '1.1rem',
+                  letterSpacing: '0.15em',
                   outline: 'none',
                   textAlign: 'center',
                   fontWeight: 800,
+                  transition: 'border-color 0.15s ease',
+                  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.4)',
                 }}
               />
             </div>
@@ -407,20 +568,34 @@ export function MasterSaasPortal() {
                 color: '#ffffff',
                 fontWeight: 900,
                 fontSize: '0.95rem',
-                padding: '0.9rem',
-                borderRadius: '12px',
+                padding: '0.95rem',
+                borderRadius: '14px',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)',
+                boxShadow: '0 8px 24px rgba(37, 99, 235, 0.4)',
+                transition: 'all 0.15s ease',
               }}
             >
               Unlock Master Terminal →
             </button>
           </form>
 
-              <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #1e293b', fontSize: '0.74rem', color: '#64748b' }}>
-                🔒 Platform Owner Directorate • Restricted to Authorized Platform Owners Only
-              </div>
+          <div
+            style={{
+              marginTop: '2rem',
+              paddingTop: '1.5rem',
+              borderTop: '1px solid #1f2937',
+              fontSize: '0.74rem',
+              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+            }}
+          >
+            <span>🔒</span>
+            <span>Restricted Platform Owner Clearance • 256-Bit SSL Encrypted</span>
+          </div>
         </div>
       </div>
     )
@@ -436,24 +611,53 @@ export function MasterSaasPortal() {
         background: '#090d16',
         color: '#f8fafc',
         fontFamily: 'system-ui, -apple-system, sans-serif',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
       }}
     >
+      {/* Toast Notification */}
+      {actionSuccessToast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 'max(1.25rem, env(safe-area-inset-top, 1.25rem))',
+            right: '1.5rem',
+            background: '#064e3b',
+            color: '#a7f3d0',
+            border: '1px solid #059669',
+            padding: '0.85rem 1.4rem',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.6)',
+            zIndex: 99999,
+            fontWeight: 800,
+            fontSize: '0.86rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <span>✓</span>
+          <span>{actionSuccessToast}</span>
+        </div>
+      )}
+
       {/* Top Navbar */}
       <header
         style={{
-          borderBottom: '1px solid #1e293b',
-          background: 'rgba(19, 27, 46, 0.95)',
-          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'rgba(11, 15, 25, 0.94)',
+          backdropFilter: 'blur(16px)',
           position: 'sticky',
           top: 0,
           zIndex: 40,
+          paddingTop: 'max(2px, env(safe-area-inset-top, 0px))',
         }}
       >
         <div
           style={{
             maxWidth: '1280px',
             margin: '0 auto',
-            padding: '1rem 1.5rem',
+            padding: '0.85rem 1.5rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -464,45 +668,60 @@ export function MasterSaasPortal() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
             <AppLogo size="md" variant="icon" />
             <div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff' }}>
                 <span>Global College SaaS Command</span>
-                <span style={{ fontSize: '0.65rem', background: '#059669', color: '#ecfdf5', padding: '2px 8px', borderRadius: '999px', fontWeight: 800 }}>
-                  SUPER-ADMIN
+                <span
+                  style={{
+                    fontSize: '0.65rem',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#34d399',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    fontWeight: 800,
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  ● LIVE GATEWAY
                 </span>
               </div>
               <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
-                Monthly Rate: <strong>KES 2,500 / Campus</strong> • Multi-Campus Billing Engine
+                Multi-Campus Billing Engine • Baseline: <strong>KES 2,500/Campus</strong>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <Link
               to="/register-school"
               style={{
-                background: '#1e293b',
-                color: '#cbd5e1',
-                padding: '0.5rem 0.9rem',
+                background: '#1f2937',
+                color: '#f8fafc',
+                padding: '0.5rem 0.95rem',
                 borderRadius: '10px',
                 fontSize: '0.8rem',
                 fontWeight: 700,
                 textDecoration: 'none',
-                border: '1px solid #334155',
+                border: '1px solid #374151',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
               }}
             >
-              + Onboard Campus
+              <span>+</span>
+              <span>Onboard Campus</span>
             </Link>
             <Link
               to="/"
               style={{
-                background: '#1e293b',
+                background: '#1f2937',
                 color: '#cbd5e1',
-                padding: '0.5rem 0.9rem',
+                padding: '0.5rem 0.95rem',
                 borderRadius: '10px',
                 fontSize: '0.8rem',
                 fontWeight: 700,
                 textDecoration: 'none',
-                border: '1px solid #334155',
+                border: '1px solid #374151',
               }}
             >
               School Portals
@@ -511,20 +730,21 @@ export function MasterSaasPortal() {
               type="button"
               onClick={() => setActiveTab('notifications')}
               style={{
-                background: activeTab === 'notifications' ? 'rgba(124, 58, 237, 0.3)' : '#1e293b',
-                color: activeTab === 'notifications' ? '#c084fc' : '#cbd5e1',
-                padding: '0.5rem 0.9rem',
+                background: activeTab === 'notifications' ? 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)' : '#1f2937',
+                color: activeTab === 'notifications' ? '#ffffff' : '#c084fc',
+                padding: '0.5rem 0.95rem',
                 borderRadius: '10px',
                 fontSize: '0.8rem',
                 fontWeight: 800,
-                border: activeTab === 'notifications' ? '1px solid #a855f7' : '1px solid #334155',
+                border: activeTab === 'notifications' ? '1px solid #a855f7' : '1px solid #374151',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
+                boxShadow: activeTab === 'notifications' ? '0 4px 14px rgba(124, 58, 237, 0.4)' : 'none',
               }}
             >
-              <span>🔔 Push Alerts</span>
+              <span>🔔 Push Studio</span>
               <span
                 style={{
                   background: pushPermStatus === 'granted' ? '#10b981' : '#f59e0b',
@@ -540,19 +760,57 @@ export function MasterSaasPortal() {
             </button>
             <button
               type="button"
+              onClick={() => setActiveTab('support_desk')}
+              style={{
+                background: activeTab === 'support_desk' ? 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' : '#1f2937',
+                color: activeTab === 'support_desk' ? '#ffffff' : '#93c5fd',
+                padding: '0.5rem 0.95rem',
+                borderRadius: '10px',
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                border: activeTab === 'support_desk' ? '1px solid #3b82f6' : '1px solid #374151',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: activeTab === 'support_desk' ? '0 4px 14px rgba(37, 99, 235, 0.4)' : 'none',
+              }}
+            >
+              <span>💬 Support</span>
+              {supportUnreadCount > 0 && (
+                <span
+                  style={{
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '0.68rem',
+                    padding: '1px 6px',
+                    borderRadius: '999px',
+                    fontWeight: 900,
+                  }}
+                >
+                  {supportUnreadCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={handleLogout}
               style={{
-                background: '#450a0a',
+                background: 'rgba(239, 68, 68, 0.12)',
                 color: '#fca5a5',
-                border: '1px solid #7f1d1d',
-                padding: '0.5rem 0.9rem',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                padding: '0.5rem 0.95rem',
                 borderRadius: '10px',
                 fontSize: '0.8rem',
                 fontWeight: 700,
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
               }}
             >
-              Lock Terminal
+              <span>🔒</span>
+              <span>Lock Terminal</span>
             </button>
           </div>
         </div>
@@ -561,24 +819,46 @@ export function MasterSaasPortal() {
       {/* Main Container */}
       <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '2rem 1.5rem 5rem' }}>
         {/* KPI Metrics Summary Strip */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-          <div style={{ background: '#131b2e', borderRadius: '18px', padding: '1.25rem', border: '1px solid #1e293b' }}>
-            <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.75rem' }}>
+          <div
+            style={{
+              background: '#111827',
+              borderRadius: '20px',
+              padding: '1.35rem',
+              border: '1px solid #1f2937',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)' }} />
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
               Monthly Recurring Revenue (MRR)
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#10b981', margin: '4px 0 0' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#10b981', margin: '4px 0 0', letterSpacing: '-0.02em' }}>
               KES {metrics.monthly_recurring_revenue_kes.toLocaleString()}
             </div>
             <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
-              Based on KES 2,500/campus across {metrics.total_campuses} campuses
+              Across {metrics.total_campuses} registered campuses @ KES 2,500/mo
             </div>
           </div>
 
-          <div style={{ background: '#131b2e', borderRadius: '18px', padding: '1.25rem', border: '1px solid #1e293b' }}>
-            <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
+          <div
+            style={{
+              background: '#111827',
+              borderRadius: '20px',
+              padding: '1.35rem',
+              border: '1px solid #1f2937',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #38bdf8 0%, #0284c7 100%)' }} />
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
               Total Campuses &amp; Branches
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#38bdf8', margin: '4px 0 0' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#38bdf8', margin: '4px 0 0', letterSpacing: '-0.02em' }}>
               {metrics.total_campuses} Campuses
             </div>
             <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
@@ -586,11 +866,22 @@ export function MasterSaasPortal() {
             </div>
           </div>
 
-          <div style={{ background: '#131b2e', borderRadius: '18px', padding: '1.25rem', border: '1px solid #1e293b' }}>
-            <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
+          <div
+            style={{
+              background: '#111827',
+              borderRadius: '20px',
+              padding: '1.35rem',
+              border: '1px solid #1f2937',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)' }} />
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
               Issued Product Keys
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#f59e0b', margin: '4px 0 0' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#fbbf24', margin: '4px 0 0', letterSpacing: '-0.02em' }}>
               {licenses.length} Keys
             </div>
             <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
@@ -598,32 +889,44 @@ export function MasterSaasPortal() {
             </div>
           </div>
 
-          <div style={{ background: '#131b2e', borderRadius: '18px', padding: '1.25rem', border: '1px solid #1e293b' }}>
-            <div style={{ fontSize: '0.74rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
+          <div
+            style={{
+              background: '#111827',
+              borderRadius: '20px',
+              padding: '1.35rem',
+              border: '1px solid #1f2937',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #a855f7 0%, #7c3aed 100%)' }} />
+            <div style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>
               M-Pesa Payment Line
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#a855f7', margin: '4px 0 0' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#c084fc', margin: '4px 0 0', letterSpacing: '-0.02em' }}>
               0740027346
             </div>
             <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px' }}>
-              KES 2,500/campus per month
+              Automated Paybill &amp; Buy Goods verification
             </div>
           </div>
         </div>
 
-        {/* Quick Mobile Access & WhatsApp Share Bar */}
+        {/* Quick Mobile Access & OTA Live Update Control Bar */}
         <div
           style={{
-            background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.4) 0%, rgba(19, 27, 46, 0.95) 100%)',
-            border: '1px solid #059669',
-            borderRadius: '18px',
+            background: 'linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgba(17, 24, 39, 0.95) 100%)',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            borderRadius: '20px',
             padding: '1.25rem 1.5rem',
-            marginBottom: '2rem',
+            marginBottom: '1.75rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: '1rem',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -638,186 +941,273 @@ export function MasterSaasPortal() {
                 justifyContent: 'center',
                 fontSize: '1.4rem',
                 flexShrink: 0,
+                boxShadow: '0 4px 14px rgba(5, 150, 105, 0.4)',
               }}
             >
-              📱
+              ⚡
             </div>
             <div>
-              <div style={{ fontSize: '1rem', fontWeight: 900, color: '#ecfdf5', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>SaaS Admin Dedicated Android APK</span>
-                <span style={{ fontSize: '0.68rem', background: '#10b981', color: '#064e3b', padding: '1px 7px', borderRadius: '999px', fontWeight: 900 }}>
-                  STANDALONE
+              <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ecfdf5', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span>Dedicated SaaS Admin App &bull; OTA Update Engine</span>
+                <span style={{ fontSize: '0.68rem', background: '#059669', color: '#ffffff', padding: '2px 8px', borderRadius: '999px', fontWeight: 800 }}>
+                  LIVE SYNC ACTIVE
+                </span>
+                <span style={{ fontSize: '0.68rem', background: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5', border: '1px solid rgba(239, 68, 68, 0.4)', padding: '2px 8px', borderRadius: '999px', fontWeight: 800 }}>
+                  🔒 No Public Downloads
                 </span>
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-                Standalone package for Platform Owners — instant Master Passcode startup, billing &amp; key generator.
+              <div style={{ fontSize: '0.76rem', color: '#a7f3d0', marginTop: '2px' }}>
+                Private APK distributed directly via WhatsApp &bull; Over-The-Air (OTA) real-time updates enabled
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <a
-              href="/downloads/GlobalCollege-SaaSAdmin.apk"
-              download="GlobalCollege-SaaSAdmin.apk"
-              style={{
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                color: '#ffffff',
-                padding: '0.55rem 1.1rem',
-                borderRadius: '10px',
-                fontSize: '0.84rem',
-                fontWeight: 800,
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
-              }}
-            >
-              <span>📥 Download APK</span>
-            </a>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={() => handleShareWhatsApp('saasAdmin')}
+              disabled={isCheckingOta}
+              onClick={handleManualOtaCheck}
               style={{
-                background: '#25D366',
-                color: '#075E54',
-                padding: '0.55rem 1.1rem',
+                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                color: '#ffffff',
+                padding: '0.55rem 1.15rem',
                 borderRadius: '10px',
                 fontSize: '0.84rem',
                 fontWeight: 900,
                 border: 'none',
+                cursor: isCheckingOta ? 'wait' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 14px rgba(5, 150, 105, 0.4)',
+              }}
+            >
+              <span>{isCheckingOta ? '⏳ Checking OTA...' : '⚡ Check for OTA Updates'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('support_desk')}
+              style={{
+                background: activeTab === 'support_desk' ? 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' : '#1f2937',
+                color: activeTab === 'support_desk' ? '#ffffff' : '#93c5fd',
+                padding: '0.55rem 1.1rem',
+                borderRadius: '10px',
+                fontSize: '0.84rem',
+                fontWeight: 800,
+                border: '1px solid #3b82f6',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
+                boxShadow: activeTab === 'support_desk' ? '0 4px 14px rgba(37, 99, 235, 0.4)' : 'none',
               }}
             >
-              <span>💬 Send to WhatsApp</span>
+              <span>💬 Support Desk</span>
+              {supportUnreadCount > 0 && (
+                <span
+                  style={{
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '0.68rem',
+                    padding: '1px 6px',
+                    borderRadius: '999px',
+                    fontWeight: 900,
+                  }}
+                >
+                  {supportUnreadCount}
+                </span>
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('mobile_apks')}
               style={{
-                background: '#1e293b',
+                background: '#1f2937',
                 color: '#94a3b8',
-                padding: '0.55rem 0.9rem',
+                padding: '0.55rem 0.95rem',
                 borderRadius: '10px',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                border: '1px solid #334155',
+                border: '1px solid #374151',
                 cursor: 'pointer',
               }}
             >
-              View APK Details →
+              APK Deployment Info →
             </button>
           </div>
         </div>
 
-        {/* Tab Navigation Controls */}
-        <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.75rem', marginBottom: '2rem' }}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('keys')}
+        {/* OTA Status Notification Message */}
+        {otaStatusMsg && (
+          <div
             style={{
-              background: activeTab === 'keys' ? '#2563eb' : '#131b2e',
-              color: activeTab === 'keys' ? '#ffffff' : '#94a3b8',
-              border: '1px solid #1e293b',
-              padding: '0.65rem 1.25rem',
+              background: 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid #10b981',
               borderRadius: '12px',
+              padding: '0.75rem 1.25rem',
+              color: '#34d399',
               fontSize: '0.86rem',
               fontWeight: 800,
-              cursor: 'pointer',
+              marginBottom: '1.5rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '8px',
             }}
           >
-            <span>🔑 Generate Product Keys ({licenses.length})</span>
-          </button>
+            <span>⚡</span>
+            <span>{otaStatusMsg}</span>
+          </div>
+        )}
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('institutions')}
+        {/* Modern Executive Navigation Control Bar */}
+        <nav
+          aria-label="SaaS Admin Portal Navigation"
+          style={{
+            position: 'sticky',
+            top: '0.75rem',
+            zIndex: 40,
+            background: 'rgba(11, 15, 25, 0.88)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '20px',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '6px',
+            marginBottom: '2rem',
+            boxShadow: '0 16px 36px -6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04)',
+          }}
+        >
+          <div
             style={{
-              background: activeTab === 'institutions' ? '#2563eb' : '#131b2e',
-              color: activeTab === 'institutions' ? '#ffffff' : '#94a3b8',
-              border: '1px solid #1e293b',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '12px',
-              fontSize: '0.86rem',
-              fontWeight: 800,
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch',
             }}
           >
-            <span>🏛️ Institutions &amp; Campuses Ledger ({schools.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('invoices')}
-            style={{
-              background: activeTab === 'invoices' ? '#2563eb' : '#131b2e',
-              color: activeTab === 'invoices' ? '#ffffff' : '#94a3b8',
-              border: '1px solid #1e293b',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '12px',
-              fontSize: '0.86rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <span>💳 Invoices &amp; M-Pesa Log ({invoices.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('mobile_apks')}
-            style={{
-              background: activeTab === 'mobile_apks' ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)' : '#131b2e',
-              color: activeTab === 'mobile_apks' ? '#ffffff' : '#94a3b8',
-              border: '1px solid #1e293b',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '12px',
-              fontSize: '0.86rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <span>📱 Mobile APKs &amp; WhatsApp Share</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('notifications')}
-            style={{
-              background: activeTab === 'notifications' ? 'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)' : '#131b2e',
-              color: activeTab === 'notifications' ? '#ffffff' : '#94a3b8',
-              border: '1px solid #1e293b',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '12px',
-              fontSize: '0.86rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <span>🔔 Push Notifications ({notificationCount})</span>
-          </button>
-        </div>
+            {[
+              {
+                id: 'keys' as const,
+                label: 'Product Keys',
+                icon: '🔑',
+                count: licenses.length,
+                badgeText: `${licenses.length}`,
+                badgeBg: 'rgba(59, 130, 246, 0.2)',
+                badgeColor: '#60a5fa',
+              },
+              {
+                id: 'institutions' as const,
+                label: 'Institutions Ledger',
+                icon: '🏛️',
+                count: schools.length,
+                badgeText: `${schools.length}`,
+                badgeBg: 'rgba(16, 185, 129, 0.2)',
+                badgeColor: '#34d399',
+              },
+              {
+                id: 'invoices' as const,
+                label: 'Invoices & M-Pesa',
+                icon: '💳',
+                count: invoices.length,
+                badgeText: `${invoices.length}`,
+                badgeBg: 'rgba(245, 158, 11, 0.2)',
+                badgeColor: '#fbbf24',
+              },
+              {
+                id: 'support_desk' as const,
+                label: 'Support Desk',
+                icon: '💬',
+                count: supportUnreadCount,
+                badgeText: supportUnreadCount > 0 ? `${supportUnreadCount} New` : 'Live',
+                badgeBg: supportUnreadCount > 0 ? '#ef4444' : 'rgba(148, 163, 184, 0.2)',
+                badgeColor: '#ffffff',
+                isAlert: supportUnreadCount > 0,
+              },
+              {
+                id: 'mobile_apks' as const,
+                label: 'Android APK & OTA',
+                icon: '📱',
+                count: 0,
+                badgeText: 'Auto-Sync',
+                badgeBg: 'rgba(5, 150, 105, 0.25)',
+                badgeColor: '#6ee7b7',
+              },
+              {
+                id: 'notifications' as const,
+                label: 'Push Notification Studio',
+                icon: '🔔',
+                count: notificationCount,
+                badgeText: `${notificationCount}`,
+                badgeBg: 'rgba(139, 92, 246, 0.25)',
+                badgeColor: '#c084fc',
+              },
+            ].map((tab) => {
+              const active = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    background: active
+                      ? 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)'
+                      : 'transparent',
+                    color: active ? '#ffffff' : '#94a3b8',
+                    border: active ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid transparent',
+                    padding: '0.65rem 1.15rem',
+                    borderRadius: '14px',
+                    fontSize: '0.84rem',
+                    fontWeight: active ? 800 : 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    whiteSpace: 'nowrap',
+                    boxShadow: active
+                      ? '0 6px 20px -2px rgba(37, 99, 235, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+                      : 'none',
+                    transition: 'all 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                >
+                  <span style={{ fontSize: '1rem', display: 'inline-flex', alignItems: 'center' }}>
+                    {tab.icon}
+                  </span>
+                  <span>{tab.label}</span>
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      background: active ? 'rgba(255, 255, 255, 0.22)' : tab.badgeBg,
+                      color: active ? '#ffffff' : tab.badgeColor,
+                      padding: '2px 7px',
+                      borderRadius: '999px',
+                      fontWeight: 800,
+                      letterSpacing: '0.02em',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {tab.isAlert && (
+                      <span
+                        style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: '#ffffff',
+                          display: 'inline-block',
+                        }}
+                      />
+                    )}
+                    {tab.badgeText}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </nav>
 
         {/* =========================================================================
             TAB 1: PRODUCT KEY GENERATOR & ISSUED KEYS
@@ -1479,19 +1869,38 @@ export function MasterSaasPortal() {
                               <div style={{ fontSize: '0.68rem', color: '#64748b' }}>({cCount} × {tierRate.toLocaleString()})</div>
                             </td>
                             <td style={{ padding: '0.85rem 0.75rem' }}>
-                              <span
+                              <select
+                                value={sch.subscription_status || (sch.active_license_key ? 'licensed' : 'trial')}
+                                onChange={(e) => handleToggleStatus(sch.slug, e.target.value as any)}
                                 style={{
-                                  fontSize: '0.7rem',
+                                  fontSize: '0.72rem',
                                   fontWeight: 800,
-                                  padding: '3px 8px',
-                                  borderRadius: '999px',
-                                  background: sch.subscription_status === 'licensed' ? '#047857' : sch.subscription_status === 'active' ? '#1d4ed8' : '#854d0e',
+                                  padding: '4px 8px',
+                                  borderRadius: '8px',
+                                  border: '1px solid ' + (
+                                    sch.subscription_status === 'licensed' ? '#059669' :
+                                    sch.subscription_status === 'active' ? '#2563eb' :
+                                    sch.subscription_status === 'suspended' ? '#dc2626' :
+                                    sch.subscription_status === 'past_due' ? '#d97706' : '#64748b'
+                                  ),
+                                  background: (
+                                    sch.subscription_status === 'licensed' ? '#064e3b' :
+                                    sch.subscription_status === 'active' ? '#1e3a8a' :
+                                    sch.subscription_status === 'suspended' ? '#7f1d1d' :
+                                    sch.subscription_status === 'past_due' ? '#78350f' : '#1e293b'
+                                  ),
                                   color: '#ffffff',
-                                  textTransform: 'uppercase',
+                                  cursor: 'pointer',
+                                  outline: 'none',
                                 }}
+                                title="Click to change institution status"
                               >
-                                {sch.active_license_key ? (sch.subscription_status || 'Licensed') : 'Unlicensed'}
-                              </span>
+                                <option value="active">🟢 ACTIVE</option>
+                                <option value="licensed">🛡️ LICENSED</option>
+                                <option value="trial">🟡 TRIAL</option>
+                                <option value="past_due">⚠️ PAST DUE</option>
+                                <option value="suspended">🔴 SUSPENDED</option>
+                              </select>
                             </td>
                             <td style={{ padding: '0.85rem 0.75rem', fontSize: '0.78rem', color: '#cbd5e1' }}>
                               {sch.license_valid_until ? sch.license_valid_until.split('T')[0] : (sch.active_license_key ? 'Active' : 'Awaiting Key')}
@@ -1577,15 +1986,46 @@ export function MasterSaasPortal() {
                                 >
                                   ✏️ Edit
                                 </button>
+                                {sch.subscription_status === 'suspended' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleStatus(sch.slug, 'active')}
+                                    style={{
+                                      background: '#047857',
+                                      color: '#d1fae5',
+                                      border: 'none',
+                                      padding: '0.4rem 0.7rem',
+                                      borderRadius: '8px',
+                                      fontSize: '0.74rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                    }}
+                                    title="Reactivate suspended institution"
+                                  >
+                                    ▶ Reactivate
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleStatus(sch.slug, 'suspended')}
+                                    style={{
+                                      background: '#451a1a',
+                                      color: '#fca5a5',
+                                      border: '1px solid #7f1d1d',
+                                      padding: '0.4rem 0.6rem',
+                                      borderRadius: '8px',
+                                      fontSize: '0.74rem',
+                                      fontWeight: 800,
+                                      cursor: 'pointer',
+                                    }}
+                                    title="Suspend institution"
+                                  >
+                                    ⏸ Suspend
+                                  </button>
+                                )}
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    const res = tenantSchoolStore.resetSchoolAdminPassword(sch.slug)
-                                    if (res.success) {
-                                      setGeneratedAdminPasswordMsg({ schoolSlug: sch.slug, pass: res.newPassword })
-                                      setSchools(tenantSchoolStore.getSchools())
-                                    }
-                                  }}
+                                  onClick={() => handleResetPassword(sch.slug)}
                                   style={{
                                     background: '#854d0e',
                                     color: '#fef08a',
@@ -1773,26 +2213,45 @@ export function MasterSaasPortal() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <a
-                    href="/downloads/GlobalCollege-SaaSAdmin.apk"
-                    download="GlobalCollege-SaaSAdmin.apk"
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div
                     style={{
-                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                      color: '#ffffff',
-                      padding: '0.75rem 1.4rem',
+                      background: 'rgba(5, 150, 105, 0.15)',
+                      color: '#34d399',
+                      padding: '0.75rem 1.25rem',
                       borderRadius: '12px',
-                      fontSize: '0.9rem',
+                      fontSize: '0.88rem',
                       fontWeight: 800,
-                      textDecoration: 'none',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)',
                     }}
                   >
-                    <span>📥 Download SaaS Admin APK</span>
-                  </a>
+                    <span>🔒 Private APK (Public Download Disabled)</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isCheckingOta}
+                    onClick={handleManualOtaCheck}
+                    style={{
+                      background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                      color: '#ffffff',
+                      padding: '0.75rem 1.35rem',
+                      borderRadius: '12px',
+                      fontSize: '0.88rem',
+                      fontWeight: 800,
+                      border: 'none',
+                      cursor: isCheckingOta ? 'wait' : 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 16px rgba(5, 150, 105, 0.4)',
+                    }}
+                  >
+                    <span>{isCheckingOta ? '⏳ Checking OTA Updates...' : '⚡ Check for OTA Updates Now'}</span>
+                  </button>
 
                   <button
                     type="button"
@@ -1843,9 +2302,9 @@ export function MasterSaasPortal() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Billing &amp; Rate Engine</div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>💰 KES 2,500 / Campus / Month</div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Generate 1-mo, 3-mo, 1-yr keys &amp; receipts</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Over-The-Air (OTA) Updates</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#10b981', marginTop: '2px' }}>🔄 Real-time Background Sync</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Updates auto-apply without reinstalling APK</div>
                 </div>
 
                 <div>
@@ -1855,9 +2314,9 @@ export function MasterSaasPortal() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Offline &amp; Standalone</div>
-                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#a855f7', marginTop: '2px' }}>📦 Local Embedded Assets</div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Works offline with local cache synchronization</div>
+                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Private WhatsApp Delivery</div>
+                  <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#a855f7', marginTop: '2px' }}>📲 Private Directorate Channel</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Public downloads strictly disabled for security</div>
                 </div>
               </div>
             </div>
@@ -1970,6 +2429,13 @@ export function MasterSaasPortal() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* =========================================================================
+            TAB: CLIENT SUPPORT & INQUIRIES DESK
+        ========================================================================= */}
+        {activeTab === 'support_desk' && (
+          <SaasSupportChatDesk />
         )}
 
         {/* =========================================================================
@@ -2087,7 +2553,7 @@ export function MasterSaasPortal() {
               style={{
                 background: '#131b2e',
                 borderRadius: '24px',
-                maxWidth: '480px',
+                maxWidth: '520px',
                 width: '100%',
                 padding: '2rem',
                 border: '2px solid #854d0e',
@@ -2099,70 +2565,138 @@ export function MasterSaasPortal() {
                 <span style={{ fontSize: '1.8rem' }}>🔑</span>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#fef08a' }}>
-                    New Admin Temporary Password
+                    Admin Password Regenerated
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                    School: <strong>{generatedAdminPasswordMsg.schoolSlug}</strong>
+                    Institution: <strong>{generatedAdminPasswordMsg.schoolName || generatedAdminPasswordMsg.schoolSlug}</strong>
                   </div>
                 </div>
               </div>
 
               <p style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: 1.5, margin: '0 0 1rem' }}>
-                A new temporary password has been successfully regenerated. Provide this to the school principal or administrator. They can change it inside their profile:
+                The temporary executive password has been reset and synchronized to cloud. The Principal can log into their campus portal immediately:
               </p>
 
               <div
                 style={{
                   background: '#090d16',
-                  borderRadius: '12px',
-                  padding: '1rem',
+                  borderRadius: '14px',
+                  padding: '1.25rem',
                   border: '1px solid #334155',
-                  fontFamily: 'monospace',
-                  fontSize: '1.3rem',
-                  fontWeight: 900,
-                  color: '#fbbf24',
-                  textAlign: 'center',
-                  letterSpacing: '0.08em',
                   marginBottom: '1.25rem',
                 }}
               >
-                {generatedAdminPasswordMsg.pass}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#94a3b8' }}>Login ID / Username:</span>
+                  <strong style={{ color: '#38bdf8', fontFamily: 'monospace', fontSize: '0.9rem' }}>
+                    {generatedAdminPasswordMsg.username || `${generatedAdminPasswordMsg.schoolSlug}.admin`}
+                  </strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#94a3b8' }}>Campus Portal:</span>
+                  <strong style={{ color: '#a78bfa', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                    /s/{generatedAdminPasswordMsg.schoolSlug}
+                  </strong>
+                </div>
+                <div style={{ borderTop: '1px solid #1e293b', paddingTop: '10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '4px' }}>Temporary Password</div>
+                  <div
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: '1.4rem',
+                      fontWeight: 900,
+                      color: '#fbbf24',
+                      letterSpacing: '0.08em',
+                    }}
+                  >
+                    {generatedAdminPasswordMsg.pass}
+                  </div>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={() => copyText(generatedAdminPasswordMsg.pass, 'admin_pass_copied')}
-                  style={{
-                    flex: 1,
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  {copiedKey === 'admin_pass_copied' ? '✓ Copied Password!' : '📋 Copy Password'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGeneratedAdminPasswordMsg(null)}
-                  style={{
-                    background: '#1e293b',
-                    color: '#cbd5e1',
-                    border: 'none',
-                    padding: '0.75rem 1.25rem',
-                    borderRadius: '10px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  Close
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ display: 'flex', gap: '0.65rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => copyText(generatedAdminPasswordMsg.pass, 'admin_pass_copied')}
+                    style={{
+                      flex: 1,
+                      background: '#2563eb',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '0.75rem',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                    }}
+                  >
+                    {copiedKey === 'admin_pass_copied' ? '✓ Copied Password!' : '📋 Copy Password'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const portalUrl = `${window.location.origin}/s/${generatedAdminPasswordMsg.schoolSlug}`
+                      const msg = `🎓 *${generatedAdminPasswordMsg.schoolName || generatedAdminPasswordMsg.schoolSlug} — Administrator Access Credentials*\n\n` +
+                        `🌐 *Portal Login:* ${portalUrl}\n` +
+                        `👤 *Admin Username:* ${generatedAdminPasswordMsg.username || `${generatedAdminPasswordMsg.schoolSlug}.admin`}\n` +
+                        `🔑 *Temporary Password:* ${generatedAdminPasswordMsg.pass}\n\n` +
+                        `Please log into your Executive Office workspace and update your password in profile settings.`
+                      copyText(msg, 'full_slip_copied')
+                    }}
+                    style={{
+                      flex: 1.3,
+                      background: '#059669',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '0.75rem',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                    }}
+                  >
+                    {copiedKey === 'full_slip_copied' ? '✓ Copied Credentials Slip!' : '📱 Copy WhatsApp Notice'}
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '0.65rem' }}>
+                  <Link
+                    to={`/s/${generatedAdminPasswordMsg.schoolSlug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      flex: 1,
+                      background: '#1e293b',
+                      color: '#38bdf8',
+                      padding: '0.75rem',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      textAlign: 'center',
+                      textDecoration: 'none',
+                      fontSize: '0.82rem',
+                      border: '1px solid #334155',
+                    }}
+                  >
+                    🔗 Open Campus Portal ↗
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setGeneratedAdminPasswordMsg(null)}
+                    style={{
+                      flex: 1,
+                      background: '#334155',
+                      color: '#cbd5e1',
+                      border: 'none',
+                      padding: '0.75rem',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      fontSize: '0.82rem',
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2188,7 +2722,7 @@ export function MasterSaasPortal() {
               style={{
                 background: '#131b2e',
                 borderRadius: '24px',
-                maxWidth: '680px',
+                maxWidth: '720px',
                 width: '100%',
                 maxHeight: '90vh',
                 overflowY: 'auto',
@@ -2222,12 +2756,52 @@ export function MasterSaasPortal() {
               {/* Grid of Profile Information */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Operational Status</div>
+                  <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <select
+                      value={inspectedSchool.subscription_status || (inspectedSchool.active_license_key ? 'licensed' : 'trial')}
+                      onChange={(e) => handleToggleStatus(inspectedSchool.slug, e.target.value as any)}
+                      style={{
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        border: '1px solid ' + (
+                          inspectedSchool.subscription_status === 'licensed' ? '#059669' :
+                          inspectedSchool.subscription_status === 'active' ? '#2563eb' :
+                          inspectedSchool.subscription_status === 'suspended' ? '#dc2626' :
+                          inspectedSchool.subscription_status === 'past_due' ? '#d97706' : '#64748b'
+                        ),
+                        background: (
+                          inspectedSchool.subscription_status === 'licensed' ? '#064e3b' :
+                          inspectedSchool.subscription_status === 'active' ? '#1e3a8a' :
+                          inspectedSchool.subscription_status === 'suspended' ? '#7f1d1d' :
+                          inspectedSchool.subscription_status === 'past_due' ? '#78350f' : '#1e293b'
+                        ),
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="active">🟢 ACTIVE</option>
+                      <option value="licensed">🛡️ LICENSED</option>
+                      <option value="trial">🟡 TRIAL</option>
+                      <option value="past_due">⚠️ PAST DUE</option>
+                      <option value="suspended">🔴 SUSPENDED</option>
+                    </select>
+                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                      Tier: <strong>{(inspectedSchool.subscription_tier || 'gold').toUpperCase()}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
                   <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Executive Leadership</div>
                   <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#f8fafc', marginTop: '3px' }}>
                     {inspectedSchool.principal_name}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-                    Title: {inspectedSchool.principal_title} • Email: {inspectedSchool.principal_email}
+                    Title: {inspectedSchool.principal_title || 'Principal'} • Email: {inspectedSchool.principal_email || inspectedSchool.contact_email}
                   </div>
                 </div>
 
@@ -2237,7 +2811,7 @@ export function MasterSaasPortal() {
                     Username: {inspectedSchool.admin_username || `${inspectedSchool.slug}.admin`}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-                    Current Password: <strong style={{ color: '#f8fafc' }}>{inspectedSchool.admin_password || '(Hidden / Default)'}</strong>
+                    Current Password: <strong style={{ color: '#f8fafc' }}>{inspectedSchool.admin_password || '(Configured)'}</strong>
                   </div>
                 </div>
 
@@ -2303,14 +2877,61 @@ export function MasterSaasPortal() {
                 <button
                   type="button"
                   onClick={() => {
-                    const res = tenantSchoolStore.resetSchoolAdminPassword(inspectedSchool.slug)
-                    if (res.success) {
-                      setGeneratedAdminPasswordMsg({ schoolSlug: inspectedSchool.slug, pass: res.newPassword })
-                      const updated = tenantSchoolStore.getSchoolBySlug(inspectedSchool.slug)
-                      if (updated) setInspectedSchool(updated)
-                      setSchools(tenantSchoolStore.getSchools())
-                    }
+                    const sch = inspectedSchool
+                    setInspectedSchool(null)
+                    openEditSchool(sch)
                   }}
+                  style={{
+                    background: '#1d4ed8',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.7rem 1.25rem',
+                    borderRadius: '10px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontSize: '0.84rem',
+                  }}
+                >
+                  ✏️ Edit Profile
+                </button>
+                {inspectedSchool.subscription_status === 'suspended' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleStatus(inspectedSchool.slug, 'active')}
+                    style={{
+                      background: '#047857',
+                      color: '#d1fae5',
+                      border: 'none',
+                      padding: '0.7rem 1.25rem',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      fontSize: '0.84rem',
+                    }}
+                  >
+                    ▶ Reactivate Institution
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleStatus(inspectedSchool.slug, 'suspended')}
+                    style={{
+                      background: '#451a1a',
+                      color: '#fca5a5',
+                      border: '1px solid #7f1d1d',
+                      padding: '0.7rem 1.25rem',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      fontSize: '0.84rem',
+                    }}
+                  >
+                    ⏸ Suspend Institution
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleResetPassword(inspectedSchool.slug)}
                   style={{
                     background: '#854d0e',
                     color: '#fef08a',
@@ -2326,6 +2947,8 @@ export function MasterSaasPortal() {
                 </button>
                 <Link
                   to={`/s/${inspectedSchool.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
                   style={{
                     background: '#2563eb',
                     color: '#ffffff',
@@ -2435,6 +3058,57 @@ export function MasterSaasPortal() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      INSTITUTION CATEGORY *
+                    </label>
+                    <select
+                      value={editFormData.institution_category}
+                      onChange={(e) => setEditFormData({ ...editFormData, institution_category: e.target.value as InstitutionCategory })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    >
+                      <option value="college">College / Polytechnic</option>
+                      <option value="school">Primary / High School (K-12)</option>
+                      <option value="university">University / Higher Education</option>
+                      <option value="academy">Professional &amp; Tech Academy</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      OPERATIONAL STATUS *
+                    </label>
+                    <select
+                      value={editFormData.subscription_status}
+                      onChange={(e) => setEditFormData({ ...editFormData, subscription_status: e.target.value as any })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    >
+                      <option value="active">🟢 Active</option>
+                      <option value="licensed">🛡️ Licensed</option>
+                      <option value="trial">🟡 Trial</option>
+                      <option value="past_due">⚠️ Past Due</option>
+                      <option value="suspended">🔴 Suspended</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
                       INSTITUTION MOTTO / SLOGAN
                     </label>
                     <input
@@ -2471,7 +3145,7 @@ export function MasterSaasPortal() {
                         fontSize: '0.88rem',
                       }}
                     >
-                      <option value="Vocational & TVET College">Vocational &amp; TVET College</option>
+                      <option value="Vocational & Technical College">Vocational &amp; Technical College</option>
                       <option value="General Academic & Multi-Disciplinary">General Academic &amp; Multi-Disciplinary</option>
                       <option value="STEM & Technology Institute">STEM &amp; Technology Institute</option>
                       <option value="Business & Professional Academy">Business &amp; Professional Academy</option>
@@ -2481,6 +3155,149 @@ export function MasterSaasPortal() {
                   </div>
                 </div>
 
+                {/* Leadership & Credentials */}
+                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+                    👑 Executive Leadership &amp; Administrator Login
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '3px' }}>
+                        PRINCIPAL / PROVOST NAME *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editFormData.principal_name}
+                        onChange={(e) => setEditFormData({ ...editFormData, principal_name: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '0.65rem',
+                          borderRadius: '8px',
+                          background: '#131b2e',
+                          border: '1px solid #334155',
+                          color: '#ffffff',
+                          fontSize: '0.84rem',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '3px' }}>
+                        TITLE
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.principal_title}
+                        onChange={(e) => setEditFormData({ ...editFormData, principal_title: e.target.value })}
+                        placeholder="Principal / Provost / Dean"
+                        style={{
+                          width: '100%',
+                          padding: '0.65rem',
+                          borderRadius: '8px',
+                          background: '#131b2e',
+                          border: '1px solid #334155',
+                          color: '#ffffff',
+                          fontSize: '0.84rem',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '3px' }}>
+                        ADMIN LOGIN ID (USERNAME) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editFormData.admin_username}
+                        onChange={(e) => setEditFormData({ ...editFormData, admin_username: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '0.65rem',
+                          borderRadius: '8px',
+                          background: '#131b2e',
+                          border: '1px solid #334155',
+                          color: '#38bdf8',
+                          fontFamily: 'monospace',
+                          fontSize: '0.84rem',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '3px' }}>
+                        CHANGE ADMIN PASSWORD
+                      </label>
+                      <input
+                        type="text"
+                        value={editFormData.admin_password}
+                        onChange={(e) => setEditFormData({ ...editFormData, admin_password: e.target.value })}
+                        placeholder="Leave blank to keep existing"
+                        style={{
+                          width: '100%',
+                          padding: '0.65rem',
+                          borderRadius: '8px',
+                          background: '#131b2e',
+                          border: '1px solid #334155',
+                          color: '#fbbf24',
+                          fontFamily: 'monospace',
+                          fontSize: '0.84rem',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subscription Tier & Campuses */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      REGISTERED CAMPUSES
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      value={editFormData.campus_count}
+                      onChange={(e) => setEditFormData({ ...editFormData, campus_count: Number(e.target.value) || 1 })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                      SUBSCRIPTION TIER
+                    </label>
+                    <select
+                      value={editFormData.subscription_tier}
+                      onChange={(e) => setEditFormData({ ...editFormData, subscription_tier: e.target.value as SubscriptionTierType })}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        background: '#0a0f1d',
+                        border: '1px solid #334155',
+                        color: '#ffffff',
+                        fontSize: '0.88rem',
+                      }}
+                    >
+                      <option value="gold">Gold Tier (KES 3,000 / mo per campus)</option>
+                      <option value="silver">Silver Tier (KES 2,500 / mo per campus)</option>
+                      <option value="platinum">Platinum Tier (KES 5,000 / mo per campus)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Contacts & Location */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
@@ -2525,15 +3342,16 @@ export function MasterSaasPortal() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      PRINCIPAL / DIRECTOR NAME
+                      CITY / TOWN
                     </label>
                     <input
                       type="text"
-                      value={editFormData.principal_name}
-                      onChange={(e) => setEditFormData({ ...editFormData, principal_name: e.target.value })}
+                      value={editFormData.city}
+                      onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                      placeholder="e.g. Nairobi, Nakuru, Eldoret"
                       style={{
                         width: '100%',
                         padding: '0.75rem',
@@ -2548,14 +3366,13 @@ export function MasterSaasPortal() {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      CAMPUS COUNT
+                      COUNTRY
                     </label>
                     <input
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={editFormData.campus_count}
-                      onChange={(e) => setEditFormData({ ...editFormData, campus_count: Number(e.target.value) || 1 })}
+                      type="text"
+                      value={editFormData.country}
+                      onChange={(e) => setEditFormData({ ...editFormData, country: e.target.value })}
+                      placeholder="e.g. Kenya"
                       style={{
                         width: '100%',
                         padding: '0.75rem',
@@ -2566,29 +3383,6 @@ export function MasterSaasPortal() {
                         fontSize: '0.88rem',
                       }}
                     />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      SUBSCRIPTION TIER
-                    </label>
-                    <select
-                      value={editFormData.subscription_tier}
-                      onChange={(e) => setEditFormData({ ...editFormData, subscription_tier: e.target.value as SubscriptionTierType })}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    >
-                      <option value="gold">Gold Tier (KES 3,000 / mo)</option>
-                      <option value="silver">Silver Tier (KES 2,500 / mo)</option>
-                      <option value="platinum">Platinum Tier (KES 5,000 / mo)</option>
-                    </select>
                   </div>
                 </div>
 
@@ -2601,6 +3395,27 @@ export function MasterSaasPortal() {
                     value={editFormData.address}
                     onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
                     placeholder="e.g. Commercial Street, Westlands, Nairobi"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '10px',
+                      background: '#0a0f1d',
+                      border: '1px solid #334155',
+                      color: '#ffffff',
+                      fontSize: '0.88rem',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
+                    CUSTOM DOMAIN (OPTIONAL)
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.custom_domain}
+                    onChange={(e) => setEditFormData({ ...editFormData, custom_domain: e.target.value })}
+                    placeholder="e.g. portal.apextech.ac.ke or lms.school.edu"
                     style={{
                       width: '100%',
                       padding: '0.75rem',

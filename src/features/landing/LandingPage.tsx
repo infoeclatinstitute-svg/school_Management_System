@@ -1,12 +1,31 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { SafariInstallModal } from '@/components/shared/SafariInstallModal'
 import { AppLogo } from '@/components/common/AppLogo'
 import { isNativeApp, isElectronApp } from '@/utils/platform'
+import { tenantSchoolStore } from '@/lib/tenantSchoolStore'
+import type { PartnerSchoolTenant } from '@/types/tenantSchool'
 
 export function LandingPage() {
   const navigate = useNavigate()
   const { isInstalled, isIOS, showInstallGuide, setShowInstallGuide, promptInstall, promptNativeInstall, hasNativePrompt } = usePWAInstall()
+  const [schools, setSchools] = useState<PartnerSchoolTenant[]>(() => tenantSchoolStore.getSchools())
+  const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setSchools(tenantSchoolStore.getSchools())
+    }
+    window.addEventListener('gc-tenant-schools-updated', handleUpdate)
+    return () => window.removeEventListener('gc-tenant-schools-updated', handleUpdate)
+  }, [])
+
+  const filteredSchools = schools.filter((s) => {
+    const q = searchQuery.toLowerCase().trim()
+    if (!q) return false
+    return s.name.toLowerCase().includes(q) || s.slug.toLowerCase().includes(q)
+  })
 
   const features = [
     {
@@ -60,7 +79,7 @@ export function LandingPage() {
   ]
 
   return (
-    <div style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', color: '#0f172a', overflowX: 'hidden', background: '#f8fafc' }}>
+    <div style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', color: '#0f172a', overflowX: 'hidden', background: '#f8fafc', minHeight: '100vh' }}>
       <style>{`
         .landing-nav-btn {
           transition: all 0.15s ease;
@@ -88,15 +107,35 @@ export function LandingPage() {
             display: none !important;
           }
           .landing-nav-wrap {
-            padding: 0 0.85rem !important;
+            padding-left: 0.85rem !important;
+            padding-right: 0.85rem !important;
           }
           .landing-nav-brand {
-            max-width: 170px;
+            max-width: 150px;
             overflow: hidden;
           }
           .landing-btn-text {
             font-size: 0.78rem !important;
-            padding: 0.4rem 0.75rem !important;
+            padding: 0.45rem 0.65rem !important;
+          }
+          .mobile-text {
+            display: inline !important;
+          }
+          .desktop-text {
+            display: none !important;
+          }
+          .landing-hero-gradient-text {
+            color: #93c5fd !important;
+            -webkit-text-fill-color: #93c5fd !important;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+          }
+        }
+        @media (min-width: 641px) {
+          .mobile-text {
+            display: none !important;
+          }
+          .desktop-text {
+            display: inline !important;
           }
         }
       `}</style>
@@ -108,14 +147,18 @@ export function LandingPage() {
           position: 'sticky',
           top: 0,
           zIndex: 50,
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(12px)',
+          background: 'rgba(255, 255, 255, 0.96)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           borderBottom: '1px solid #e2e8f0',
-          padding: '0 1.5rem',
+          paddingTop: 'max(0.75rem, env(safe-area-inset-top, 10px))',
+          paddingBottom: '0.75rem',
+          paddingLeft: '1.25rem',
+          paddingRight: '1.25rem',
+          minHeight: 'calc(62px + env(safe-area-inset-top, 10px))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          height: '64px',
           boxSizing: 'border-box',
         }}
       >
@@ -128,7 +171,7 @@ export function LandingPage() {
           <AppLogo size="sm" showTagline={false} />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
           {!isInstalled && !isNativeApp() && !isElectronApp() && (
             <button
               type="button"
@@ -163,7 +206,7 @@ export function LandingPage() {
               color: '#1e293b',
               border: '1px solid #cbd5e1',
               borderRadius: '8px',
-              padding: '0.45rem 0.85rem',
+              padding: '0.45rem 0.75rem',
               fontWeight: 700,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -182,7 +225,7 @@ export function LandingPage() {
               color: '#ffffff',
               border: 'none',
               borderRadius: '8px',
-              padding: '0.45rem 1rem',
+              padding: '0.45rem 0.95rem',
               fontWeight: 800,
               fontSize: '0.82rem',
               cursor: 'pointer',
@@ -190,7 +233,8 @@ export function LandingPage() {
               boxShadow: '0 2px 8px rgba(29, 78, 216, 0.25)',
             }}
           >
-            Register School ➔
+            <span className="desktop-text">Register School ➔</span>
+            <span className="mobile-text">Register ➔</span>
           </button>
         </div>
       </nav>
@@ -198,23 +242,23 @@ export function LandingPage() {
       {/* HERO SECTION */}
       <section
         style={{
-          background: 'radial-gradient(ellipse at top, #1e3a8a 0%, #0f172a 60%, #030712 100%)',
+          background: 'radial-gradient(ellipse at top, #1e3a8a 0%, #0f172a 65%, #030712 100%)',
           color: '#ffffff',
-          padding: 'clamp(3rem, 7vw, 5.5rem) 1.5rem',
+          padding: 'clamp(2.5rem, 6vw, 5rem) 1.25rem',
           textAlign: 'center',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        <div style={{ maxWidth: '820px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+        <div style={{ maxWidth: '840px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
           {/* Badge */}
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
+              background: 'rgba(255, 255, 255, 0.12)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
               borderRadius: '999px',
               padding: '0.35rem 1.1rem',
               fontSize: '0.78rem',
@@ -233,7 +277,7 @@ export function LandingPage() {
           {/* Heading */}
           <h1
             style={{
-              fontSize: 'clamp(2.1rem, 5.5vw, 3.6rem)',
+              fontSize: 'clamp(2rem, 5.5vw, 3.6rem)',
               fontWeight: 900,
               lineHeight: 1.15,
               margin: '0 0 1.25rem',
@@ -243,8 +287,10 @@ export function LandingPage() {
           >
             Give Your School Its Own<br />
             <span
+              className="landing-hero-gradient-text"
               style={{
-                background: 'linear-gradient(135deg, #93c5fd 0%, #60a5fa 45%, #fde68a 100%)',
+                color: '#93c5fd',
+                backgroundImage: 'linear-gradient(135deg, #bfdbfe 0%, #60a5fa 45%, #fde68a 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 display: 'inline-block',
@@ -257,16 +303,16 @@ export function LandingPage() {
           {/* Subtitle */}
           <p
             style={{
-              fontSize: 'clamp(1rem, 2.2vw, 1.2rem)',
-              color: '#cbd5e1',
+              fontSize: 'clamp(0.95rem, 2.2vw, 1.18rem)',
+              color: '#e2e8f0',
               lineHeight: 1.65,
-              margin: '0 0 2.25rem',
-              maxWidth: '620px',
+              margin: '0 0 2rem',
+              maxWidth: '640px',
               marginLeft: 'auto',
               marginRight: 'auto',
             }}
           >
-            Manage students, faculty, fees, exams, and transcripts from your school's own dedicated cloud portal. Live in under 5 minutes.
+            Manage students, faculty, fees, exams, and transcripts from your school&apos;s own dedicated cloud portal. Live in under 5 minutes.
           </p>
 
           {/* CTA Buttons */}
@@ -280,9 +326,9 @@ export function LandingPage() {
                 color: '#0f172a',
                 border: 'none',
                 borderRadius: '12px',
-                padding: '0.9rem 2.2rem',
+                padding: '0.85rem 2rem',
                 fontWeight: 900,
-                fontSize: '1rem',
+                fontSize: '0.98rem',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -304,9 +350,9 @@ export function LandingPage() {
                   color: '#ffffff',
                   border: '1.5px solid rgba(255, 255, 255, 0.3)',
                   borderRadius: '12px',
-                  padding: '0.9rem 1.8rem',
+                  padding: '0.85rem 1.6rem',
                   fontWeight: 800,
-                  fontSize: '1rem',
+                  fontSize: '0.98rem',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -315,8 +361,233 @@ export function LandingPage() {
                 }}
               >
                 <span>📲</span>
-                <span>Install Web App</span>
+                <span>Install Mobile App</span>
               </button>
+            )}
+          </div>
+
+          {/* ── Instant Campus Portal Access / Switcher Widget ── */}
+          <div
+            style={{
+              marginTop: '2.5rem',
+              background: 'rgba(15, 23, 42, 0.82)',
+              border: '1.5px solid rgba(147, 197, 253, 0.3)',
+              borderRadius: '16px',
+              padding: '1.25rem 1.35rem',
+              backdropFilter: 'blur(16px)',
+              maxWidth: '580px',
+              margin: '2.5rem auto 0',
+              textAlign: 'left',
+              boxShadow: '0 16px 36px rgba(0, 0, 0, 0.45)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '0.75rem',
+                flexWrap: 'wrap',
+                gap: '6px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800, fontSize: '0.92rem' }}>
+                <span style={{ fontSize: '1.15rem' }}>🏛️</span>
+                <span>Find & Enter Your Campus Portal</span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.7rem',
+                  color: '#93c5fd',
+                  background: 'rgba(59, 130, 246, 0.25)',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  fontWeight: 700,
+                  border: '1px solid rgba(147, 197, 253, 0.3)',
+                }}
+              >
+                Students • Teachers • Staff
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="Enter school name or portal code (e.g. prime)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const q = searchQuery.trim().toLowerCase()
+                    if (!q) return
+                    const match = schools.find(
+                      (s) => s.slug.toLowerCase() === q || s.name.toLowerCase().includes(q)
+                    )
+                    if (match) {
+                      navigate(`/s/${match.slug}`)
+                    } else {
+                      navigate(`/s/${q}`)
+                    }
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  background: '#ffffff',
+                  border: '1.5px solid #93c5fd',
+                  borderRadius: '10px',
+                  padding: '0.65rem 0.85rem',
+                  fontSize: '0.88rem',
+                  color: '#0f172a',
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const q = searchQuery.trim().toLowerCase()
+                  if (!q) {
+                    if (schools.length > 0) {
+                      navigate(`/s/${schools[0].slug}`)
+                    } else {
+                      navigate('/login')
+                    }
+                    return
+                  }
+                  const match = schools.find(
+                    (s) => s.slug.toLowerCase() === q || s.name.toLowerCase().includes(q)
+                  )
+                  if (match) {
+                    navigate(`/s/${match.slug}`)
+                  } else {
+                    navigate(`/s/${q}`)
+                  }
+                }}
+                style={{
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '0.65rem 1.1rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
+                }}
+              >
+                <span>Enter</span>
+                <span>➔</span>
+              </button>
+            </div>
+
+            {/* Live Search Results or Registered Schools List */}
+            {searchQuery.trim() ? (
+              <div
+                style={{
+                  marginTop: '0.75rem',
+                  background: '#ffffff',
+                  borderRadius: '10px',
+                  border: '1px solid #bfdbfe',
+                  maxHeight: '180px',
+                  overflowY: 'auto',
+                  boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
+                }}
+              >
+                {filteredSchools.length > 0 ? (
+                  filteredSchools.map((s) => (
+                    <div
+                      key={s.id}
+                      onClick={() => navigate(`/s/${s.slug}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') navigate(`/s/${s.slug}`)
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        borderBottom: '1px solid #f1f5f9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        color: '#0f172a',
+                      }}
+                    >
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>🏛️</span>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          /s/{s.slug} {s.motto ? `• ${s.motto}` : ''}
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          background: '#eff6ff',
+                          color: '#2563eb',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: '6px',
+                          padding: '3px 8px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          marginLeft: '8px',
+                        }}
+                      >
+                        Enter ➔
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '10px', textAlign: 'center', fontSize: '0.78rem', color: '#64748b' }}>
+                    No school campus found matching &quot;{searchQuery}&quot;. Press &quot;Enter ➔&quot; to open direct slug <code>/s/{searchQuery.trim().toLowerCase()}</code>.
+                  </div>
+                )}
+              </div>
+            ) : schools.length > 0 ? (
+              <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>Active Campuses:</span>
+                {schools.slice(0, 4).map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => navigate(`/s/${s.slug}`)}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.12)',
+                      border: '1px solid rgba(255, 255, 255, 0.22)',
+                      color: '#ffffff',
+                      borderRadius: '999px',
+                      padding: '3px 10px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <span>🏛️</span>
+                    <span>{s.name}</span>
+                    <span style={{ color: '#93c5fd' }}>➔</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ marginTop: '0.65rem', fontSize: '0.74rem', color: '#94a3b8' }}>
+                💡 New to the platform?{' '}
+                <span
+                  onClick={() => navigate('/register-school')}
+                  style={{ color: '#93c5fd', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  Register your school profile
+                </span>{' '}
+              </div>
             )}
           </div>
 

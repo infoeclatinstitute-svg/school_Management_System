@@ -79,9 +79,39 @@ export function TenantTeacherDesk({
   }, [teachingStaff, allStaff, selectedTeacherId, sessionUser, school.slug, school.name, school.departments_list, school.contact_email, school.contact_phone])
 
 
+  // Assigned Teaching Load
+  const teacherAssignedClasses = useMemo(() => {
+    if (!currentTeacher.assigned_classes) return []
+    if (Array.isArray(currentTeacher.assigned_classes)) {
+      return currentTeacher.assigned_classes.map((c) => c.trim()).filter(Boolean)
+    }
+    return String(currentTeacher.assigned_classes)
+      .split(',')
+      .map((c) => c.trim())
+      .filter(Boolean)
+  }, [currentTeacher.assigned_classes])
+
+  const teacherAssignedSubjects = useMemo(() => {
+    if (!currentTeacher.assigned_subjects) return []
+    if (Array.isArray(currentTeacher.assigned_subjects)) {
+      return currentTeacher.assigned_subjects.map((s) => s.trim()).filter(Boolean)
+    }
+    return String(currentTeacher.assigned_subjects)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  }, [currentTeacher.assigned_subjects])
+
+  // Filter preference: default to showing only assigned cohorts/units if any are assigned
+  const [showOnlyAssigned, setShowOnlyAssigned] = useState<boolean>(true)
+
   // Dynamic Classes List
   const availableClasses = useMemo(() => {
+    if (showOnlyAssigned && teacherAssignedClasses.length > 0) {
+      return teacherAssignedClasses
+    }
     const list = new Set<string>()
+    teacherAssignedClasses.forEach((c) => list.add(c))
     if (Array.isArray(school.classes_list)) {
       school.classes_list.forEach((c) => c && list.add(c.trim()))
     }
@@ -93,19 +123,19 @@ export function TenantTeacherDesk({
       if (p.title) list.add(p.title.trim())
     })
     const arr = Array.from(list).filter(Boolean)
-    if (arr.length > 0) return arr
-    if (school.institution_category === 'university') {
-      return ['Undergraduate Year 1', 'Postgraduate Cohort']
-    }
-    if (school.institution_category === 'school') {
-      return ['Grade 1', 'Grade 2']
-    }
-    return ['Diploma Cohort', 'Certificate Cohort']
-  }, [school.classes_list, school.institution_category, school.slug, studentList])
+    return arr
+  }, [showOnlyAssigned, teacherAssignedClasses, school.classes_list, school.slug, studentList])
 
   // Dynamic Subjects List
   const availableSubjects = useMemo(() => {
+    if (showOnlyAssigned && teacherAssignedSubjects.length > 0) {
+      return teacherAssignedSubjects
+    }
     const subs = new Set<string>()
+    teacherAssignedSubjects.forEach((s) => subs.add(s))
+    if (Array.isArray(school.subjects_list)) {
+      school.subjects_list.forEach((s) => s && subs.add(s.trim()))
+    }
     // Extract from Timetable
     const tt = tenantSchoolStore.getTimetableBySchool(school.slug)
     tt.forEach((entry) => {
@@ -119,18 +149,9 @@ export function TenantTeacherDesk({
     lessonNotesList.forEach((n) => {
       if (n.subject_name) subs.add(n.subject_name.trim())
     })
-    // Extract from Teacher assigned subjects
-    if (currentTeacher.assigned_subjects) {
-      const subsList = Array.isArray(currentTeacher.assigned_subjects)
-        ? currentTeacher.assigned_subjects
-        : String(currentTeacher.assigned_subjects).split(',')
-      subsList.forEach((s) => s.trim() && subs.add(s.trim()))
-    }
     const arr = Array.from(subs).filter(Boolean)
-    return arr.length > 0
-      ? arr
-      : ['Core Mathematics', 'Language & Communication', 'Applied Sciences', 'General Studies']
-  }, [school.slug, gradeList, lessonNotesList, currentTeacher.assigned_subjects])
+    return arr
+  }, [showOnlyAssigned, teacherAssignedSubjects, school.subjects_list, school.slug, gradeList, lessonNotesList])
 
   // ==========================================
   // NAVIGATION & TAB STATE
@@ -304,6 +325,10 @@ export function TenantTeacherDesk({
   const [gradebookSearchQuery, setGradebookSearchQuery] = useState('')
   const [newCustomSubjectInput, setNewCustomSubjectInput] = useState('')
   const [showAddSubjectInput, setShowAddSubjectInput] = useState(false)
+  const [cat1MaxWeight, setCat1MaxWeight] = useState<number>(20)
+  const [cat2MaxWeight, setCat2MaxWeight] = useState<number>(20)
+  const [examMaxWeight, setExamMaxWeight] = useState<number>(60)
+  const [showWeightingConfig, setShowWeightingConfig] = useState<boolean>(false)
 
   // Sync gradebook selections
   useEffect(() => {
@@ -486,7 +511,7 @@ export function TenantTeacherDesk({
         summary: noteForm.summary.trim(),
         material_type: noteForm.material_type,
         due_date: noteForm.due_date,
-        file_url: noteForm.file_url.trim() || `https://cloud.eclat.institute/docs/${school.slug}/materials.pdf`,
+        file_url: noteForm.file_url.trim(),
         teacher_name: currentTeacher.full_name,
       })
       triggerToast('Published study material to student learning portal!')
@@ -727,6 +752,90 @@ export function TenantTeacherDesk({
               <span>📁</span> + Upload Study Material
             </button>
           </div>
+        </div>
+
+        {/* Instructor Allocations Banner */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a' }}>
+              🎯 Teaching Load for {currentTeacher.full_name}:
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700 }}>Cohorts:</span>
+              {teacherAssignedClasses.length > 0 ? (
+                teacherAssignedClasses.map((c) => (
+                  <span
+                    key={c}
+                    style={{
+                      background: '#eff6ff',
+                      color: '#1d4ed8',
+                      border: '1px solid #bfdbfe',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    🎓 {c}
+                  </span>
+                ))
+              ) : (
+                <span style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic' }}>
+                  All institution cohorts (Unrestricted)
+                </span>
+              )}
+
+              <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 700, marginLeft: '6px' }}>Units:</span>
+              {teacherAssignedSubjects.length > 0 ? (
+                teacherAssignedSubjects.map((s) => (
+                  <span
+                    key={s}
+                    style={{
+                      background: '#f0fdf4',
+                      color: '#15803d',
+                      border: '1px solid #bbf7d0',
+                      padding: '2px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    📚 {s}
+                  </span>
+                ))
+              ) : (
+                <span style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic' }}>
+                  All institution units (Unrestricted)
+                </span>
+              )}
+            </div>
+          </div>
+
+          {(teacherAssignedClasses.length > 0 || teacherAssignedSubjects.length > 0) && (
+            <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="checkbox"
+                checked={showOnlyAssigned}
+                onChange={(e) => setShowOnlyAssigned(e.target.checked)}
+                style={{ accentColor: primaryColor }}
+              />
+              Filter views to my assigned allocations only
+            </label>
+          )}
         </div>
 
         {/* Dynamic Telemetry Mini-Ribbon */}
@@ -1079,6 +1188,9 @@ export function TenantTeacherDesk({
                   background: '#ffffff',
                 }}
               >
+                {availableClasses.length === 0 && (
+                  <option value="">No classes configured</option>
+                )}
                 {availableClasses.map((cls) => (
                   <option key={cls} value={cls}>
                     {cls}
@@ -1104,6 +1216,9 @@ export function TenantTeacherDesk({
                   background: '#ffffff',
                 }}
               >
+                {availableSubjects.length === 0 && (
+                  <option value="">No subjects assigned</option>
+                )}
                 {availableSubjects.map((sub) => (
                   <option key={sub} value={sub}>
                     {sub}
@@ -1396,10 +1511,29 @@ export function TenantTeacherDesk({
                 Continuous Assessment Gradebook &amp; Exam Terminal
               </h3>
               <p style={{ margin: '4px 0 0', fontSize: '0.84rem', color: '#64748b' }}>
-                Continuous Assessment Tests (CAT 1 &amp; CAT 2 out of 20) and Final Examination marks (out of 60).
+                Flexible assessment grading: Continuous Assessment Tests (CAT 1 &amp; CAT 2) and Final Examination marks ({cat1MaxWeight} + {cat2MaxWeight} + {examMaxWeight} = {cat1MaxWeight + cat2MaxWeight + examMaxWeight}% Scale).
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setShowWeightingConfig(!showWeightingConfig)}
+                style={{
+                  background: showWeightingConfig ? '#eff6ff' : '#f8fafc',
+                  color: showWeightingConfig ? primaryColor : '#0f172a',
+                  border: showWeightingConfig ? `1.5px solid ${primaryColor}` : '1px solid #cbd5e1',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>⚙️</span> Assessment Scale ({cat1MaxWeight}/{cat2MaxWeight}/{examMaxWeight})
+              </button>
               <button
                 type="button"
                 onClick={handleExportGradebookCSV}
@@ -1441,6 +1575,172 @@ export function TenantTeacherDesk({
             </div>
           </div>
 
+          {/* Dynamic Assessment Weighting Configuration Panel */}
+          {showWeightingConfig && (
+            <div
+              style={{
+                background: '#f0f9ff',
+                border: '1.5px solid #bae6fd',
+                borderRadius: '14px',
+                padding: '1rem 1.25rem',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '1rem' }}>📐</span>
+                  <strong style={{ fontSize: '0.88rem', color: '#0369a1' }}>
+                    Configure Assessment Maximum Marks &amp; Weightings
+                  </strong>
+                </div>
+                <div style={{ fontSize: '0.76rem', color: '#0369a1', fontWeight: 700 }}>
+                  Active Total Scale: <strong style={{ color: '#0f172a' }}>{cat1MaxWeight + cat2MaxWeight + examMaxWeight} Marks</strong>
+                  {cat1MaxWeight + cat2MaxWeight + examMaxWeight === 100 ? (
+                    <span style={{ color: '#16a34a', marginLeft: '6px' }}>✓ Exactly 100% (Direct Sum)</span>
+                  ) : (
+                    <span style={{ color: '#2563eb', marginLeft: '6px' }}>⇄ Auto-normalizes to 100% on transcripts</span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#334155', marginBottom: '2px' }}>
+                    CAT 1 MAXIMUM
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={cat1MaxWeight}
+                    onChange={(e) => setCat1MaxWeight(Math.max(1, Number(e.target.value) || 1))}
+                    style={{
+                      width: '80px',
+                      padding: '0.4rem 0.5rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      textAlign: 'center',
+                      background: '#ffffff',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#334155', marginBottom: '2px' }}>
+                    CAT 2 MAXIMUM
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={cat2MaxWeight}
+                    onChange={(e) => setCat2MaxWeight(Math.max(0, Number(e.target.value) || 0))}
+                    style={{
+                      width: '80px',
+                      padding: '0.4rem 0.5rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      textAlign: 'center',
+                      background: '#ffffff',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: '#334155', marginBottom: '2px' }}>
+                    EXAM MAXIMUM
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={examMaxWeight}
+                    onChange={(e) => setExamMaxWeight(Math.max(1, Number(e.target.value) || 1))}
+                    style={{
+                      width: '80px',
+                      padding: '0.4rem 0.5rem',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      fontWeight: 800,
+                      textAlign: 'center',
+                      background: '#ffffff',
+                    }}
+                  />
+                </div>
+
+                {/* Quick Preset Buttons */}
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '14px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>Quick Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCat1MaxWeight(15)
+                      setCat2MaxWeight(15)
+                      setExamMaxWeight(70)
+                    }}
+                    style={{
+                      background: cat1MaxWeight === 15 && cat2MaxWeight === 15 && examMaxWeight === 70 ? '#0284c7' : '#ffffff',
+                      color: cat1MaxWeight === 15 && cat2MaxWeight === 15 && examMaxWeight === 70 ? '#ffffff' : '#0369a1',
+                      border: '1px solid #bae6fd',
+                      padding: '3px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    15 + 15 + 70 (Tertiary / Uni 30:70)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCat1MaxWeight(20)
+                      setCat2MaxWeight(20)
+                      setExamMaxWeight(60)
+                    }}
+                    style={{
+                      background: cat1MaxWeight === 20 && cat2MaxWeight === 20 && examMaxWeight === 60 ? '#0284c7' : '#ffffff',
+                      color: cat1MaxWeight === 20 && cat2MaxWeight === 20 && examMaxWeight === 60 ? '#ffffff' : '#0369a1',
+                      border: '1px solid #bae6fd',
+                      padding: '3px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    20 + 20 + 60 (Vocational 40:60)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCat1MaxWeight(30)
+                      setCat2MaxWeight(0)
+                      setExamMaxWeight(70)
+                    }}
+                    style={{
+                      background: cat1MaxWeight === 30 && cat2MaxWeight === 0 && examMaxWeight === 70 ? '#0284c7' : '#ffffff',
+                      color: cat1MaxWeight === 30 && cat2MaxWeight === 0 && examMaxWeight === 70 ? '#ffffff' : '#0369a1',
+                      border: '1px solid #bae6fd',
+                      padding: '3px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Single CAT 30 + Exam 70
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Gradebook Cohort & Subject Selector */}
           <div
             style={{
@@ -1472,6 +1772,9 @@ export function TenantTeacherDesk({
                   background: '#ffffff',
                 }}
               >
+                {availableClasses.length === 0 && (
+                  <option value="">No classes configured</option>
+                )}
                 {availableClasses.map((cls) => (
                   <option key={cls} value={cls}>
                     {cls}
@@ -1547,6 +1850,9 @@ export function TenantTeacherDesk({
                     background: '#ffffff',
                   }}
                 >
+                  {availableSubjects.length === 0 && (
+                    <option value="">No subjects assigned (Click + Add Subject)</option>
+                  )}
                   {availableSubjects.map((sub) => (
                     <option key={sub} value={sub}>
                       {sub}
@@ -1626,9 +1932,9 @@ export function TenantTeacherDesk({
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Student Candidate</th>
-                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>CAT 1 (20)</th>
-                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>CAT 2 (20)</th>
-                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>Exam (60)</th>
+                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>CAT 1 (/{cat1MaxWeight})</th>
+                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>CAT 2 (/{cat2MaxWeight})</th>
+                  <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>Exam (/{examMaxWeight})</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>Total %</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>Grade</th>
                   <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Faculty Remarks</th>
@@ -1657,6 +1963,9 @@ export function TenantTeacherDesk({
                         student={s}
                         subjectName={selectedSubjectForGradebook}
                         initialGrade={existingGrade}
+                        cat1Max={cat1MaxWeight}
+                        cat2Max={cat2MaxWeight}
+                        examMax={examMaxWeight}
                         teacherName={currentTeacher.full_name}
                         onSave={() => {
                           onReloadData()
@@ -2345,6 +2654,9 @@ export function TenantTeacherDesk({
                       background: '#ffffff',
                     }}
                   >
+                    {availableClasses.length === 0 && (
+                      <option value="General Cohort">General Cohort</option>
+                    )}
                     {availableClasses.map((cls) => (
                       <option key={cls} value={cls}>
                         {cls}
@@ -2397,6 +2709,9 @@ export function TenantTeacherDesk({
                       background: '#ffffff',
                     }}
                   >
+                    {availableSubjects.length === 0 && (
+                      <option value="General Studies">General Studies</option>
+                    )}
                     {availableSubjects.map((sub) => (
                       <option key={sub} value={sub}>
                         {sub}
@@ -2454,7 +2769,7 @@ export function TenantTeacherDesk({
                 </label>
                 <input
                   type="url"
-                  placeholder="https://cloud.eclat.institute/docs/notes/... or Google Drive link"
+                  placeholder="https://drive.google.com/... or cloud document URL"
                   value={noteForm.file_url}
                   onChange={(e) => setNoteForm({ ...noteForm, file_url: e.target.value })}
                   style={{
@@ -2670,10 +2985,10 @@ export function TenantTeacherDesk({
                     <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>#</th>
                     <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Admission #</th>
                     <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Candidate Name</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 1 (/20)</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 2 (/20)</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Exam (/60)</th>
-                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Total (/100)</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 1 (/{cat1MaxWeight})</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>CAT 2 (/{cat2MaxWeight})</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Exam (/{examMaxWeight})</th>
+                    <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Total (/100%)</th>
                     <th style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800 }}>Grade</th>
                     <th style={{ padding: '0.65rem 0.5rem', textAlign: 'left', fontWeight: 800 }}>Remarks</th>
                   </tr>
@@ -2993,6 +3308,9 @@ function GradeRowItem({
   student,
   subjectName,
   initialGrade,
+  cat1Max = 20,
+  cat2Max = 20,
+  examMax = 60,
   teacherName,
   onSave,
 }: {
@@ -3000,12 +3318,15 @@ function GradeRowItem({
   student: TenantStudentMember
   subjectName: string
   initialGrade?: TenantGradeRecord
+  cat1Max?: number
+  cat2Max?: number
+  examMax?: number
   teacherName: string
   onSave: () => void
 }) {
-  const [cat1, setCat1] = useState(initialGrade?.cat1_score ?? 15)
-  const [cat2, setCat2] = useState(initialGrade?.cat2_score ?? 15)
-  const [exam, setExam] = useState(initialGrade?.exam_score ?? 45)
+  const [cat1, setCat1] = useState(initialGrade?.cat1_score ?? Math.min(15, cat1Max))
+  const [cat2, setCat2] = useState(initialGrade?.cat2_score ?? Math.min(15, cat2Max))
+  const [exam, setExam] = useState(initialGrade?.exam_score ?? Math.min(45, examMax))
   const [remarks, setRemarks] = useState(initialGrade?.remarks ?? 'Satisfactory grasp of coursework.')
 
   // Keep synced if initialGrade changes
@@ -3018,7 +3339,11 @@ function GradeRowItem({
     }
   }, [initialGrade])
 
-  const total = Math.min(100, Math.max(0, Number(cat1) + Number(cat2) + Number(exam)))
+  const possibleMax = cat1Max + cat2Max + examMax
+  const rawSum = Number(cat1) + Number(cat2) + Number(exam)
+  const total = possibleMax === 100
+    ? Math.min(100, Math.max(0, Math.round(rawSum)))
+    : Math.min(100, Math.max(0, Math.round((rawSum / possibleMax) * 100)))
 
   let gradeLetter = 'F'
   if (total >= 90) gradeLetter = 'A*'
@@ -3045,6 +3370,9 @@ function GradeRowItem({
       cat1_score: Number(cat1),
       cat2_score: Number(cat2),
       exam_score: Number(exam),
+      cat1_max: cat1Max,
+      cat2_max: cat2Max,
+      exam_max: examMax,
       remarks: remarks.trim(),
       teacher_name: teacherName,
     })
@@ -3063,11 +3391,11 @@ function GradeRowItem({
         <input
           type="number"
           min="0"
-          max="20"
+          max={cat1Max}
           value={cat1}
-          onChange={(e) => setCat1(Math.min(20, Math.max(0, Number(e.target.value))))}
+          onChange={(e) => setCat1(Math.min(cat1Max, Math.max(0, Number(e.target.value))))}
           style={{
-            width: '52px',
+            width: '56px',
             padding: '0.35rem',
             textAlign: 'center',
             borderRadius: '6px',
@@ -3081,11 +3409,11 @@ function GradeRowItem({
         <input
           type="number"
           min="0"
-          max="20"
+          max={cat2Max}
           value={cat2}
-          onChange={(e) => setCat2(Math.min(20, Math.max(0, Number(e.target.value))))}
+          onChange={(e) => setCat2(Math.min(cat2Max, Math.max(0, Number(e.target.value))))}
           style={{
-            width: '52px',
+            width: '56px',
             padding: '0.35rem',
             textAlign: 'center',
             borderRadius: '6px',
@@ -3099,9 +3427,9 @@ function GradeRowItem({
         <input
           type="number"
           min="0"
-          max="60"
+          max={examMax}
           value={exam}
-          onChange={(e) => setExam(Math.min(60, Math.max(0, Number(e.target.value))))}
+          onChange={(e) => setExam(Math.min(examMax, Math.max(0, Number(e.target.value))))}
           style={{
             width: '58px',
             padding: '0.35rem',

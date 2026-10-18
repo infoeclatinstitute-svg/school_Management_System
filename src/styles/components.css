@@ -902,6 +902,10 @@ tbody td { padding: var(--space-3) var(--space-4); color: var(--color-text-secon
   .mobile-nav-container {
     display: none !important;
   }
+@media (min-width: 769px) {
+  .mobile-bottom-nav:not(.force-native) {
+    display: none !important;
+  }
 }
 
 @media (max-width: 1024px) {

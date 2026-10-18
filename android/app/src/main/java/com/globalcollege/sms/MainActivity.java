@@ -11,11 +11,11 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getPackageName() != null && getPackageName().contains("saasadmin")) {
+        final boolean isSaasAdmin = getPackageName() != null && getPackageName().contains("saasadmin");
+        if (isSaasAdmin) {
             getBridge().getWebView().post(() -> {
                 getBridge().getWebView().loadUrl("https://cloud.eclat.institute/?target=saas-admin");
             });
-            return;
         }
 
         // Seamless offline fallback: if live cloud cannot be reached, fallback to local bundled assets
@@ -26,7 +26,8 @@ public class MainActivity extends BridgeActivity {
                 if (request.isForMainFrame()) {
                     String failingUrl = request.getUrl() != null ? request.getUrl().toString() : "";
                     if (failingUrl.startsWith("https://cloud.eclat.institute")) {
-                        view.post(() -> view.loadUrl("https://localhost/"));
+                        String fallbackUrl = isSaasAdmin ? "https://localhost/?target=saas-admin" : "https://localhost/";
+                        view.post(() -> view.loadUrl(fallbackUrl));
                     }
                 }
             }

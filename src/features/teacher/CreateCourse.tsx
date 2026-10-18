@@ -5,6 +5,7 @@ import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
 import { schoolStore } from '@/lib/schoolData'
+import { INSTITUTION_CONFIG } from '@/config/institution'
 import type { CourseUnit, SyllabusModule, CollegeDepartment, CollegeSubject, FacultyTeacher } from '@/types/school'
 
 export function CreateCourse() {
@@ -24,7 +25,7 @@ export function CreateCourse() {
   // Course Basic Information
   const [code, setCode] = useState('')
   const [title, setTitle] = useState('')
-  const [feeUsd, setFeeUsd] = useState<number>(75)
+  const [feeUsd, setFeeUsd] = useState<number>(0)
   const [category, setCategory] = useState('Tech & Programming')
   const [icon, setIcon] = useState('💻')
   const [courseDuration, setCourseDuration] = useState('3 Months (Certificate Course)')
@@ -33,8 +34,8 @@ export function CreateCourse() {
   const [careerOutcomes, setCareerOutcomes] = useState('')
 
   // Live Virtual Classroom Google Meet / Zoom Integration
-  const [liveMeetingUrl, setLiveMeetingUrl] = useState('https://meet.google.com/new')
-  const [liveScheduleText, setLiveScheduleText] = useState('Mon, Wed & Fri: 7:30 PM - 9:30 PM EAT')
+  const [liveMeetingUrl, setLiveMeetingUrl] = useState('')
+  const [liveScheduleText, setLiveScheduleText] = useState('')
 
   // Department & Program Handling (Supports existing OR brand-new custom)
   const [isCustomDept, setIsCustomDept] = useState(departments.length === 0)
@@ -51,38 +52,10 @@ export function CreateCourse() {
   }, [departments, selectedDeptId])
 
   // Modules Builder State
-  const [modules, setModules] = useState<(SyllabusModule & { topics_input?: string })[]>([
-    {
-      id: `mod-${Date.now()}-1`,
-      module_number: 1,
-      title: 'Module 1: Foundations & Core Concepts',
-      hours: 10,
-      topics: ['Introduction to Core Architecture', 'Live Practical Code Lab'],
-      topics_input: 'Introduction to Core Architecture, Live Practical Code Lab',
-      learning_outcomes: ['Understand fundamental architecture and setup environment'],
-      resources: [
-        {
-          id: `res-${Date.now()}-1`,
-          file_name: 'Module 1 - Lecture Slides & Code Guide (PDF)',
-          file_url: 'https://cloud.eclat.institute/docs/syllabus.pdf',
-          file_type: 'PDF',
-        },
-      ],
-    },
-  ])
+  const [modules, setModules] = useState<(SyllabusModule & { topics_input?: string })[]>([])
 
   // Lessons State
-  const [lessons, setLessons] = useState<CourseUnit['lessons']>([
-    {
-      id: `les-${Date.now()}-1`,
-      title: 'Lesson 1: Introduction & Environment Setup',
-      video_url: '',
-      meeting_url: 'https://meet.google.com/new',
-      duration_minutes: 45,
-      content: 'Overview of the course prerequisites and software tools installation.',
-      resources: [],
-    },
-  ])
+  const [lessons, setLessons] = useState<CourseUnit['lessons']>([])
 
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -227,7 +200,7 @@ export function CreateCourse() {
           id: `tch-${Date.now()}`,
           name: customTeacherName.trim(),
           title: customTeacherTitle.trim() || 'Faculty Lecturer',
-          email: `${customTeacherName.toLowerCase().replace(/[^a-z0-9]/g, '.')}@cloud.eclat.institute`,
+          email: `${customTeacherName.toLowerCase().replace(/[^a-z0-9]/g, '.')}@${INSTITUTION_CONFIG.domain || 'globalcollege.edu'}`,
           department: deptNameFinal,
           specialty: title.trim(),
           created_at: new Date().toISOString(),
@@ -715,7 +688,16 @@ export function CreateCourse() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {modules.map((mod, idx) => (
+            {modules.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>📚</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '0.25rem' }}>No modules added yet</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '0.75rem' }}>Click "+ Add Module" above to define your syllabus topics, contact hours, and lecture materials.</div>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddModule}>
+                  + Add First Module
+                </button>
+              </div>
+            ) : modules.map((mod, idx) => (
               <div
                 key={mod.id}
                 style={{
@@ -853,7 +835,16 @@ export function CreateCourse() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {lessons.map((les, idx) => (
+            {lessons.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
+                <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>🎬</div>
+                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#334155', marginBottom: '0.25rem' }}>No lessons added yet</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '0.75rem' }}>Click "+ Add Video Lecture" above to link lecture videos, live meet sessions, or practical demos.</div>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddLesson}>
+                  + Add First Lecture
+                </button>
+              </div>
+            ) : lessons.map((les, idx) => (
               <div
                 key={les.id}
                 style={{

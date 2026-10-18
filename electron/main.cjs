@@ -143,7 +143,7 @@ async function createMainWindow() {
       label: 'Gateway',
       submenu: [
         {
-          label: '🌐 Live Cloud Hub (cloud.eclat.institute)',
+          label: '🌐 Live Cloud Hub',
           accelerator: 'CmdOrCtrl+Shift+C',
           click: () => {
             if (mainWindow) mainWindow.loadURL(CLOUD_PORTAL_URL);

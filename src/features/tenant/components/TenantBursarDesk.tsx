@@ -131,16 +131,8 @@ export function TenantBursarDesk({
     studentList.forEach((s) => {
       if (s.grade_class && s.grade_class.trim()) set.add(s.grade_class.trim())
     })
-    const list = Array.from(set)
-    if (list.length > 0) return list
-    if (school.institution_category === 'university') {
-      return ['Undergraduate Year 1', 'Postgraduate Cohort']
-    }
-    if (school.institution_category === 'school') {
-      return ['Grade 1', 'Grade 2']
-    }
-    return ['Diploma Cohort', 'Certificate Cohort']
-  }, [school.classes_list, school.institution_category, school.slug, studentList])
+    return Array.from(set).filter(Boolean)
+  }, [school.classes_list, school.slug, studentList])
 
   // New Payment Form Input
   const [newPaymentInput, setNewPaymentInput] = useState({
@@ -155,16 +147,30 @@ export function TenantBursarDesk({
 
   // Banking Channels State
   const [bankingConfig, setBankingConfig] = useState(() => {
-    const code = Math.abs(
-      school.slug.split('').reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0)
-    ) % 900000 + 100000
+    try {
+      const stored = localStorage.getItem(`bursar_banking_${school.slug}`)
+      if (stored) return JSON.parse(stored)
+    } catch {}
+
+    const customSchool = school as any
+    if (customSchool.bank_name || customSchool.bank_account || customSchool.mpesa_paybill) {
+      return {
+        bank_name: customSchool.bank_name || `${school.name} Designated Bank`,
+        account_name: customSchool.bank_account_name || `${school.name} Operations Treasury`,
+        account_number: customSchool.bank_account || 'Pending Registration',
+        mobile_channel: customSchool.mobile_channel || 'M-Pesa Business Paybill',
+        paybill_number: customSchool.mpesa_paybill || 'Pending Registration',
+        account_format: 'Student Admission Number (e.g. ADM-XXXX)',
+      }
+    }
+
     return {
-      bank_name: `${school.name} Designated Revenue Bank`,
+      bank_name: `${school.name} Designated Bank`,
       account_name: `${school.name} Operations Treasury`,
-      account_number: `ACC-${school.slug.toUpperCase().slice(0, 4)}-${code}`,
-      mobile_channel: 'M-Pesa Business Paybill',
-      paybill_number: `${code}`,
-      account_format: 'ADM-XXXX',
+      account_number: `A/C ${school.slug.toUpperCase().slice(0, 4)}-TREASURY`,
+      mobile_channel: 'M-Pesa Business Paybill / Mobile Money',
+      paybill_number: 'Contact Bursar Office',
+      account_format: 'Student Admission Number (ADM-XXXX)',
     }
   })
   const [isEditingBanking, setIsEditingBanking] = useState(false)
@@ -450,7 +456,7 @@ export function TenantBursarDesk({
                 Institutional Product Key Activation Required
               </div>
               <div style={{ fontSize: '0.82rem', color: '#b45309', marginTop: '2px' }}>
-                This institutional campus is awaiting license activation. Standard Rate: KES {((school.campus_count || 1) * 2500).toLocaleString()}/month. Financial and fee payment recording features on this desk are disabled until activated.
+                This institutional campus is awaiting license activation. Standard Rate: {currency} {((school.campus_count || 1) * (school.subscription_monthly_rate || 2500)).toLocaleString()}/month. Financial and fee payment recording features on this desk are disabled until activated.
               </div>
             </div>
           </div>
@@ -1970,121 +1976,158 @@ export function TenantBursarDesk({
             </div>
 
             {/* Academic Programs & Cohorts Grid */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: '1.25rem',
-                marginBottom: '2rem',
-              }}
-            >
-              {cohortsList.map((cohortName) => {
-                const enrolled = studentList.filter((s) => s.grade_class === cohortName)
-                const cohortBilled = enrolled.reduce((acc, s) => acc + s.fee_total, 0)
-                const cohortCollected = enrolled.reduce((acc, s) => acc + s.fee_paid, 0)
-                const cohortArrears = enrolled.reduce((acc, s) => acc + s.fee_balance, 0)
-                const avgFee = enrolled.length > 0 ? Math.round(cohortBilled / enrolled.length) : 0
+            {cohortsList.length === 0 ? (
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '16px',
+                  padding: '3rem 2rem',
+                  textAlign: 'center',
+                  marginBottom: '2rem',
+                }}
+              >
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📋</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.4rem' }}>
+                  No Cohorts or Classes Registered Yet
+                </div>
+                <p style={{ fontSize: '0.84rem', color: '#64748b', maxWidth: '500px', margin: '0 auto 1.25rem', lineHeight: 1.5 }}>
+                  Cohorts will automatically appear here once classes or academic programs are registered in the Principal Office or when students enroll.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowBatchInvoiceModal(true)}
+                  style={{
+                    background: primaryColor,
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '0.65rem 1.35rem',
+                    borderRadius: '10px',
+                    fontSize: '0.84rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  + Generate Custom Cohort Invoice
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                  gap: '1.25rem',
+                  marginBottom: '2rem',
+                }}
+              >
+                {cohortsList.map((cohortName) => {
+                  const enrolled = studentList.filter((s) => s.grade_class === cohortName)
+                  const cohortBilled = enrolled.reduce((acc, s) => acc + s.fee_total, 0)
+                  const cohortCollected = enrolled.reduce((acc, s) => acc + s.fee_paid, 0)
+                  const cohortArrears = enrolled.reduce((acc, s) => acc + s.fee_balance, 0)
+                  const avgFee = enrolled.length > 0 ? Math.round(cohortBilled / enrolled.length) : 0
 
-                return (
-                  <div
-                    key={cohortName}
-                    style={{
-                      background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-                      borderRadius: '16px',
-                      padding: '1.5rem',
-                      border: '1px solid #e2e8f0',
-                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <span
-                          style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
-                            color: primaryColor,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em',
-                          }}
-                        >
-                          CLASS COHORT
-                        </span>
-                        <h4 style={{ margin: '4px 0 0', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
-                          {cohortName}
-                        </h4>
-                      </div>
-                      <span
-                        style={{
-                          background: '#e0f2fe',
-                          color: '#0369a1',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          fontSize: '0.74rem',
-                          fontWeight: 800,
-                        }}
-                      >
-                        {enrolled.length} Enrolled
-                      </span>
-                    </div>
-
-                    <div style={{ margin: '1rem 0', padding: '0.85rem', background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }}>
-                        <span style={{ color: '#64748b' }}>Standard Term Rate:</span>
-                        <strong style={{ color: '#0f172a' }}>
-                          {currency} {avgFee.toLocaleString()}
-                        </strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }}>
-                        <span style={{ color: '#64748b' }}>Total Cohort Invoiced:</span>
-                        <strong style={{ color: '#0f172a' }}>
-                          {currency} {cohortBilled.toLocaleString()}
-                        </strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }}>
-                        <span style={{ color: '#64748b' }}>Collected to Date:</span>
-                        <strong style={{ color: '#16a34a' }}>
-                          {currency} {cohortCollected.toLocaleString()}
-                        </strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                        <span style={{ color: '#64748b' }}>Outstanding Arrears:</span>
-                        <strong style={{ color: cohortArrears > 0 ? '#dc2626' : '#16a34a' }}>
-                          {currency} {cohortArrears.toLocaleString()}
-                        </strong>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setBatchInvoiceForm((prev) => ({
-                          ...prev,
-                          target_cohort: cohortName,
-                        }))
-                        setShowBatchInvoiceModal(true)
-                      }}
+                  return (
+                    <div
+                      key={cohortName}
                       style={{
-                        width: '100%',
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        padding: '0.55rem',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        color: '#0f172a',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
+                        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                        borderRadius: '16px',
+                        padding: '1.5rem',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.03)',
                       }}
                     >
-                      <span>⚡</span> Re-invoice / Adjust {cohortName}
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <span
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              color: primaryColor,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            CLASS COHORT
+                          </span>
+                          <h4 style={{ margin: '4px 0 0', fontSize: '1.15rem', fontWeight: 900, color: '#0f172a' }}>
+                            {cohortName}
+                          </h4>
+                        </div>
+                        <span
+                          style={{
+                            background: '#e0f2fe',
+                            color: '#0369a1',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
+                          }}
+                        >
+                          {enrolled.length} Enrolled
+                        </span>
+                      </div>
+
+                      <div style={{ margin: '1rem 0', padding: '0.85rem', background: '#ffffff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }}>
+                          <span style={{ color: '#64748b' }}>Standard Term Rate:</span>
+                          <strong style={{ color: '#0f172a' }}>
+                            {currency} {avgFee.toLocaleString()}
+                          </strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }}>
+                          <span style={{ color: '#64748b' }}>Total Cohort Invoiced:</span>
+                          <strong style={{ color: '#0f172a' }}>
+                            {currency} {cohortBilled.toLocaleString()}
+                          </strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '4px' }}>
+                          <span style={{ color: '#64748b' }}>Collected to Date:</span>
+                          <strong style={{ color: '#16a34a' }}>
+                            {currency} {cohortCollected.toLocaleString()}
+                          </strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                          <span style={{ color: '#64748b' }}>Outstanding Arrears:</span>
+                          <strong style={{ color: cohortArrears > 0 ? '#dc2626' : '#16a34a' }}>
+                            {currency} {cohortArrears.toLocaleString()}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBatchInvoiceForm((prev) => ({
+                            ...prev,
+                            target_cohort: cohortName,
+                          }))
+                          setShowBatchInvoiceModal(true)
+                        }}
+                        style={{
+                          width: '100%',
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          padding: '0.55rem',
+                          borderRadius: '8px',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          color: '#0f172a',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span>⚡</span> Re-invoice / Adjust {cohortName}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
 
             {/* Individual Student Fee Adjustment Section */}
             <div style={{ marginTop: '2.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
@@ -2095,56 +2138,62 @@ export function TenantBursarDesk({
                 Need to grant a bursary, partial scholarship, or custom discount? Select a student below to adjust their invoiced total directly.
               </p>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                      <th style={{ padding: '0.65rem', fontWeight: 800 }}>Adm No</th>
-                      <th style={{ padding: '0.65rem', fontWeight: 800 }}>Student Name</th>
-                      <th style={{ padding: '0.65rem', fontWeight: 800 }}>Class Cohort</th>
-                      <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Current Invoiced</th>
-                      <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Paid to Date</th>
-                      <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Current Balance</th>
-                      <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'center' }}>Billing Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {studentList.slice(0, 15).map((s) => (
-                      <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '0.65rem', fontWeight: 800, color: primaryColor }}>{s.admission_number}</td>
-                        <td style={{ padding: '0.65rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
-                        <td style={{ padding: '0.65rem', color: '#64748b' }}>{s.grade_class}</td>
-                        <td style={{ padding: '0.65rem', textAlign: 'right' }}>{currency} {s.fee_total.toLocaleString()}</td>
-                        <td style={{ padding: '0.65rem', textAlign: 'right', color: '#16a34a' }}>{currency} {s.fee_paid.toLocaleString()}</td>
-                        <td style={{ padding: '0.65rem', textAlign: 'right', fontWeight: 900, color: s.fee_balance > 0 ? '#dc2626' : '#16a34a' }}>
-                          {currency} {s.fee_balance.toLocaleString()}
-                        </td>
-                        <td style={{ padding: '0.65rem', textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedStudentForAdjustment(s)
-                              setAdjustedFeeTotalInput(s.fee_total)
-                              setShowStudentFeeAdjustmentModal(true)
-                            }}
-                            style={{
-                              background: '#ffffff',
-                              border: '1px solid #cbd5e1',
-                              padding: '0.3rem 0.65rem',
-                              borderRadius: '6px',
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            ✏️ Adjust Fee
-                          </button>
-                        </td>
+              {studentList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.85rem' }}>
+                  No students enrolled yet. Once admissions are recorded, individual student billing and scholarship adjustments will appear here.
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                        <th style={{ padding: '0.65rem', fontWeight: 800 }}>Adm No</th>
+                        <th style={{ padding: '0.65rem', fontWeight: 800 }}>Student Name</th>
+                        <th style={{ padding: '0.65rem', fontWeight: 800 }}>Class Cohort</th>
+                        <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Current Invoiced</th>
+                        <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Paid to Date</th>
+                        <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'right' }}>Current Balance</th>
+                        <th style={{ padding: '0.65rem', fontWeight: 800, textAlign: 'center' }}>Billing Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {studentList.slice(0, 15).map((s) => (
+                        <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '0.65rem', fontWeight: 800, color: primaryColor }}>{s.admission_number}</td>
+                          <td style={{ padding: '0.65rem', fontWeight: 800, color: '#0f172a' }}>{s.full_name}</td>
+                          <td style={{ padding: '0.65rem', color: '#64748b' }}>{s.grade_class}</td>
+                          <td style={{ padding: '0.65rem', textAlign: 'right' }}>{currency} {s.fee_total.toLocaleString()}</td>
+                          <td style={{ padding: '0.65rem', textAlign: 'right', color: '#16a34a' }}>{currency} {s.fee_paid.toLocaleString()}</td>
+                          <td style={{ padding: '0.65rem', textAlign: 'right', fontWeight: 900, color: s.fee_balance > 0 ? '#dc2626' : '#16a34a' }}>
+                            {currency} {s.fee_balance.toLocaleString()}
+                          </td>
+                          <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedStudentForAdjustment(s)
+                                setAdjustedFeeTotalInput(s.fee_total)
+                                setShowStudentFeeAdjustmentModal(true)
+                              }}
+                              style={{
+                                background: '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                padding: '0.3rem 0.65rem',
+                                borderRadius: '6px',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              ✏️ Adjust Fee
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )
@@ -2166,7 +2215,16 @@ export function TenantBursarDesk({
             </div>
             <button
               type="button"
-              onClick={() => setIsEditingBanking(!isEditingBanking)}
+              onClick={() => {
+                if (isEditingBanking) {
+                  try {
+                    localStorage.setItem(`bursar_banking_${school.slug}`, JSON.stringify(bankingConfig))
+                  } catch (err) {
+                    console.error('Failed to save banking config', err)
+                  }
+                }
+                setIsEditingBanking(!isEditingBanking)
+              }}
               style={{
                 background: isEditingBanking ? '#0f172a' : '#ffffff',
                 color: isEditingBanking ? '#ffffff' : '#0f172a',
@@ -2178,7 +2236,7 @@ export function TenantBursarDesk({
                 cursor: 'pointer',
               }}
             >
-              {isEditingBanking ? '✓ Finish Editing' : '✏️ Configure Channels'}
+              {isEditingBanking ? '✓ Save & Finish Editing' : '✏️ Configure Channels'}
             </button>
           </div>
 
@@ -2195,7 +2253,7 @@ export function TenantBursarDesk({
               <h4 style={{ margin: '0 0 1rem', fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
                 Edit Institution Collection Details
               </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
                     Designated Bank Name
@@ -2203,7 +2261,26 @@ export function TenantBursarDesk({
                   <input
                     type="text"
                     value={bankingConfig.bank_name}
-                    onChange={(e) => setBankingConfig({ ...bankingConfig, bank_name: e.target.value })}
+                    onChange={(e) => {
+                      const updated = { ...bankingConfig, bank_name: e.target.value }
+                      setBankingConfig(updated)
+                      try { localStorage.setItem(`bursar_banking_${school.slug}`, JSON.stringify(updated)) } catch {}
+                    }}
+                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
+                    Bank Account Name
+                  </label>
+                  <input
+                    type="text"
+                    value={bankingConfig.account_name}
+                    onChange={(e) => {
+                      const updated = { ...bankingConfig, account_name: e.target.value }
+                      setBankingConfig(updated)
+                      try { localStorage.setItem(`bursar_banking_${school.slug}`, JSON.stringify(updated)) } catch {}
+                    }}
                     style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -2214,7 +2291,29 @@ export function TenantBursarDesk({
                   <input
                     type="text"
                     value={bankingConfig.account_number}
-                    onChange={(e) => setBankingConfig({ ...bankingConfig, account_number: e.target.value })}
+                    onChange={(e) => {
+                      const updated = { ...bankingConfig, account_number: e.target.value }
+                      setBankingConfig(updated)
+                      try { localStorage.setItem(`bursar_banking_${school.slug}`, JSON.stringify(updated)) } catch {}
+                    }}
+                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
+                    Mobile Money Channel Name
+                  </label>
+                  <input
+                    type="text"
+                    value={bankingConfig.mobile_channel}
+                    onChange={(e) => {
+                      const updated = { ...bankingConfig, mobile_channel: e.target.value }
+                      setBankingConfig(updated)
+                      try { localStorage.setItem(`bursar_banking_${school.slug}`, JSON.stringify(updated)) } catch {}
+                    }}
                     style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -2225,7 +2324,26 @@ export function TenantBursarDesk({
                   <input
                     type="text"
                     value={bankingConfig.paybill_number}
-                    onChange={(e) => setBankingConfig({ ...bankingConfig, paybill_number: e.target.value })}
+                    onChange={(e) => {
+                      const updated = { ...bankingConfig, paybill_number: e.target.value }
+                      setBankingConfig(updated)
+                      try { localStorage.setItem(`bursar_banking_${school.slug}`, JSON.stringify(updated)) } catch {}
+                    }}
+                    style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>
+                    Payment Account Format / Reference
+                  </label>
+                  <input
+                    type="text"
+                    value={bankingConfig.account_format}
+                    onChange={(e) => {
+                      const updated = { ...bankingConfig, account_format: e.target.value }
+                      setBankingConfig(updated)
+                      try { localStorage.setItem(`bursar_banking_${school.slug}`, JSON.stringify(updated)) } catch {}
+                    }}
                     style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
@@ -2413,16 +2531,23 @@ export function TenantBursarDesk({
                     fontWeight: 600,
                   }}
                 >
-                  {studentList
-                    .filter((s) => {
-                      const q = newPaymentInput.student_search.toLowerCase()
-                      return !q || s.full_name.toLowerCase().includes(q) || s.admission_number.toLowerCase().includes(q)
-                    })
-                    .map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.full_name} ({s.admission_number}) • {s.grade_class} — Balance: {currency} {s.fee_balance.toLocaleString()}
-                      </option>
-                    ))}
+                  {studentList.filter((s) => {
+                    const q = newPaymentInput.student_search.toLowerCase()
+                    return !q || s.full_name.toLowerCase().includes(q) || s.admission_number.toLowerCase().includes(q)
+                  }).length === 0 ? (
+                    <option value="">-- No Students Found --</option>
+                  ) : (
+                    studentList
+                      .filter((s) => {
+                        const q = newPaymentInput.student_search.toLowerCase()
+                        return !q || s.full_name.toLowerCase().includes(q) || s.admission_number.toLowerCase().includes(q)
+                      })
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.full_name} ({s.admission_number}) • {s.grade_class} — Balance: {currency} {s.fee_balance.toLocaleString()}
+                        </option>
+                      ))
+                  )}
                 </select>
               </div>
 
@@ -2726,11 +2851,15 @@ export function TenantBursarDesk({
                     fontWeight: 700,
                   }}
                 >
-                  {cohortsList.map((c) => (
-                    <option key={c} value={c}>
-                      {c} ({studentList.filter((s) => s.grade_class === c).length} students enrolled)
-                    </option>
-                  ))}
+                  {cohortsList.length === 0 ? (
+                    <option value="">-- No Classes or Cohorts Configured --</option>
+                  ) : (
+                    cohortsList.map((c) => (
+                      <option key={c} value={c}>
+                        {c} ({studentList.filter((s) => s.grade_class === c).length} students enrolled)
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 

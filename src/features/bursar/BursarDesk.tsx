@@ -49,8 +49,12 @@ export function BursarDesk() {
   const [selectedClearancePass, setSelectedClearancePass] = useState<BiometricFeeClearancePass | null>(null)
   const [selectedReceipt, setSelectedReceipt] = useState<FeePaymentReceipt | null>(null)
   const [editingReceipt, setEditingReceipt] = useState<FeePaymentReceipt | null>(null)
+  const currencySymbol = INSTITUTION_CONFIG.pricing.currencySymbol || '$'
+  const currencyCode = INSTITUTION_CONFIG.pricing.currencyCode || 'USD'
+  const defaultTuitionFee = INSTITUTION_CONFIG.pricing.defaultTuitionFee || 0
+
   const [editFormData, setEditFormData] = useState({
-    amount: 60,
+    amount: defaultTuitionFee,
     payment_method: 'M-Pesa' as 'Card' | 'Bank Transfer' | 'Paybill' | 'PayPal' | 'M-Pesa' | 'Cash Deposit',
     reference_code: '',
     paid_by: '',
@@ -111,7 +115,7 @@ export function BursarDesk() {
 
   const [editingInvoice, setEditingInvoice] = useState<FeeInvoice | null>(null)
   const [editInvoiceData, setEditInvoiceData] = useState({
-    total_amount: 60,
+    total_amount: defaultTuitionFee,
     due_date: '',
     term: 'Semester 1',
     description: 'Certified Course Tuition Fee',
@@ -190,10 +194,10 @@ export function BursarDesk() {
     admission_number: '',
     student_name: '',
     course_name: '',
-    total_fee: 75,
-    amount: 75,
-    payment_method: 'Card' as 'Card' | 'Bank Transfer' | 'Paybill' | 'PayPal' | 'M-Pesa' | 'Cash Deposit',
-    reference_code: `CARD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+    total_fee: defaultTuitionFee,
+    amount: defaultTuitionFee,
+    payment_method: 'Bank Transfer' as 'Card' | 'Bank Transfer' | 'Paybill' | 'PayPal' | 'M-Pesa' | 'Cash Deposit',
+    reference_code: '',
     paid_by: '',
     issued_by: defaultIssuer,
     biometric_verified: false,
@@ -528,21 +532,21 @@ export function BursarDesk() {
   }
 
   // Send SMS Reminder
-  const handleSendReminder = async (studentName: string, phone: string, balance: number) => {
+  const handleSendReminder = async (student: StudentRecord, phone: string, balance: number) => {
     const reminder: PaymentReminder = {
       id: `rem-${Date.now()}`,
-      student_id: `std-${Date.now()}`,
-      student_name: studentName,
-      admission_number: 'GC-2026-001',
-      guardian_name: 'Guardian / Sponsor',
-      parent_name: 'Guardian / Sponsor',
+      student_id: student.id,
+      student_name: student.full_name,
+      admission_number: student.admission_number,
+      guardian_name: student.guardian?.name || 'Guardian / Sponsor',
+      parent_name: student.guardian?.name || 'Guardian / Sponsor',
       guardian_phone: phone,
       phone_number: phone,
       amount_due: balance,
       balance_due: balance,
       due_date: 'Immediate',
-      message_text: `Dear Student/Guardian, this is a tuition reminder from Global College. An outstanding balance of $${balance.toLocaleString()} is due. Please settle via the online student portal. Thank you.`,
-      message: `Dear Student/Guardian, this is a tuition reminder from Global College. An outstanding balance of $${balance.toLocaleString()} is due. Please settle via the online student portal. Thank you.`,
+      message_text: `Dear ${student.full_name} / Guardian, this is an official fee reminder from ${INSTITUTION_CONFIG.name}. An outstanding balance of ${currencySymbol}${balance.toLocaleString()} is due for admission ${student.admission_number}. Please settle via the student portal or approved channels. Thank you.`,
+      message: `Dear ${student.full_name} / Guardian, this is an official fee reminder from ${INSTITUTION_CONFIG.name}. An outstanding balance of ${currencySymbol}${balance.toLocaleString()} is due for admission ${student.admission_number}. Please settle via the student portal or approved channels. Thank you.`,
       sent_at: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
       status: 'Delivered',
       channel: 'SMS',
@@ -550,7 +554,7 @@ export function BursarDesk() {
 
     await schoolStore.addPaymentReminder(reminder)
     setReminders(schoolStore.getReminders())
-    setReminderAlert(`SMS payment reminder dispatched successfully to ${phone} for ${studentName}.`)
+    setReminderAlert(`SMS payment reminder dispatched successfully to ${phone} for ${student.full_name}.`)
     setTimeout(() => setReminderAlert(null), 5000)
   }
 
@@ -717,7 +721,7 @@ export function BursarDesk() {
                 <div style={{ fontSize: '1.8rem', marginBottom: '0.35rem' }}>📜</div>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 0.35rem' }}>Provisional Letters</h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: 0 }}>
-                  Generate official admission calling letters with Global College seal.
+                  Generate official admission calling letters with {INSTITUTION_CONFIG.name} seal.
                 </p>
               </div>
               <button type="button" className="btn btn-secondary btn-sm mt-3" onClick={() => setActiveTab('admissions')}>
@@ -1397,7 +1401,7 @@ export function BursarDesk() {
                         type="button"
                         className="btn btn-sm btn-primary"
                         disabled={s.fee_cleared || (!s.guardian?.phone && !s.emergency_contact)}
-                        onClick={() => handleSendReminder(s.full_name, s.guardian?.phone || s.emergency_contact || '', s.fee_balance)}
+                        onClick={() => handleSendReminder(s, s.guardian?.phone || s.emergency_contact || '', s.fee_balance)}
                       >
                         📱 Send SMS Reminder
                       </button>
@@ -1488,7 +1492,7 @@ export function BursarDesk() {
                         const std = students.find((s) => s.id === e.target.value)
                         if (std) {
                           const existingInv = invoices.find((inv) => inv.student_id === std.id || inv.admission_number === std.admission_number)
-                          const fee = existingInv ? existingInv.balance : (std.fee_balance !== undefined ? std.fee_balance : (std.term_fee_total || 60))
+                          const fee = existingInv ? existingInv.balance : (std.fee_balance !== undefined ? std.fee_balance : (std.term_fee_total || defaultTuitionFee))
                           setPaymentData({
                             ...paymentData,
                             student_id: std.id,
@@ -1524,7 +1528,7 @@ export function BursarDesk() {
                         const adm = e.target.value
                         const std = students.find((s) => s.admission_number.toLowerCase() === adm.toLowerCase())
                         const existingInv = invoices.find((inv) => inv.admission_number.toLowerCase() === adm.toLowerCase())
-                        const fee = existingInv ? existingInv.balance : (std ? (std.fee_balance !== undefined ? std.fee_balance : (std.term_fee_total || 60)) : paymentData.total_fee)
+                        const fee = existingInv ? existingInv.balance : (std ? (std.fee_balance !== undefined ? std.fee_balance : (std.term_fee_total || defaultTuitionFee)) : paymentData.total_fee)
                         setPaymentData({
                           ...paymentData,
                           admission_number: adm,
@@ -2151,7 +2155,7 @@ export function BursarDesk() {
               {/* Official Digital Stamp */}
               <div style={{ background: '#f8fafc', border: '1px dashed #94a3b8', borderRadius: '8px', padding: '0.75rem', textAlign: 'center', fontSize: '0.75rem', color: '#475569' }}>
                 <div>🛡️ <strong>OFFICIAL DIGITAL STAMP & VERIFICATION</strong></div>
-                <div>Global College Directorate of Finance • 100% Online Virtual Campus</div>
+                <div>{INSTITUTION_CONFIG.name} Directorate of Finance • 100% Online Virtual Campus</div>
                 <div style={{ color: '#16a34a', fontWeight: 800, marginTop: '2px' }}>STATUS: TRANSACTION VERIFIED & ACCOUNT CREDITED</div>
               </div>
 
@@ -2173,7 +2177,7 @@ export function BursarDesk() {
         <div className="modal-overlay" onClick={() => setSelectedStudentForLetter(null)}>
           <div className="modal-content modal-lg" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', color: '#0f172a', padding: '2.5rem' }}>
             <div style={{ textAlign: 'center', borderBottom: '2px solid #1e3a8a', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-              <h2 style={{ color: '#1e3a8a', margin: 0, fontSize: '1.6rem', fontWeight: 900, textTransform: 'uppercase' }}>Global College</h2>
+              <h2 style={{ color: '#1e3a8a', margin: 0, fontSize: '1.6rem', fontWeight: 900, textTransform: 'uppercase' }}>{INSTITUTION_CONFIG.name}</h2>
               <div style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>Directorate of Admissions & Student Affairs</div>
               <div style={{ display: 'inline-block', background: '#f1f5f9', padding: '4px 16px', borderRadius: '999px', fontSize: '0.85rem', fontWeight: 700, color: '#1e3a8a', marginTop: '0.5rem' }}>
                 OFFICIAL PROVISIONAL ADMISSION LETTER
@@ -2183,7 +2187,7 @@ export function BursarDesk() {
             <div style={{ fontSize: '0.9rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
               <p>Dear <strong>{selectedStudentForLetter.full_name}</strong> (Adm No: <strong>{selectedStudentForLetter.admission_number}</strong>),</p>
               <p>
-                We are pleased to inform you that you have been offered provisional admission to study <strong>{selectedStudentForLetter.class_name}</strong> at Global College.
+                We are pleased to inform you that you have been offered provisional admission to study <strong>{selectedStudentForLetter.class_name}</strong> at {INSTITUTION_CONFIG.name}.
               </p>
               <p>
                 Your reporting date is effective from <strong>{selectedStudentForLetter.admission_date || selectedStudentForLetter.enrollment_date || currentAcademicYear}</strong>. Please ensure complete fee clearance with the Bursar's Office to finalize your unit registration and obtain your student identification badge.

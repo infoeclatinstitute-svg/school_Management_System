@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useIsMobile } from '@/hooks/useMediaQuery'
-import { getWhatsAppInquiryUrl } from '@/config/institution'
+import { getWhatsAppInquiryUrl, INSTITUTION_CONFIG } from '@/config/institution'
 import {
   SparklesIcon,
   VideoIcon,
@@ -493,10 +493,10 @@ export function TutorPublishCoursePage() {
           code: finalDepartmentName.split(/\s+/).map((w) => w[0]).join('').slice(0, 5).toUpperCase() || 'DEPT',
           description: `Dynamic department registered by ${providerType === 'partner_institution' ? (institutionName.trim() || 'Partner School') : finalTutorOrSchoolName}.`,
           hod_name: providerType === 'partner_institution' ? (institutionSignatory.trim() || 'Academic Dean') : finalTutorOrSchoolName,
-          hod_email: email.trim() || 'info.eclatinstitute@gmail.com',
+          hod_email: email.trim() || INSTITUTION_CONFIG.contact.email,
           programs: [finalProgramName],
           school_id: 'school-Global College',
-          school_name: providerType === 'partner_institution' ? (institutionName.trim() || 'Partner School') : 'Global College',
+          school_name: providerType === 'partner_institution' ? (institutionName.trim() || 'Partner School') : (INSTITUTION_CONFIG.name || 'Global College'),
           created_at: new Date().toISOString(),
         })
       }
@@ -545,8 +545,8 @@ export function TutorPublishCoursePage() {
         description: courseDescription,
         fee: suggestedPriceUsd,
         course_fee: suggestedPriceUsd * 130,
-        live_meeting_url: deliveryMode === 'live_cohort' ? 'https://meet.google.com/new' : undefined,
-        live_schedule_text: deliveryMode === 'live_cohort' ? 'Live Cohort Sessions • Mon & Wed 7:30 PM EAT' : undefined,
+        live_meeting_url: undefined,
+        live_schedule_text: undefined,
         provider_type: providerType,
         institution_name: providerType === 'partner_institution' ? institutionName.trim() : undefined,
         institution_logo: providerType === 'partner_institution' ? institutionLogo.trim() : undefined,
@@ -557,21 +557,23 @@ export function TutorPublishCoursePage() {
           {
             id: `mod-${Date.now()}-1`,
             module_number: 1,
-            title: 'Module 1: Foundations & Core Practical Implementation',
-            topics: ['Introduction & Overview', 'Hands-On Demonstration', 'Applied Project Work'],
-            learning_outcomes: ['Grasp core principles', 'Complete practical assignments'],
-            hours: 20,
+            title: `${courseTitle} - Curriculum Modules`,
+            topics: [finalProgramName || courseTitle],
+            learning_outcomes: ['Practical mastery and skill application'],
+            hours: 40,
           },
         ],
-        lessons: [
-          {
-            id: `les-${Date.now()}-1`,
-            title: `${courseTitle} - Complete Practical Masterclass`,
-            video_url: videoUrl,
-            duration_minutes: 60,
-            content: courseDescription,
-          },
-        ],
+        lessons: videoUrl.trim()
+          ? [
+              {
+                id: `les-${Date.now()}-1`,
+                title: `${courseTitle} - Masterclass`,
+                video_url: videoUrl.trim(),
+                duration_minutes: 60,
+                content: courseDescription,
+              },
+            ]
+          : [],
         is_published: true,
         created_at: new Date().toISOString(),
       })

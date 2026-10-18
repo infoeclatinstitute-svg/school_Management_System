@@ -144,7 +144,7 @@ export function FeeManagement() {
     unitReg?.exam_card_issued === true ||
     myInvoices.some((inv) => inv.status === 'Paid' || inv.balance === 0)
 
-  const myBilled = currentStudent?.term_fee_total ?? (myInvoices[0]?.total_amount ?? 60)
+  const myBilled = currentStudent?.term_fee_total ?? (myInvoices[0]?.total_amount ?? (INSTITUTION_CONFIG.pricing.defaultTuitionFee || 0))
   const rawPaid = myReceipts.reduce((sum, r) => sum + (r.amount_paid ?? r.amount), 0)
   const isCleared = isExplicitlyCleared || (currentStudent?.fee_balance === 0) || (myBilled > 0 && rawPaid >= myBilled)
   const myBalance = isCleared ? 0 : (currentStudent?.fee_balance ?? Math.max(0, myBilled - rawPaid))
@@ -482,14 +482,14 @@ export function FeeManagement() {
                     boxShadow: '0 4px 14px rgba(0, 195, 247, 0.4)',
                   }}
                   onClick={() => {
-                    const studentEmail = (profile as any)?.email || (currentStudent as any)?.email || 'student@cloud.eclat.institute'
                     const studentName = currentStudent?.full_name || profile?.full_name || 'Student'
                     const studentAdm = currentStudent?.admission_number || profile?.admission_number || ''
+                    const studentEmail = (profile as any)?.email || (currentStudent as any)?.email || `${studentAdm ? studentAdm.toLowerCase().replace(/[^a-z0-9]/g, '') : 'student'}@${INSTITUTION_CONFIG.domain || 'globalcollege.internal'}`
 
                     initializePaystackCheckout({
                       email: studentEmail,
                       amount: myBalance,
-                      currency: 'KES',
+                      currency: INSTITUTION_CONFIG.paystack.currency || 'KES',
                       studentName: studentName,
                       admissionNumber: studentAdm,
                       purpose: `Tuition Fee Clearance - ${studentName}`,

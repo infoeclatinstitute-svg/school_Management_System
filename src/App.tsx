@@ -98,7 +98,11 @@ function RootEntryRouter() {
   // 0. If requested with target=saas-admin (e.g. from SaaS Admin standalone APK)
   if (typeof window !== 'undefined') {
     const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('target') === 'saas-admin' || window.location.hash.includes('saas-admin')) {
+    if (
+      urlParams.get('target') === 'saas-admin' ||
+      window.location.hash.includes('saas-admin') ||
+      window.location.search.includes('saas-admin')
+    ) {
       return <Navigate to="/saas-admin" replace />
     }
   }
@@ -153,6 +157,9 @@ function FallbackOrSchoolSlug() {
   const segments = location.pathname.split('/').filter(Boolean)
   if (segments.length >= 1) {
     const candidateSlug = segments[0]
+    if (candidateSlug === 'index.html' || candidateSlug === 'index') {
+      return <Navigate to="/" replace />
+    }
     const subview = segments[1] || 'hub'
     const school = tenantSchoolStore.getSchoolBySlug(candidateSlug)
     return <TenantSchoolHub forcedSlug={school ? school.slug : candidateSlug} forcedSubview={subview} />
@@ -192,6 +199,7 @@ export function App() {
       <Routes>
         {/* Portal Root Route */}
         <Route path="/" element={<RootEntryRouter />} />
+        <Route path="/index.html" element={<RootEntryRouter />} />
         <Route path="/publish-course" element={<TutorPublishCoursePage />} />
         <Route path="/teach-with-us" element={<TutorPublishCoursePage />} />
         <Route path="/login" element={<Login />} />
@@ -208,15 +216,7 @@ export function App() {
         <Route path="/schools/:schoolSlug/:subview" element={<TenantSchoolHub />} />
 
         {/* Platform Owner SaaS Portal — protected by Master Passcode Security Gate */}
-        <Route
-          path="/saas-admin"
-          element={
-            <TenantSubdomainRouteOrCentral
-              subview="billing"
-              centralElement={<MasterSaasPortal />}
-            />
-          }
-        />
+        <Route path="/saas-admin" element={<MasterSaasPortal />} />
         {/* Open Portal Routes with App Layout */}
         <Route element={<LayoutShell />}>
           <Route path="/library" element={<ResourceLibrary />} />

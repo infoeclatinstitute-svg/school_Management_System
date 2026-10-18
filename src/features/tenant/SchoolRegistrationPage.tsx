@@ -45,14 +45,14 @@ const INSTITUTION_CATEGORIES: {
 }[] = [
   {
     id: 'college',
-    label: 'College / TVET / Polytechnic',
+    label: 'College / Polytechnic',
     badge: 'Diplomas & Certificates',
     icon: '🏛️',
-    desc: 'Technical colleges, TVET institutes, medical training colleges, and business polytechnics.',
+    desc: 'Technical colleges, vocational institutes, medical training colleges, and business polytechnics.',
     defaultCalendar: 'semester',
     defaultGrading: 'tvet_competency',
     defaultTitle: 'College Principal / Provost',
-    defaultCurriculum: 'TVET / Diploma & Certificate Modular Framework',
+    defaultCurriculum: 'Diploma & Certificate Modular Framework',
     suggestedDepts: [
       'School of Computing & Informatics',
       'Department of Business & Accounting',
@@ -1268,12 +1268,12 @@ export function SchoolRegistrationPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '1rem' }}>
                     <div>
                       <label htmlFor={`${formId}-reg-no`} style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: '0.35rem' }}>
-                        Ministry / TVETA / CUE Registration No.
+                        Ministry / Education Board / Accreditation No.
                       </label>
                       <input
                         id={`${formId}-reg-no`}
                         type="text"
-                        placeholder="e.g. MOE/TVETA/REG/2026/084"
+                        placeholder="e.g. MOE/REG/2026/084"
                         value={registrationNumber}
                         onChange={(e) => setRegistrationNumber(e.target.value)}
                         style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}

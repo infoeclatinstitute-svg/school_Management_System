@@ -353,9 +353,9 @@ export function SafariInstallModal({
                       alignItems: 'center',
                       gap: '5px',
                     }}
-                    title="Official GitHub Release Mirror"
+                    title="Official Cloud Release Mirror"
                   >
-                    <span>🐙</span> GitHub Mirror
+                    <span>🌐</span> Cloud Mirror
                   </a>
                 </div>
 

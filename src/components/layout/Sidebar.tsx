@@ -19,6 +19,7 @@ import {
   LogOutIcon,
   ShieldCheckIcon,
   AwardIcon,
+  MessageCircleIcon,
 } from '@/components/icons/AppIcons'
 
 interface NavItem {
@@ -36,6 +37,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
     { to: '/login', label: 'Portal Login & Workstations', icon: LockIcon },
     { to: '/register-school', label: 'School & College Onboarding', icon: BuildingIcon },
     { to: '/library', label: 'E-Library & Past Papers', icon: LibraryIcon },
+    { to: '/faq', label: 'Help & Support Chat', icon: MessageCircleIcon },
   ]
 
   const studentNav: NavItem[] = [
@@ -45,6 +47,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
     { to: '/fees', label: 'My Fee Statement & Paybill', icon: CreditCardIcon },
     { to: '/exams', label: 'My Academic Transcripts', icon: FileTextIcon },
     { to: '/noticeboard', label: 'Student Noticeboard', icon: MegaphoneIcon },
+    { to: '/faq', label: 'Help & Support Chat', icon: MessageCircleIcon },
   ]
 
   const teacherNav: NavItem[] = [
@@ -54,13 +57,15 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
     { to: '/teacher/gradebook', label: 'Continuous Gradebook', icon: AwardIcon },
     { to: '/library', label: 'E-Library & Courseware', icon: LibraryIcon },
     { to: '/noticeboard', label: 'College Noticeboard', icon: MegaphoneIcon },
+    { to: '/faq', label: 'Help & Support Chat', icon: MessageCircleIcon },
   ]
 
   const parentNav: NavItem[] = [
     { to: '/parent', label: 'Ward Overview & Attendance', icon: UsersIcon },
     { to: '/exams', label: 'Ward Academic Transcript', icon: FileTextIcon },
-    { to: '/fees', label: 'Fee Clearance & Payments ($ USD)', icon: CreditCardIcon },
+    { to: '/fees', label: 'Fee Clearance & Payments', icon: CreditCardIcon },
     { to: '/noticeboard', label: 'College Circulars', icon: MegaphoneIcon },
+    { to: '/faq', label: 'Help & Support Chat', icon: MessageCircleIcon },
   ]
 
   const bursarNav: NavItem[] = [
@@ -68,6 +73,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
     { to: '/students', label: 'Student Directory & Admissions', icon: GraduationCapIcon },
     { to: '/fees', label: 'Fee Invoices & Payments', icon: CreditCardIcon },
     { to: '/noticeboard', label: 'Publish Circulars & Notices', icon: MegaphoneIcon },
+    { to: '/faq', label: 'Help & Support Chat', icon: MessageCircleIcon },
   ]
 
   const adminNav: NavItem[] = [
@@ -81,6 +87,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => v
     { to: '/exams', label: 'Transcripts & Certificates', icon: FileTextIcon },
     { to: '/admin/users', label: 'Staff & Faculty Accounts', icon: UserIcon },
     { to: '/noticeboard', label: 'College Noticeboard', icon: MegaphoneIcon },
+    { to: '/faq', label: 'Help & Support Chat', icon: MessageCircleIcon },
   ]
 
   const roleNavMap: Record<string, { label: string; icon: React.ComponentType<{ size?: number | string }>; links: NavItem[] }> = {

@@ -183,9 +183,9 @@ class TenantSchoolStore {
             map.set(cleanSlug, s)
             hadLocalChanges = true
           } else {
-            // Keep the one that has the active license if available
-            const isLocalLicensed = s.subscription_status === 'licensed' || s.subscription_status === 'active'
-            const isCloudLicensed = cloudSchool.subscription_status === 'licensed' || cloudSchool.subscription_status === 'active'
+            // Timestamp & priority resolution
+            const localTime = s.updated_at ? new Date(s.updated_at).getTime() : 0
+            const cloudTime = cloudSchool.updated_at ? new Date(cloudSchool.updated_at).getTime() : 0
 
             // Deep-merge campuses list so no device wipes out added branches
             const localCampuses = s.campuses_list || []
@@ -206,14 +206,24 @@ class TenantSchoolStore {
               mergedCampuses.length || 1
             )
 
+            const chosenStatus = (localTime && cloudTime)
+              ? (localTime >= cloudTime ? s.subscription_status : cloudSchool.subscription_status)
+              : (s.subscription_status || cloudSchool.subscription_status)
+
+            const chosenPassword = (localTime && cloudTime)
+              ? (localTime >= cloudTime ? (s.admin_password || cloudSchool.admin_password) : (cloudSchool.admin_password || s.admin_password))
+              : (s.admin_password || cloudSchool.admin_password)
+
             map.set(cleanSlug, {
               ...cloudSchool,
               ...s,
               campuses_list: mergedCampuses.length > 0 ? mergedCampuses : (cloudSchool.campuses_list || s.campuses_list),
               campus_count: finalCampusCount,
-              subscription_status: isLocalLicensed ? s.subscription_status : (isCloudLicensed ? cloudSchool.subscription_status : (s.subscription_status || cloudSchool.subscription_status)),
+              subscription_status: chosenStatus,
+              admin_password: chosenPassword,
               active_license_key: s.active_license_key || cloudSchool.active_license_key,
               license_valid_until: s.license_valid_until || cloudSchool.license_valid_until,
+              updated_at: s.updated_at || cloudSchool.updated_at,
             })
           }
         })
@@ -1084,9 +1094,43 @@ class TenantSchoolStore {
     const school = this.getSchoolBySlug(slug)
     if (!school) return null
 
-    const updated = { ...school, ...updates }
+    const updated: PartnerSchoolTenant = {
+      ...school,
+      ...updates,
+      updated_at: new Date().toISOString(),
+    }
     this.schools = this.schools.map((s) => (s.id === school.id ? updated : s))
     this.saveSchools()
+
+    // If admin credentials or contact info changed, keep the principal staff roster in sync
+    if (updates.admin_username || updates.admin_password || updates.principal_name || updates.principal_email || updates.principal_title) {
+      if (this.staff.length === 0) this.loadStaff()
+      const staffList = this.getStaffBySchool(slug)
+      const principalStaff = staffList.find((s) => s.role === 'principal' || s.role === 'admin')
+      if (principalStaff) {
+        this.updateStaffMember(principalStaff.id, {
+          ...(updates.admin_username ? { username: updates.admin_username } : {}),
+          ...(updates.admin_password ? { temp_password: updates.admin_password } : {}),
+          ...(updates.principal_name ? { full_name: updates.principal_name } : {}),
+          ...(updates.principal_email ? { email: updates.principal_email } : {}),
+          ...(updates.principal_title ? { title: updates.principal_title } : {}),
+        })
+      }
+    }
+
+    return updated
+  }
+
+  public updateSchoolStatus(
+    slug: string,
+    status: 'active' | 'trial' | 'past_due' | 'expired' | 'licensed' | 'suspended'
+  ): PartnerSchoolTenant | null {
+    const updated = this.updateSchoolBranding(slug, {
+      subscription_status: status,
+    })
+    if (updated) {
+      this.pushToCloud().catch(() => {})
+    }
     return updated
   }
 
@@ -1099,14 +1143,37 @@ class TenantSchoolStore {
       admin_password: generatedPassword,
     })
 
-    // Also update the principal's staff member record if one exists
+    // Also update or provision the principal's staff member record if one exists
+    if (this.staff.length === 0) this.loadStaff()
     const staffList = this.getStaffBySchool(slug)
     const principalStaff = staffList.find((s) => s.role === 'principal' || s.role === 'admin')
     if (principalStaff) {
       this.updateStaffMember(principalStaff.id, {
         temp_password: generatedPassword,
+        username: school.admin_username || principalStaff.username || `${school.slug}.admin`,
+      })
+    } else {
+      this.createStaffMember({
+        school_slug: school.slug,
+        full_name: school.principal_name || `${school.name} Administrator`,
+        email: school.principal_email || school.contact_email || `${school.slug}@college.edu`,
+        phone: school.contact_phone || '',
+        role: 'principal',
+        title: school.principal_title || 'Executive Principal / Provost',
+        department: (school.departments_list && school.departments_list[0]) || 'Executive Administration',
+        assigned_classes: [],
+        assigned_subjects: [],
+        username: school.admin_username || `${school.slug}.admin`,
+        temp_password: generatedPassword,
+        salary_base: 0,
+        salary_housing: 0,
+        salary_transport: 0,
+        salary_tax: 0,
+        salary_pension: 0,
       })
     }
+
+    this.pushToCloud().catch(() => {})
 
     return {
       success: true,
@@ -1824,7 +1891,14 @@ class TenantSchoolStore {
     input: Omit<TenantGradeRecord, 'id' | 'updated_at' | 'total_score' | 'grade'>
   ): TenantGradeRecord {
     if (this.grades.length === 0) this.loadGrades()
-    const total = Math.min(100, Math.max(0, (input.cat1_score || 0) + (input.cat2_score || 0) + (input.exam_score || 0)))
+    const c1Max = input.cat1_max && input.cat1_max > 0 ? input.cat1_max : 20
+    const c2Max = input.cat2_max && input.cat2_max > 0 ? input.cat2_max : 20
+    const exMax = input.exam_max && input.exam_max > 0 ? input.exam_max : 60
+    const possibleMax = c1Max + c2Max + exMax
+    const rawTotal = (input.cat1_score || 0) + (input.cat2_score || 0) + (input.exam_score || 0)
+    const total = possibleMax === 100
+      ? Math.min(100, Math.max(0, Math.round(rawTotal)))
+      : Math.min(100, Math.max(0, Math.round((rawTotal / possibleMax) * 100)))
 
     let gradeLetter = 'F'
     if (total >= 90) gradeLetter = 'A*'
@@ -1844,6 +1918,9 @@ class TenantSchoolStore {
 
     const record: TenantGradeRecord = {
       ...input,
+      cat1_max: c1Max,
+      cat2_max: c2Max,
+      exam_max: exMax,
       id: existingIndex >= 0 ? this.grades[existingIndex].id : `grd_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       total_score: total,
       grade: gradeLetter,

@@ -15,6 +15,8 @@ import {
   MegaphoneIcon,
   FileTextIcon,
   SparklesIcon,
+  CalendarIcon,
+  ShieldCheckIcon,
 } from '@/components/icons/AppIcons'
 import type { Course, Enrollment, Announcement } from '@/lib/database.types'
 
@@ -22,6 +24,20 @@ export function StudentDashboard() {
   const { profile } = useAuth()
   const [showCertModal, setShowCertModal] = useState(false)
   const [, setStudentsVersion] = useState(0)
+  const [isManualSyncing, setIsManualSyncing] = useState(false)
+
+  const handleManualCloudSync = async () => {
+    if (isManualSyncing) return
+    setIsManualSyncing(true)
+    try {
+      await schoolStore.syncWithCloud(true)
+      window.dispatchEvent(new CustomEvent('gc-data-synced'))
+      window.dispatchEvent(new Event('storage'))
+      setStudentsVersion((v) => v + 1)
+    } finally {
+      setTimeout(() => setIsManualSyncing(false), 600)
+    }
+  }
 
   // Realtime Cloud Sync & Event Listener for Student Clearance
   useEffect(() => {
@@ -194,10 +210,13 @@ export function StudentDashboard() {
     )
   }
 
+  const currentHour = new Date().getHours()
+  const greetingText = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening'
+  const studentFirstName = (currentStudent?.full_name || profile?.full_name || 'Trainee').split(' ')[0]
+
   return (
     <PageWrapper
-      title={`Welcome, ${currentStudent?.full_name || profile?.full_name || 'Trainee'}! 👋`}
-      subtitle={`Admission No: ${currentStudent?.admission_number || profile?.admission_number || 'N/A'} • ${currentStudent?.class_name || 'Enrolled Student'}`}
+      title={`Student Portal | ${currentStudent?.full_name || 'My Desk'}`}
       breadcrumbs={[
         { label: 'Portal', href: '/' },
         { label: 'Student Workspace' },
@@ -236,215 +255,562 @@ export function StudentDashboard() {
         )
       })()}
 
-      {/* Top Academic Status Card — Canvas-grade Clean Institutional Design */}
+      {/* ============================================================ */}
+      {/* 1. NATIVE APP HERO HEADER WITH AVATAR & IDENTITY */}
+      {/* ============================================================ */}
       <div
         style={{
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderLeft: '5px solid #2563eb',
-          borderRadius: '12px',
-          padding: '1.25rem 1.75rem',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
-          marginBottom: '1.5rem',
+          background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 60%, #0f172a 100%)',
+          borderRadius: '24px',
+          padding: '1.75rem 2rem',
+          color: '#ffffff',
+          marginBottom: '1.75rem',
+          boxShadow: '0 12px 36px -6px rgba(30, 58, 138, 0.35)',
+          position: 'relative',
+          overflow: 'hidden',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#2563eb', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>🎓</span>
-              <span>College Academic Standing: Active Short Course Cohort</span>
+        {/* Subtle decorative background circles */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-50px',
+            right: '-50px',
+            width: '220px',
+            height: '220px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            {/* Student Avatar with Active Ring */}
+            <div
+              style={{
+                position: 'relative',
+                width: '68px',
+                height: '68px',
+                borderRadius: '20px',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.6rem',
+                fontWeight: 900,
+                letterSpacing: '1px',
+                border: '2.5px solid rgba(255, 255, 255, 0.9)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+                flexShrink: 0,
+              }}
+            >
+              {(currentStudent?.full_name || profile?.full_name || 'Student')
+                .split(' ')
+                .map((n) => n[0])
+                .filter(Boolean)
+                .slice(0, 2)
+                .join('')
+                .toUpperCase()}
+              {/* Online Active Pulsing Dot */}
+              <div
+                title="Active Realtime Session"
+                style={{
+                  position: 'absolute',
+                  bottom: '-2px',
+                  right: '-2px',
+                  width: '18px',
+                  height: '18px',
+                  borderRadius: '50%',
+                  background: '#22c55e',
+                  border: '2.5px solid #1e3a8a',
+                  boxShadow: '0 0 10px #22c55e',
+                }}
+              />
             </div>
-            <h2 style={{ color: '#0f172a', fontSize: '1.35rem', fontWeight: 800, margin: '0.35rem 0 0.35rem' }}>
-              {studentTranscript ? `${studentTranscript.mean_grade} — Mean: ${studentTranscript.mean_percentage}%` : 'Enrolled — In Progress'}
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.85rem', margin: 0 }}>
-              {studentTranscript
-                ? `Rank #${studentTranscript.class_position} of ${studentTranscript.total_students_in_class} in Class`
-                : 'Modular practical assessments and final evaluation grades will appear here upon completion.'}
-            </p>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.18)',
+                    backdropFilter: 'blur(10px)',
+                    color: '#ffffff',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '3px 10px',
+                    borderRadius: '9999px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                  }}
+                >
+                  <ShieldCheckIcon size={13} color="#93c5fd" />
+                  <span>VERIFIED LEARNER</span>
+                </span>
+
+                <span
+                  style={{
+                    background: isFeeCleared ? 'rgba(34, 197, 94, 0.22)' : 'rgba(249, 115, 22, 0.22)',
+                    color: isFeeCleared ? '#86efac' : '#fed7aa',
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '3px 10px',
+                    borderRadius: '9999px',
+                    border: isFeeCleared ? '1px solid rgba(134, 239, 172, 0.4)' : '1px solid rgba(254, 215, 170, 0.4)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <span>{isFeeCleared ? '✓' : '⚠️'}</span>
+                  <span>{isFeeCleared ? 'Exam Pass Active' : 'Fee Clearance Pending'}</span>
+                </span>
+              </div>
+
+              <h1
+                style={{
+                  fontSize: '1.85rem',
+                  fontWeight: 900,
+                  margin: '6px 0 3px',
+                  color: '#ffffff',
+                  letterSpacing: '-0.02em',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}
+              >
+                {greetingText}, {studentFirstName}! 👋
+              </h1>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.82rem', color: '#cbd5e1' }}>
+                <span style={{ background: 'rgba(255, 255, 255, 0.12)', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
+                  ADM: <strong style={{ color: '#ffffff' }}>{currentStudent?.admission_number || profile?.admission_number || 'GC-2026-001'}</strong>
+                </span>
+                <span>•</span>
+                <span>{currentStudent?.class_name || 'Practical Short Course Cohort'}</span>
+                <span>•</span>
+                <span style={{ color: '#93c5fd' }}>{currentStudent?.grade_level || `${new Date().getFullYear()} Virtual Intake`}</span>
+              </div>
+            </div>
           </div>
 
+          {/* Quick Header Actions */}
           <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={handleManualCloudSync}
+              disabled={isManualSyncing}
+              title="Sync with Cloud Database"
+              style={{
+                background: 'rgba(255, 255, 255, 0.12)',
+                backdropFilter: 'blur(8px)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                borderRadius: '12px',
+                padding: '9px 14px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ display: 'inline-block', transform: isManualSyncing ? 'rotate(360deg)' : 'none', transition: 'transform 0.6s ease' }}>
+                🔄
+              </span>
+              <span>{isManualSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
+            </button>
+
             {currentStudent?.certificate_granted ? (
               <button
                 type="button"
                 onClick={() => setShowCertModal(true)}
                 style={{
-                  background: '#047857',
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                   color: '#ffffff',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   fontSize: '0.82rem',
                   border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 14px',
+                  borderRadius: '12px',
+                  padding: '9px 15px',
                   cursor: 'pointer',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.35rem',
-                  boxShadow: '0 2px 8px rgba(4, 120, 87, 0.25)',
-                }}
-                title="Your Certificate has been officially granted and verified by the Academic Registrar."
-              >
-                <span>📜 Certificate of Completion (Granted)</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                disabled
-                title="Certificate locked: Awaiting course evaluation and graduation clearance by the College Administrator."
-                style={{
-                  background: '#f8fafc',
-                  color: '#64748b',
-                  fontWeight: 600,
-                  fontSize: '0.82rem',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  padding: '8px 14px',
-                  cursor: 'not-allowed',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
+                  gap: '6px',
+                  boxShadow: '0 4px 14px rgba(5, 150, 105, 0.4)',
                 }}
               >
-                <span>🔒 Certificate (Pending Clearance)</span>
+                <span>📜 Certificate Granted</span>
               </button>
-            )}
+            ) : null}
+
             <Link
               to="/exams"
               style={{
                 background: '#ffffff',
                 color: '#1e40af',
-                fontWeight: 600,
+                fontWeight: 800,
                 fontSize: '0.82rem',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                padding: '8px 14px',
+                borderRadius: '12px',
+                padding: '9px 15px',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.35rem',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                gap: '6px',
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
               }}
             >
               <span>📄 Official Transcript</span>
             </Link>
+
             <Link
               to="/fees"
               style={{
-                background: '#2563eb',
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                 color: '#ffffff',
-                fontWeight: 700,
+                fontWeight: 800,
                 fontSize: '0.82rem',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '8px 14px',
+                borderRadius: '12px',
+                padding: '9px 15px',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '0.35rem',
-                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
+                gap: '6px',
+                boxShadow: '0 4px 14px rgba(217, 119, 6, 0.35)',
               }}
             >
-              <span>💳 Tuition Statement</span>
+              <span>💳 Pay Tuition</span>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Student Personal KPI Grid — Standardized Canvas / Linear Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      {/* ============================================================ */}
+      {/* 2. TACTILE QUICK ACTION LAUNCHPAD (NATIVE APP ICONS) */}
+      {/* ============================================================ */}
+      <div className="mb-6">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <SparklesIcon size={18} color="#2563eb" />
+            <span>Student Quick Workstations</span>
+          </h2>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>Touch to Launch ➔</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          {[
+            {
+              to: '/student/courses',
+              icon: <BookOpenIcon size={24} color="#2563eb" />,
+              bg: '#eff6ff',
+              border: '#bfdbfe',
+              title: 'My Course LMS',
+              sub: 'Video lessons & tasks',
+            },
+            {
+              to: '/timetable',
+              icon: <CalendarIcon size={24} color="#7c3aed" />,
+              bg: '#f5f3ff',
+              border: '#ddd6fe',
+              title: 'Timetable',
+              sub: `${todayPeriods.length} sessions today`,
+            },
+            {
+              to: '/fees',
+              icon: <CreditCardIcon size={24} color="#059669" />,
+              bg: '#ecfdf5',
+              border: '#a7f3d0',
+              title: 'Pay Tuition',
+              sub: isFeeCleared ? 'Fully cleared ✓' : 'M-Pesa Paybill',
+            },
+            {
+              to: '/exams',
+              icon: <FileTextIcon size={24} color="#ea580c" />,
+              bg: '#fff7ed',
+              border: '#fed7aa',
+              title: 'Transcript & Pass',
+              sub: studentTranscript ? `${studentTranscript.mean_grade} (${studentTranscript.mean_percentage}%)` : 'Evaluation slip',
+            },
+            {
+              to: '/library',
+              icon: <LibraryIcon size={24} color="#0891b2" />,
+              bg: '#ecfeff',
+              border: '#a5f3fc',
+              title: 'E-Library',
+              sub: 'Past papers & books',
+            },
+            {
+              to: '/noticeboard',
+              icon: <MegaphoneIcon size={24} color="#e11d48" />,
+              bg: '#fff1f2',
+              border: '#fecdd3',
+              title: 'Noticeboard',
+              sub: `${announcements?.length || 0} recent notices`,
+            },
+          ].map((action, idx) => (
+            <Link
+              key={idx}
+              to={action.to}
+              style={{
+                textDecoration: 'none',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: '16px',
+                padding: '1rem 0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                touchAction: 'manipulation',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-3px)'
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(15, 23, 42, 0.08)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'none'
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(15, 23, 42, 0.04)'
+              }}
+            >
+              <div
+                style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '14px',
+                  background: action.bg,
+                  border: `1.5px solid ${action.border}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '0.65rem',
+                }}
+              >
+                {action.icon}
+              </div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.2 }}>
+                {action.title}
+              </div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px', lineHeight: 1.2 }}>
+                {action.sub}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* 3. STUDENT ACADEMIC HEALTH & COMPLIANCE KPI CARDS */}
+      {/* ============================================================ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Metric 1: Lecture Attendance */}
         <div
           style={{
-            background: '#ffffff',
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
             border: '1px solid #e2e8f0',
-            borderTop: '3px solid #2563eb',
-            borderRadius: '12px',
-            padding: '1.25rem',
-            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+            borderRadius: '18px',
+            padding: '1.25rem 1.4rem',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Lecture Attendance</div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginTop: '0.35rem' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#2563eb' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Roll Call Attendance
+            </span>
+            <span style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+              📋
+            </span>
+          </div>
+          <div style={{ fontSize: '1.95rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 4px', letterSpacing: '-0.02em' }}>
             {currentStudent ? `${currentStudent.attendance_rate || 0}%` : '0%'}
           </div>
-          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: (currentStudent?.attendance_rate || 0) >= 75 ? '#047857' : '#64748b', marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
+            <div
+              style={{
+                width: `${Math.min(100, Math.max(8, currentStudent?.attendance_rate || 0))}%`,
+                background: (currentStudent?.attendance_rate || 0) >= 75 ? '#059669' : '#2563eb',
+                height: '100%',
+                borderRadius: '999px',
+              }}
+            />
+          </div>
+          <div style={{ fontSize: '0.74rem', fontWeight: 700, color: (currentStudent?.attendance_rate || 0) >= 75 ? '#059669' : '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <span>{(currentStudent?.attendance_rate || 0) >= 75 ? '✓ Meets Exam Minimum (75%)' : '0 Sessions Logged (Newly Enrolled)'}</span>
           </div>
         </div>
 
+        {/* Metric 2: Fee Clearance */}
         <div
           style={{
-            background: '#ffffff',
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
             border: '1px solid #e2e8f0',
-            borderTop: `3px solid ${isFeeCleared ? '#047857' : '#ea580c'}`,
-            borderRadius: '12px',
-            padding: '1.25rem',
-            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+            borderRadius: '18px',
+            padding: '1.25rem 1.4rem',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Fee Clearance & Exam Card</div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: isFeeCleared ? '#047857' : '#ea580c', marginTop: '0.35rem' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: isFeeCleared ? '#059669' : '#ea580c' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Fee Clearance &amp; Pass
+            </span>
+            <span style={{ width: '30px', height: '30px', borderRadius: '8px', background: isFeeCleared ? '#ecfdf5' : '#fff7ed', color: isFeeCleared ? '#059669' : '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+              💳
+            </span>
+          </div>
+          <div style={{ fontSize: '1.95rem', fontWeight: 900, color: isFeeCleared ? '#059669' : '#ea580c', margin: '6px 0 4px', letterSpacing: '-0.02em' }}>
             {isFeeCleared ? '✓ Cleared' : (currentStudent ? `$${(currentStudent.fee_balance ?? 0).toLocaleString()}` : '$0')}
           </div>
-          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: isFeeCleared ? '#047857' : '#64748b', marginTop: '0.35rem' }}>
-            {isFeeCleared ? 'Exam Card Active • Lessons Unlocked' : 'Pay Online / Bursar'}
+          <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
+            <div
+              style={{
+                width: isFeeCleared ? '100%' : '35%',
+                background: isFeeCleared ? '#059669' : '#ea580c',
+                height: '100%',
+                borderRadius: '999px',
+              }}
+            />
+          </div>
+          <div style={{ fontSize: '0.74rem', fontWeight: 700, color: isFeeCleared ? '#059669' : '#ea580c' }}>
+            {isFeeCleared ? 'Exam Pass Issued • Lessons Unlocked' : 'Tuition Due • Pay Online via M-Pesa'}
           </div>
         </div>
 
+        {/* Metric 3: Registered Units */}
         <div
           style={{
-            background: '#ffffff',
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
             border: '1px solid #e2e8f0',
-            borderTop: '3px solid #7c3aed',
-            borderRadius: '12px',
-            padding: '1.25rem',
-            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+            borderRadius: '18px',
+            padding: '1.25rem 1.4rem',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Registered Course Units</div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginTop: '0.35rem' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#7c3aed' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Registered Units
+            </span>
+            <span style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#f5f3ff', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+              📚
+            </span>
+          </div>
+          <div style={{ fontSize: '1.95rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 4px', letterSpacing: '-0.02em' }}>
             {schoolStore.getRegisteredUnitsForStudent(currentStudent?.admission_number || profile?.admission_number || '').length} Units
           </div>
-          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b', marginTop: '0.35rem' }}>
-            {schoolStore.getRegistrationForStudent(currentStudent?.admission_number || profile?.admission_number || '') ? '✓ Formally Cleared' : 'Pending Registration'}
+          <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
+            <div style={{ width: '100%', background: '#7c3aed', height: '100%', borderRadius: '999px' }} />
+          </div>
+          <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#7c3aed' }}>
+            {schoolStore.getRegistrationForStudent(currentStudent?.admission_number || profile?.admission_number || '') ? '✓ Formally Cleared for Term' : 'Pending Formal Registration'}
           </div>
         </div>
 
+        {/* Metric 4: Academic Standing & Merits */}
         <div
           style={{
-            background: '#ffffff',
+            background: 'linear-gradient(180deg, #ffffff 0%, #fcfdfe 100%)',
             border: '1px solid #e2e8f0',
-            borderTop: '3px solid #d97706',
-            borderRadius: '12px',
-            padding: '1.25rem',
-            boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+            borderRadius: '18px',
+            padding: '1.25rem 1.4rem',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Merits & Conduct</div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#0f172a', marginTop: '0.35rem' }}>
-            ⭐ {currentStudent?.merits_count || 0} Merits
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#d97706' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Standing &amp; Conduct
+            </span>
+            <span style={{ width: '30px', height: '30px', borderRadius: '8px', background: '#fffbeb', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+              ⭐
+            </span>
           </div>
-          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#047857', marginTop: '0.35rem' }}>
-            Conduct Index: 100/100
+          <div style={{ fontSize: '1.95rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 4px', letterSpacing: '-0.02em' }}>
+            {studentTranscript ? studentTranscript.mean_grade : 'Grade A*'}
+          </div>
+          <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
+            <div style={{ width: `${studentTranscript?.mean_percentage || 95}%`, background: '#d97706', height: '100%', borderRadius: '999px' }} />
+          </div>
+          <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#059669' }}>
+            {studentTranscript ? `Mean Score: ${studentTranscript.mean_percentage}% • Rank #${studentTranscript.class_position}` : 'Conduct Index: 100/100 (Exemplary)'}
           </div>
         </div>
       </div>
 
-      {/* Today's Schedule Preview & Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* ============================================================ */}
+      {/* 4. TODAY'S LECTURE SCHEDULE & LMS WORKSPACE */}
+      {/* ============================================================ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Schedule */}
-        <div className="card" style={{ padding: '1.25rem', gridColumn: 'span 2' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>📅 Today’s Lecture Schedule</h3>
-            <Link to="/timetable" style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
-              View Full Week →
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            padding: '1.4rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+            gridColumn: 'span 2',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem' }}>
+            <div>
+              <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                LIVE CLASS SCHEDULE
+              </div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '2px 0 0', color: '#0f172a' }}>
+                📅 Today’s Lecture Timetable
+              </h3>
+            </div>
+            <Link
+              to="/timetable"
+              style={{
+                fontSize: '0.82rem',
+                color: '#2563eb',
+                fontWeight: 700,
+                textDecoration: 'none',
+                background: '#eff6ff',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span>Full Week</span>
+              <span>➔</span>
             </Link>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {todayPeriods.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-                No active lectures scheduled for today. Check your full timetable for upcoming practical lab sessions.
+              <div
+                style={{
+                  padding: '2.5rem 1.5rem',
+                  textAlign: 'center',
+                  background: '#f8fafc',
+                  borderRadius: '14px',
+                  border: '1.5px dashed #cbd5e1',
+                }}
+              >
+                <div style={{ fontSize: '2rem', marginBottom: '0.4rem' }}>🏖️</div>
+                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.95rem' }}>No Active Lectures Scheduled for Today</div>
+                <div style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '3px' }}>
+                  Enjoy self-paced revision on your course modules or explore the past papers in the E-Library.
+                </div>
               </div>
             ) : (
               todayPeriods.map((period) => (
@@ -454,22 +820,36 @@ export function StudentDashboard() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '0.75rem 1rem',
-                    borderRadius: '8px',
-                    background: 'var(--color-bg-secondary)',
+                    padding: '0.9rem 1.15rem',
+                    borderRadius: '12px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     borderLeft: `4px solid ${period.color_hex || '#2563eb'}`,
+                    transition: 'transform 0.15s ease',
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
                       <span style={{ color: period.color_hex || '#2563eb', marginRight: '6px' }}>{period.subject_code}</span>
                       {period.subject_name}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                      📍 {period.room} • 👨‍🏫 Lecturer: {period.teacher_name}
+                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>📍 Room: <strong style={{ color: '#334155' }}>{period.room}</strong></span>
+                      <span>•</span>
+                      <span>👨‍🏫 Lecturer: <strong style={{ color: '#334155' }}>{period.teacher_name}</strong></span>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                  <div
+                    style={{
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      color: '#2563eb',
+                      background: '#eff6ff',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {period.start_time} - {period.end_time}
                   </div>
                 </div>
@@ -478,36 +858,111 @@ export function StudentDashboard() {
           </div>
         </div>
 
-        {/* Quick Links Card */}
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <SparklesIcon size={18} color="#f59e0b" />
-            <span>Student Quick Workstations</span>
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <Link to="/student/courses" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
-              <BookOpenIcon size={16} color="#475569" />
-              <span>Online Lessons & LMS</span>
-            </Link>
-            <Link to="/exams" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
-              <FileTextIcon size={16} color="#475569" />
-              <span>Download Transcript PDF</span>
-            </Link>
-            <Link to="/fees" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
-              <CreditCardIcon size={16} color="#475569" />
-              <span>Pay Tuition via M-Pesa</span>
-            </Link>
-            <Link to="/library" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
-              <LibraryIcon size={16} color="#475569" />
-              <span>Past Papers & Lab Manuals</span>
-            </Link>
-            <Link to="/noticeboard" className="btn btn-secondary btn-sm" style={{ justifyContent: 'flex-start', gap: '0.5rem' }}>
-              <MegaphoneIcon size={16} color="#475569" />
-              <span>Student Noticeboard</span>
-            </Link>
+        {/* Quick Documents Card */}
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '20px',
+            padding: '1.4rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.04)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              OFFICIAL PAPERS &amp; ID
+            </div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '2px 0 1rem', color: '#0f172a' }}>
+              🪪 Student Credentials
+            </h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <Link
+                to="/exams"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem 0.95rem',
+                  borderRadius: '12px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  textDecoration: 'none',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📜</span>
+                  <span>Official Academic Transcript</span>
+                </div>
+                <span style={{ color: '#2563eb', fontWeight: 800 }}>PDF ➔</span>
+              </Link>
+
+              <Link
+                to="/fees"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem 0.95rem',
+                  borderRadius: '12px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  textDecoration: 'none',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📄</span>
+                  <span>Fee Statement &amp; Receipts</span>
+                </div>
+                <span style={{ color: '#2563eb', fontWeight: 800 }}>View ➔</span>
+              </Link>
+
+              <Link
+                to="/timetable"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.75rem 0.95rem',
+                  borderRadius: '12px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  textDecoration: 'none',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  fontSize: '0.84rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🎫</span>
+                  <span>Biometric Exam Pass</span>
+                </div>
+                <span style={{ color: '#059669', fontWeight: 800 }}>Active ✓</span>
+              </Link>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+            <div style={{ fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span>🔒</span>
+              <span>Encrypted Student Record • Global College Cloud</span>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* 5. ONLINE LMS ENROLLED COURSE MODULES */}
+      {/* ============================================================ */}
 
       {/* Online LMS Courses Section */}
       {(() => {

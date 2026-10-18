@@ -67,6 +67,7 @@ export interface PartnerSchoolTenant {
   grading_scale?: InstitutionGradingScale
   departments_list?: string[]
   classes_list?: string[]
+  subjects_list?: string[]
   campus_count?: number // number of campuses (each billed @ KES 2,500/month)
   campuses_list?: InstitutionCampus[]
   motto: string
@@ -100,7 +101,7 @@ export interface PartnerSchoolTenant {
   subscription_tier?: 'silver' | 'gold' | 'platinum' | 'starter' | 'growth' | 'enterprise'
   subscription_monthly_rate?: number // e.g. KES 2,500 (Silver) or KES 3,000 (Gold) per campus/month
   subscription_billing_cycle?: 'monthly' | 'annually'
-  subscription_status?: 'active' | 'trial' | 'past_due' | 'expired' | 'licensed'
+  subscription_status?: 'active' | 'trial' | 'past_due' | 'expired' | 'licensed' | 'suspended'
   active_license_key?: string
   license_valid_until?: string
   stats: {
@@ -121,6 +122,7 @@ export interface PartnerSchoolTenant {
   }
   onboarding_completed_steps?: string[]
   created_at: string
+  updated_at?: string
   is_verified: boolean
 }
 
@@ -246,11 +248,14 @@ export interface TenantGradeRecord {
   class_name: string
   subject_name: string
   period_code: string // e.g. "TERM-1" or "SEM-1"
-  cat1_score: number  // out of 20
-  cat2_score: number  // out of 20
-  exam_score: number  // out of 60
-  total_score: number // out of 100
-  grade: string       // 'A*', 'A', 'B', 'C', 'D', 'E'
+  cat1_score: number  // e.g. out of 15, 20, or custom
+  cat2_score: number  // e.g. out of 15, 20, or custom
+  exam_score: number  // e.g. out of 60, 70, or custom
+  cat1_max?: number   // configurable max (default 20)
+  cat2_max?: number   // configurable max (default 20)
+  exam_max?: number   // configurable max (default 60)
+  total_score: number // calculated normalized total out of 100%
+  grade: string       // 'A*', 'A', 'B', 'C', 'D', 'E', 'F'
   remarks: string
   teacher_name: string
   updated_at: string

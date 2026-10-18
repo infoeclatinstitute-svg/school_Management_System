@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import type {
   PartnerSchoolTenant,
   TenantStaffMember,
@@ -1308,10 +1308,10 @@ export function StudentTranscriptModal({
               <tr style={{ background: '#f1f5f9', borderBottom: `2px solid ${primaryColor}` }}>
                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>#</th>
                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>Course / Unit Title</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 1 (/20)</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 2 (/20)</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Exam (/60)</th>
-                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Total (/100)</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 1</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>CAT 2</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Exam Score</th>
+                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Total (/100%)</th>
                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>Grade</th>
                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontWeight: 800, color: '#0f172a' }}>Remark</th>
               </tr>
@@ -1328,9 +1328,15 @@ export function StudentTranscriptModal({
                   <tr key={g.id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
                     <td style={{ padding: '0.65rem 0.5rem', color: '#64748b' }}>{idx + 1}</td>
                     <td style={{ padding: '0.65rem 0.5rem', fontWeight: 700, color: '#0f172a' }}>{g.subject_name}</td>
-                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>{g.cat1_score ?? '-'}</td>
-                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>{g.cat2_score ?? '-'}</td>
-                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>{g.exam_score ?? '-'}</td>
+                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>
+                      {g.cat1_score !== undefined ? `${g.cat1_score}${g.cat1_max ? `/${g.cat1_max}` : ''}` : '-'}
+                    </td>
+                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>
+                      {g.cat2_score !== undefined ? `${g.cat2_score}${g.cat2_max ? `/${g.cat2_max}` : ''}` : '-'}
+                    </td>
+                    <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', color: '#334155' }}>
+                      {g.exam_score !== undefined ? `${g.exam_score}${g.exam_max ? `/${g.exam_max}` : ''}` : '-'}
+                    </td>
                     <td style={{ padding: '0.65rem 0.5rem', textAlign: 'center', fontWeight: 800, color: '#0f172a' }}>
                       {g.total_score}%
                     </td>
@@ -1441,9 +1447,24 @@ export function StudentFeeInvoiceModal({
   const accentColor = school.accent_color || '#d4af37'
   const currency = school.currency || 'KES'
 
-  const totalInvoiced = student.fee_total || 45000
+  const totalInvoiced = student.fee_total ?? 0
   const totalPaid = payments.reduce((acc, p) => acc + (p.amount || 0), 0) || student.fee_paid || 0
   const balanceDue = Math.max(0, totalInvoiced - totalPaid)
+
+  const bankingDetails = useMemo(() => {
+    try {
+      const stored = localStorage.getItem(`bursar_banking_${school.slug}`)
+      if (stored) return JSON.parse(stored)
+    } catch {}
+    const customSchool = school as any
+    return {
+      bank_name: customSchool.bank_name || `${school.name} Designated Bank`,
+      account_name: customSchool.bank_account_name || `${school.name} General Collections`,
+      account_number: customSchool.bank_account || `A/C ${school.slug.toUpperCase().slice(0, 4)}-TREASURY`,
+      mobile_channel: customSchool.mobile_channel || 'M-Pesa Business Paybill / Mobile Money',
+      paybill_number: customSchool.mpesa_paybill || 'Contact Bursar Office',
+    }
+  }, [school])
 
   return (
     <div
@@ -1738,10 +1759,10 @@ export function StudentFeeInvoiceModal({
             <div>
               <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>OFFICIAL PAYMENT SETTLEMENT DETAILS:</div>
               <div style={{ color: '#64748b', lineHeight: 1.5 }}>
-                • Bank: Kenya Commercial Bank (KCB) / Standard Chartered • Account: {school.name} General Collections
+                • Bank: {bankingDetails.bank_name} • Account: {bankingDetails.account_name} ({bankingDetails.account_number})
               </div>
               <div style={{ color: '#64748b', lineHeight: 1.5 }}>
-                • M-Pesa Paybill: 522522 • Account Number: {student.admission_number}
+                • {bankingDetails.mobile_channel}: {bankingDetails.paybill_number} • Account Reference: {student.admission_number}
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
