@@ -8,6 +8,7 @@ import { AnnouncementCard } from '@/components/shared/AnnouncementCard'
 import { Spinner } from '@/components/ui/Spinner'
 import { CertificateGenerator } from '@/components/shared/CertificateGenerator'
 import { schoolStore, schoolEventBus } from '@/lib/schoolData'
+import { INSTITUTION_CONFIG } from '@/config/institution'
 import {
   BookOpenIcon,
   CreditCardIcon,
@@ -126,10 +127,10 @@ export function StudentDashboard() {
     full_name: profile?.full_name || 'Enrolled Student',
     gender: 'Not Specified',
     dob: '',
-    class_id: studentUnitReg?.unit_id || 'class-main',
-    class_name: studentUnitReg?.program || 'Enrolled Program',
-    grade_level: `${new Date().getFullYear()} Virtual Intake`,
-    stream: 'Online Campus',
+    class_id: studentUnitReg?.unit_id || '',
+    class_name: studentUnitReg?.program || '',
+    grade_level: studentUnitReg?.academic_year || 'Active Academic Session',
+    stream: studentUnitReg?.semester || studentUnitReg?.course_duration || 'Main Campus',
     enrollment_date: new Date().toISOString().split('T')[0],
     admission_date: new Date().toISOString().split('T')[0],
     status: 'Active',
@@ -234,21 +235,23 @@ export function StudentDashboard() {
         return (
           <CertificateGenerator 
             cert={{
-              student_name: currentStudent?.full_name || profile?.full_name || 'Enrolled Trainee',
-              admission_number: currentStudent?.admission_number || profile?.admission_number || `GC-${new Date().getFullYear()}-001`,
-              course_title: matchingUnit?.title || currentStudent?.class_name || 'Comprehensive Practical Short Course',
-              grade: studentTranscript?.mean_grade || 'Distinction (Grade A)',
-              percentage: studentTranscript?.mean_percentage || 95,
+              student_name: currentStudent?.full_name || profile?.full_name || 'Enrolled Student',
+              admission_number: currentStudent?.admission_number || profile?.admission_number || '',
+              course_title: matchingUnit?.title || currentStudent?.class_name || 'Certificate of Academic Completion',
+              grade: studentTranscript?.mean_grade || (currentStudent?.fee_cleared ? 'Completed' : 'Pending Evaluation'),
+              percentage: studentTranscript?.mean_percentage ?? 100,
               issue_date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-              certificate_no: `GC-CERT-${(currentStudent?.admission_number || `${new Date().getFullYear()}`).replace(/[^a-zA-Z0-9]/g, '')}`,
-              duration: matchingUnit?.course_duration || '4 to 12 Weeks Intensive Practical Training',
-              trainer_name: matchingUnit?.teacher_name || 'Lead Faculty Lecturer',
+              certificate_no: `CERT-${(currentStudent?.admission_number || profile?.admission_number || `${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '')}`,
+              duration: matchingUnit?.course_duration || 'Prescribed Program Duration',
+              trainer_name: matchingUnit?.teacher_name || 'Faculty Instructor',
               provider_type: matchingUnit?.provider_type || 'individual_tutor',
               institution_name: matchingUnit?.institution_name,
               institution_logo: matchingUnit?.institution_logo,
               institution_signatory: matchingUnit?.institution_signatory,
               delivery_mode: matchingUnit?.delivery_mode || (currentStudent?.stream?.includes('Self-Paced') ? 'self_paced' : 'live_cohort'),
-              skills_acquired: ['Hands-on Laboratory Mastery', 'Technical Workflow & Industry Standards', 'Applied Capstone Project'],
+              skills_acquired: matchingUnit?.title
+                ? [`Applied Competency in ${matchingUnit.title}`, 'Course Curriculum Mastery', 'Professional Capstone Assessment']
+                : ['Curriculum Competency Mastery', 'Institutional Examination Standards'],
             }}
             onClose={() => setShowCertModal(false)} 
           />
@@ -386,12 +389,12 @@ export function StudentDashboard() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.82rem', color: '#cbd5e1' }}>
                 <span style={{ background: 'rgba(255, 255, 255, 0.12)', padding: '2px 8px', borderRadius: '6px', fontWeight: 700 }}>
-                  ADM: <strong style={{ color: '#ffffff' }}>{currentStudent?.admission_number || profile?.admission_number || 'GC-2026-001'}</strong>
+                  ADM: <strong style={{ color: '#ffffff' }}>{currentStudent?.admission_number || profile?.admission_number || 'Enrolled'}</strong>
                 </span>
                 <span>•</span>
-                <span>{currentStudent?.class_name || 'Practical Short Course Cohort'}</span>
+                <span>{currentStudent?.class_name || 'Academic Cohort'}</span>
                 <span>•</span>
-                <span style={{ color: '#93c5fd' }}>{currentStudent?.grade_level || `${new Date().getFullYear()} Virtual Intake`}</span>
+                <span style={{ color: '#93c5fd' }}>{currentStudent?.grade_level || 'Active Session'}</span>
               </div>
             </div>
           </div>
@@ -669,7 +672,7 @@ export function StudentDashboard() {
             </span>
           </div>
           <div style={{ fontSize: '1.95rem', fontWeight: 900, color: isFeeCleared ? '#059669' : '#ea580c', margin: '6px 0 4px', letterSpacing: '-0.02em' }}>
-            {isFeeCleared ? '✓ Cleared' : (currentStudent ? `$${(currentStudent.fee_balance ?? 0).toLocaleString()}` : '$0')}
+            {isFeeCleared ? '✓ Cleared' : (currentStudent ? `${INSTITUTION_CONFIG.pricing.currencySymbol} ${(currentStudent.fee_balance ?? 0).toLocaleString()}` : `${INSTITUTION_CONFIG.pricing.currencySymbol} 0`)}
           </div>
           <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
             <div
@@ -740,13 +743,13 @@ export function StudentDashboard() {
             </span>
           </div>
           <div style={{ fontSize: '1.95rem', fontWeight: 900, color: '#0f172a', margin: '6px 0 4px', letterSpacing: '-0.02em' }}>
-            {studentTranscript ? studentTranscript.mean_grade : 'Grade A*'}
+            {studentTranscript ? `Grade ${studentTranscript.mean_grade}` : 'In Progress'}
           </div>
           <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
-            <div style={{ width: `${studentTranscript?.mean_percentage || 95}%`, background: '#d97706', height: '100%', borderRadius: '999px' }} />
+            <div style={{ width: `${studentTranscript?.mean_percentage || 0}%`, background: '#d97706', height: '100%', borderRadius: '999px' }} />
           </div>
-          <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#059669' }}>
-            {studentTranscript ? `Mean Score: ${studentTranscript.mean_percentage}% • Rank #${studentTranscript.class_position}` : 'Conduct Index: 100/100 (Exemplary)'}
+          <div style={{ fontSize: '0.74rem', fontWeight: 700, color: studentTranscript ? '#059669' : '#64748b' }}>
+            {studentTranscript ? `Mean Score: ${studentTranscript.mean_percentage}% • Rank #${studentTranscript.class_position}` : 'Academic evaluation in progress'}
           </div>
         </div>
       </div>
@@ -968,8 +971,7 @@ export function StudentDashboard() {
       {(() => {
         const studentIdentifier = currentStudent?.admission_number || profile?.admission_number || profile?.id || ''
         const studentUnits = schoolStore.getRegisteredUnitsForStudent(studentIdentifier)
-        const allPublished = (schoolStore.getCourseUnits() || []).filter((u) => u && u.is_published !== false)
-        const myUnits = studentUnits.length > 0 ? studentUnits : allPublished.slice(0, 1)
+        const myUnits = studentUnits
 
         return (
           <div className="mb-8">

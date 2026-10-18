@@ -118,6 +118,17 @@ export function TenantStudentDesk({
     return classTimetable.filter((t) => t.day_of_week.toLowerCase() === timetableDayFilter.toLowerCase())
   }, [classTimetable, timetableDayFilter])
 
+  // Dynamic scheduled days
+  const timetableDays = useMemo(() => {
+    const days = new Set<string>()
+    classTimetable.forEach((t) => {
+      if (t.day_of_week) days.add(t.day_of_week)
+    })
+    const baseDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    const union = Array.from(new Set([...baseDays, ...Array.from(days)]))
+    return ['ALL', ...union]
+  }, [classTimetable])
+
   // Attendance Sessions for student's class
   const classAttendanceSessions = useMemo(() => {
     return tenantSchoolStore.getAttendanceSessions(school.slug, activeStudent.grade_class)
@@ -172,7 +183,7 @@ export function TenantStudentDesk({
         hasIndividualLogs: true,
       }
     }
-    const recordedRate = typeof activeStudent.attendance_percent === 'number' ? activeStudent.attendance_percent : 100
+    const recordedRate = typeof activeStudent.attendance_percent === 'number' ? activeStudent.attendance_percent : 0
     return {
       rate: recordedRate,
       total: 0,
@@ -191,12 +202,25 @@ export function TenantStudentDesk({
 
   let overallGrade = 'Pending'
   if (averagePercentage !== null) {
-    if (averagePercentage >= 90) overallGrade = 'A*'
-    else if (averagePercentage >= 80) overallGrade = 'A'
-    else if (averagePercentage >= 70) overallGrade = 'B'
-    else if (averagePercentage >= 60) overallGrade = 'C'
-    else if (averagePercentage >= 50) overallGrade = 'D'
-    else overallGrade = 'E'
+    if (school.grading_scale === 'tvet_competency') {
+      if (averagePercentage >= 80) overallGrade = 'Distinction'
+      else if (averagePercentage >= 65) overallGrade = 'Credit'
+      else if (averagePercentage >= 50) overallGrade = 'Pass'
+      else overallGrade = 'Referral'
+    } else if (school.grading_scale === 'letter_gpa') {
+      if (averagePercentage >= 85) overallGrade = 'A (4.0)'
+      else if (averagePercentage >= 75) overallGrade = 'B (3.0)'
+      else if (averagePercentage >= 65) overallGrade = 'C (2.0)'
+      else if (averagePercentage >= 50) overallGrade = 'D (1.0)'
+      else overallGrade = 'F (0.0)'
+    } else {
+      if (averagePercentage >= 90) overallGrade = 'A*'
+      else if (averagePercentage >= 80) overallGrade = 'A'
+      else if (averagePercentage >= 70) overallGrade = 'B'
+      else if (averagePercentage >= 60) overallGrade = 'C'
+      else if (averagePercentage >= 50) overallGrade = 'D'
+      else overallGrade = 'E'
+    }
   }
 
   // Dynamic Class Ranking
@@ -768,10 +792,10 @@ export function TenantStudentDesk({
             )}
           </div>
           <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
-            <div style={{ width: `${averagePercentage || 50}%`, background: primaryColor, height: '100%', borderRadius: '999px' }} />
+            <div style={{ width: `${averagePercentage || 0}%`, background: primaryColor, height: '100%', borderRadius: '999px' }} />
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#16a34a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>●</span> Rank {classRanking.rank} of {classRanking.total} in {activeStudent.grade_class}
+          <div style={{ fontSize: '0.78rem', color: hasGrades ? '#16a34a' : '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>●</span> {hasGrades ? `Rank ${classRanking.rank} of ${classRanking.total} in ${activeStudent.grade_class}` : 'Rank computed once grades are published'}
           </div>
         </div>
 
@@ -1044,41 +1068,53 @@ export function TenantStudentDesk({
                 Your instructors have not yet published marks for the active period. Check back once examinations are graded.
               </p>
             </div>
-          ) : (
-            <div style={{ overflowX: 'auto', marginBottom: '1.75rem' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
-                    <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Subject</th>
-                    <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
-                      CAT 1 (20)
-                    </th>
-                    <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
-                      CAT 2 (20)
-                    </th>
-                    <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
-                      Exam (60)
-                    </th>
-                    <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
-                      Total (100)
-                    </th>
-                    <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
-                      Grade
-                    </th>
-                    <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Instructor Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {studentGrades.map((g) => (
-                    <tr key={g.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '0.75rem', fontWeight: 700, color: '#0f172a' }}>{g.subject_name}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center', color: '#475569' }}>{g.cat1_score}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center', color: '#475569' }}>{g.cat2_score}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center', color: '#475569' }}>{g.exam_score}</td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 900, color: '#0f172a' }}>
-                        {g.total_score}%
-                      </td>
-                      <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+          ) : (() => {
+            const dynamicCat1Max = studentGrades.find((g) => typeof g.cat1_max === 'number')?.cat1_max ?? 20
+            const dynamicCat2Max = studentGrades.find((g) => typeof g.cat2_max === 'number')?.cat2_max ?? 20
+            const dynamicExamMax = studentGrades.find((g) => typeof g.exam_max === 'number')?.exam_max ?? 60
+            const dynamicTotalMax = dynamicCat1Max + dynamicCat2Max + dynamicExamMax
+
+            return (
+              <div style={{ overflowX: 'auto', marginBottom: '1.75rem' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                      <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Subject / Unit</th>
+                      <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
+                        CAT 1 ({dynamicCat1Max})
+                      </th>
+                      <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
+                        CAT 2 ({dynamicCat2Max})
+                      </th>
+                      <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
+                        Exam ({dynamicExamMax})
+                      </th>
+                      <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
+                        Total ({dynamicTotalMax})
+                      </th>
+                      <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
+                        Grade
+                      </th>
+                      <th style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>Instructor Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentGrades.map((g) => (
+                      <tr key={g.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '0.75rem', fontWeight: 700, color: '#0f172a' }}>{g.subject_name}</td>
+                        <td style={{ padding: '0.75rem', textAlign: 'center', color: '#475569' }}>
+                          {g.cat1_score} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/{g.cat1_max ?? dynamicCat1Max}</span>
+                        </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'center', color: '#475569' }}>
+                          {g.cat2_score} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/{g.cat2_max ?? dynamicCat2Max}</span>
+                        </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'center', color: '#475569' }}>
+                          {g.exam_score} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>/{g.exam_max ?? dynamicExamMax}</span>
+                        </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'center', fontWeight: 900, color: '#0f172a' }}>
+                          {g.total_score}%
+                        </td>
+                        <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                         <span
                           style={{
                             background: g.grade.startsWith('A') ? '#dcfce7' : g.grade === 'B' ? '#eff6ff' : '#fef3c7',
@@ -1100,7 +1136,8 @@ export function TenantStudentDesk({
                 </tbody>
               </table>
             </div>
-          )}
+          )
+        })()}
 
           {/* Performance Summary & Official Certification */}
           <div
@@ -1186,7 +1223,7 @@ export function TenantStudentDesk({
 
             {/* Day of Week Filter */}
             <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-              {['ALL', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => (
+              {timetableDays.map((day) => (
                 <button
                   key={day}
                   type="button"
@@ -1990,7 +2027,7 @@ export function TenantStudentDesk({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                   <span style={{ color: '#64748b' }}>Assigned Center:</span>
-                  <strong style={{ color: '#0f172a' }}>{school.name} Main Hall</strong>
+                  <strong style={{ color: '#0f172a' }}>{activeStudent.campus || school.campuses_list?.[0]?.name || `${school.name} Examination Center`}</strong>
                 </div>
               </div>
 
@@ -2096,19 +2133,21 @@ export function TenantStudentDesk({
                 color: '#334155',
               }}
             >
-              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>Executive Lesson Summary:</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>Lesson Synopsis:</div>
               <p style={{ margin: '0 0 1rem' }}>{activeReadingNote.summary}</p>
 
-              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>Core Learning Objectives:</div>
-              <ul style={{ margin: '0 0 1rem', paddingLeft: '1.25rem' }}>
-                <li>Comprehensive mastery of fundamental theories and practical implementations.</li>
-                <li>Methodical evaluation of key empirical problems and exam question paradigms.</li>
-                <li>Synthesis of core formulas, terminology, and structured solutions.</li>
-              </ul>
+              {activeReadingNote.content && (
+                <div style={{ margin: '0 0 1rem', whiteSpace: 'pre-line' }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>Module Content &amp; Instructions:</div>
+                  <div style={{ background: '#ffffff', padding: '0.85rem', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                    {activeReadingNote.content}
+                  </div>
+                </div>
+              )}
 
-              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>Recommended Reading &amp; References:</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>Coursework Details &amp; Citation:</div>
               <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                Course Textbook Chapters 4–6 • Institutional Digital Library Ref: #LMS-{activeReadingNote.id}
+                Subject: <strong>{activeReadingNote.subject_name}</strong> • Instructor: <strong>{activeReadingNote.teacher_name}</strong> • Institutional Digital LMS Ref: #LMS-{activeReadingNote.id.slice(0, 8).toUpperCase()}
               </div>
             </div>
 

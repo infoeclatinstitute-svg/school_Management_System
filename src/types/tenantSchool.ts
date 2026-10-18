@@ -215,6 +215,7 @@ export interface TenantStudentMember {
   fee_paid: number
   fee_balance: number
   attendance_percent: number
+  campus?: string
   status: 'active' | 'graduated' | 'suspended'
   admission_date: string
 }
@@ -268,6 +269,7 @@ export interface TenantLessonNote {
   subject_name: string
   title: string
   summary: string
+  content?: string
   file_url?: string
   material_type?: 'Lecture Notes' | 'Assignment' | 'Past Paper' | 'Lab Manual' | 'Syllabus'
   due_date?: string
