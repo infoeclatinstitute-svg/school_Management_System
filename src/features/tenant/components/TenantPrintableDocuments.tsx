@@ -227,6 +227,12 @@ export function StudentAdmissionLetterModal({
                 {(student.fee_payment_plan || 'termly').toUpperCase()} ({student.fee_installments_count || 1} installment(s))
               </div>
             </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Candidate Gender &amp; Age</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>
+                {student.gender || 'Not Specified'}{student.age ? ` • Age ${student.age}` : ''}
+              </div>
+            </div>
           </div>
 
           {/* Formal Body Paragraphs */}

@@ -188,9 +188,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fee_balance: 0,
             term_fee_total: 0,
             fee_cleared: true,
-            attendance_rate: 100,
+            attendance_rate: 0,
             discipline_points: 100,
-            merits_count: 1,
+            merits_count: 0,
             demerits_count: 0,
           })
 

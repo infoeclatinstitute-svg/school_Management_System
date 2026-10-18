@@ -121,7 +121,10 @@ export function TenantPrincipalDesk({
 
   // Dynamic Departments
   const availableDepartments = useMemo(() => {
-    const list = school.departments_list && school.departments_list.length > 0 ? [...school.departments_list] : []
+    if (Array.isArray(school.departments_list)) {
+      return school.departments_list.map((d) => d && d.trim()).filter(Boolean)
+    }
+    const list: string[] = []
     staffList.forEach((st) => {
       if (st.department && !list.includes(st.department)) {
         list.push(st.department)
@@ -1036,8 +1039,15 @@ export function TenantPrincipalDesk({
       return
     }
     if (window.confirm(`Are you sure you want to remove the department "${deptName}"?`)) {
-      const updated = availableDepartments.filter((d) => d !== deptName)
+      const currentList = Array.isArray(school.departments_list) ? school.departments_list : availableDepartments
+      const updated = currentList.filter((d) => d !== deptName)
       tenantSchoolStore.updateSchoolBranding(school.slug, { departments_list: updated })
+      // Reassign staff in this department to the first available department
+      staffList.forEach((st) => {
+        if (st.department === deptName) {
+          tenantSchoolStore.updateStaffMember(st.id, { department: updated[0] || 'General Faculty' })
+        }
+      })
       onReloadData()
     }
   }
