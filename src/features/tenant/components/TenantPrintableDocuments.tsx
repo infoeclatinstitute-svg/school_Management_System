@@ -1135,11 +1135,14 @@ export function StudentTranscriptModal({
   const primaryColor = school.primary_color || '#881337'
   const accentColor = school.accent_color || '#d4af37'
 
-  const meanScore = grades.length > 0
-    ? Math.round((grades.reduce((acc, g) => acc + (g.total_score || 0), 0) / grades.length) * 10) / 10
-    : 0
+  const hasScores = grades.length > 0 && grades.some((g) => typeof g.total_score === 'number')
 
-  const getMeanGrade = (score: number) => {
+  const meanScore = hasScores
+    ? Math.round((grades.reduce((acc, g) => acc + (g.total_score || 0), 0) / grades.length) * 10) / 10
+    : null
+
+  const getMeanGrade = (score: number | null) => {
+    if (score === null) return { grade: 'N/A', remarks: 'Assessment In Progress (No Marks Published)' }
     if (score >= 80) return { grade: 'A', remarks: 'First Class Distinction' }
     if (score >= 70) return { grade: 'B', remarks: 'Upper Credit / Very Good' }
     if (score >= 60) return { grade: 'C', remarks: 'Credit / Good' }
@@ -1426,7 +1429,7 @@ export function StudentTranscriptModal({
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>OVERALL MEAN SCORE</div>
               <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-                {meanScore}% • Grade {standing.grade}
+                {meanScore !== null ? `${meanScore}% • Grade ${standing.grade}` : 'Assessment In Progress'}
               </div>
             </div>
           </div>

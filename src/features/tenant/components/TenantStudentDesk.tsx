@@ -183,9 +183,9 @@ export function TenantStudentDesk({
         hasIndividualLogs: true,
       }
     }
-    const recordedRate = typeof activeStudent.attendance_percent === 'number' ? activeStudent.attendance_percent : 0
+    // If no session logs exist yet, student has 0 recorded sessions (newly enrolled)
     return {
-      rate: recordedRate,
+      rate: 0,
       total: 0,
       present: 0,
       late: 0,
@@ -193,7 +193,7 @@ export function TenantStudentDesk({
       excused: 0,
       hasIndividualLogs: false,
     }
-  }, [studentSessionLogs, activeStudent.attendance_percent])
+  }, [studentSessionLogs])
 
   // Dynamic Academic Standing Calculations (No hardcoding)
   const hasGrades = studentGrades.length > 0
@@ -811,23 +811,34 @@ export function TenantStudentDesk({
             overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: '#059669' }} />
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              background: attendanceStats.hasIndividualLogs
+                ? (attendanceStats.rate >= 75 ? '#059669' : '#dc2626')
+                : '#94a3b8',
+            }}
+          />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               ROLL CALL ATTENDANCE
             </span>
-            <span style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+            <span style={{ width: '32px', height: '32px', borderRadius: '10px', background: attendanceStats.hasIndividualLogs && attendanceStats.rate >= 75 ? '#ecfdf5' : '#f1f5f9', color: attendanceStats.hasIndividualLogs && attendanceStats.rate >= 75 ? '#059669' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
               📋
             </span>
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#059669', margin: '8px 0 4px', letterSpacing: '-0.02em' }}>
-            {attendanceStats.rate}%
+          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: attendanceStats.hasIndividualLogs ? (attendanceStats.rate >= 75 ? '#059669' : '#dc2626') : '#64748b', margin: '8px 0 4px', letterSpacing: '-0.02em' }}>
+            {attendanceStats.hasIndividualLogs ? `${attendanceStats.rate}%` : '0%'}
           </div>
           <div style={{ background: '#f1f5f9', borderRadius: '999px', height: '6px', overflow: 'hidden', margin: '6px 0 8px' }}>
-            <div style={{ width: `${Math.min(100, attendanceStats.rate)}%`, background: attendanceStats.rate >= 75 ? '#059669' : '#dc2626', height: '100%', borderRadius: '999px' }} />
+            <div style={{ width: `${Math.min(100, attendanceStats.hasIndividualLogs ? attendanceStats.rate : 0)}%`, background: attendanceStats.hasIndividualLogs ? (attendanceStats.rate >= 75 ? '#059669' : '#dc2626') : '#94a3b8', height: '100%', borderRadius: '999px' }} />
           </div>
-          <div style={{ fontSize: '0.78rem', color: attendanceStats.rate >= 75 ? '#059669' : '#dc2626', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>●</span> {attendanceStats.rate >= 75 ? 'Meets Exam Threshold (≥75%)' : 'Attendance Warning (<75%)'}
+          <div style={{ fontSize: '0.78rem', color: attendanceStats.hasIndividualLogs ? (attendanceStats.rate >= 75 ? '#059669' : '#dc2626') : '#64748b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>●</span> {attendanceStats.hasIndividualLogs ? (attendanceStats.rate >= 75 ? 'Meets Exam Threshold (≥75%)' : 'Attendance Warning (<75%)') : '0 Sessions Logged (Newly Enrolled)'}
           </div>
         </div>
 
@@ -1731,23 +1742,25 @@ export function TenantStudentDesk({
           >
             <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>OVERALL ATTENDANCE</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#16a34a', marginTop: '2px' }}>
-                {attendanceStats.rate}%
+              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: attendanceStats.hasIndividualLogs ? (attendanceStats.rate >= 75 ? '#16a34a' : '#dc2626') : '#64748b', marginTop: '2px' }}>
+                {attendanceStats.hasIndividualLogs ? `${attendanceStats.rate}%` : '0%'}
               </div>
-              <div style={{ fontSize: '0.76rem', color: '#16a34a', fontWeight: 700 }}>
-                {attendanceStats.rate >= 75 ? 'Good Standing Met (≥75%)' : 'Below Minimum Requirement'}
+              <div style={{ fontSize: '0.76rem', color: attendanceStats.hasIndividualLogs ? (attendanceStats.rate >= 75 ? '#16a34a' : '#dc2626') : '#64748b', fontWeight: 700 }}>
+                {attendanceStats.hasIndividualLogs
+                  ? (attendanceStats.rate >= 75 ? 'Good Standing Met (≥75%)' : 'Below Minimum Requirement')
+                  : 'No Sessions Logged Yet (Newly Enrolled)'}
               </div>
             </div>
 
             <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>PRESENT SESSIONS</div>
               <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-                {attendanceStats.hasIndividualLogs ? attendanceStats.present : 'Roster'}
+                {attendanceStats.hasIndividualLogs ? attendanceStats.present : '0'}
               </div>
               <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
                 {attendanceStats.hasIndividualLogs
                   ? `Out of ${attendanceStats.total} Total Sessions`
-                  : 'Cumulative Roster Standing'}
+                  : '0 Sessions Recorded'}
               </div>
             </div>
 
@@ -1781,7 +1794,7 @@ export function TenantStudentDesk({
               <div style={{ fontSize: '2rem', marginBottom: '6px' }}>📋</div>
               <div style={{ fontWeight: 800, color: '#0f172a' }}>No Session Register Entries Yet</div>
               <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '4px 0 0' }}>
-                Your cumulative standing is currently recorded at {activeStudent.attendance_percent}%. Daily logs will appear here when roll-calls are taken.
+                You have 0 roll-call sessions logged. Daily logs and calculated attendance percentage will automatically appear here once class instructors record roll-call attendance.
               </p>
             </div>
           ) : (

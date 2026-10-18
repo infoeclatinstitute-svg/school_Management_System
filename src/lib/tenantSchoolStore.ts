@@ -1664,7 +1664,12 @@ class TenantSchoolStore {
       if (stored) {
         const parsed = JSON.parse(stored)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          this.students = parsed
+          this.students = parsed.map((s: TenantStudentMember) => {
+            if (s.attendance_percent === 100) {
+              return { ...s, attendance_percent: 0.0 }
+            }
+            return s
+          })
           return
         }
       }
@@ -1708,7 +1713,7 @@ class TenantSchoolStore {
       age: typeof input.age === 'number' && !isNaN(input.age) ? input.age : undefined,
       fee_due_date: input.fee_due_date || undefined,
       fee_balance: feeBalance,
-      attendance_percent: 100.0,
+      attendance_percent: 0.0,
       status: 'active',
       admission_date: input.admission_date || new Date().toISOString().split('T')[0],
       created_at: new Date().toISOString(),
@@ -1735,31 +1740,6 @@ class TenantSchoolStore {
         issuer_role: 'Registrar & Admissions Officer',
       })
     }
-
-    // Auto-seed default subjects in gradebook for new student so Report Card works immediately
-    const defaultSubjects = [
-      'Pure Mathematics (MATH-101)',
-      'English & Communication (ENG-101)',
-      'Computer Science (CS-101)',
-      'Applied Physics (PHY-101)',
-      'General Chemistry (CHEM-101)',
-    ]
-    defaultSubjects.forEach((subj) => {
-      this.saveGradeRecord({
-        school_slug: newStudent.school_slug,
-        student_id: newStudent.id,
-        student_name: newStudent.full_name,
-        admission_number: newStudent.admission_number,
-        class_name: newStudent.grade_class,
-        subject_name: subj,
-        period_code: 'TERM-1',
-        cat1_score: 17,
-        cat2_score: 18,
-        exam_score: 52,
-        remarks: 'Enrolled candidate; demonstrated high aptitude and steady academic diligence.',
-        teacher_name: 'Subject Faculty Instructor',
-      })
-    })
 
     return newStudent
   }
@@ -1942,7 +1922,14 @@ class TenantSchoolStore {
       if (stored) {
         const parsed = JSON.parse(stored)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          this.grades = parsed
+          const cleaned = parsed.filter(
+            (g: TenantGradeRecord) =>
+              g.remarks !== 'Enrolled candidate; demonstrated high aptitude and steady academic diligence.'
+          )
+          this.grades = cleaned
+          if (cleaned.length !== parsed.length) {
+            safeTenantStorePersist(GRADES_STORAGE_KEY, cleaned)
+          }
           return
         }
       }
