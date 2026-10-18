@@ -579,6 +579,8 @@ export function TenantTeacherDesk({
   // TAB 5: AT-RISK STUDENTS & MENTORSHIP
   // ==========================================
   const atRiskStudents = useMemo(() => {
+    const allSchoolSessions = tenantSchoolStore.getAttendanceSessions(school.slug)
+
     return studentList
       .map((student) => {
         const studentGrades = gradeList.filter(
@@ -589,7 +591,10 @@ export function TenantTeacherDesk({
             ? Math.round(studentGrades.reduce((acc, curr) => acc + (curr.total_score || 0), 0) / studentGrades.length)
             : null
 
-        const isLowAttendance = (student.attendance_percent || 0) < 75
+        const hasSessionHistory = allSchoolSessions.some((s) =>
+          s.records.some((r) => r.student_id === student.id || r.admission_number === student.admission_number)
+        )
+        const isLowAttendance = hasSessionHistory && (student.attendance_percent || 0) < 75
         const isFailing = avgGrade !== null && avgGrade < 50
 
         if (isLowAttendance || isFailing) {
@@ -615,7 +620,7 @@ export function TenantTeacherDesk({
       attendance: number
       riskReasons: string[]
     }[]
-  }, [studentList, gradeList])
+  }, [studentList, gradeList, school.slug])
 
   // Real-time Event Listeners for Multi-Device and Store Sync
   useEffect(() => {
@@ -1327,18 +1332,39 @@ export function TenantTeacherDesk({
                           </span>
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                          <span
-                            style={{
-                              background: compliance >= 85 ? '#dcfce7' : compliance >= 75 ? '#eff6ff' : '#fee2e2',
-                              color: compliance >= 85 ? '#15803d' : compliance >= 75 ? '#1d4ed8' : '#991b1b',
-                              padding: '2px 8px',
-                              borderRadius: '9999px',
-                              fontWeight: 800,
-                              fontSize: '0.74rem',
-                            }}
-                          >
-                            {compliance}%
-                          </span>
+                          {(() => {
+                            const hasHistory =
+                              compliance > 0 ||
+                              allHistoricalSessions.some((sess) =>
+                                sess.records.some((r) => r.student_id === s.id || r.admission_number === s.admission_number)
+                              )
+                            return (
+                              <span
+                                style={{
+                                  background: !hasHistory
+                                    ? '#f1f5f9'
+                                    : compliance >= 85
+                                    ? '#dcfce7'
+                                    : compliance >= 75
+                                    ? '#eff6ff'
+                                    : '#fee2e2',
+                                  color: !hasHistory
+                                    ? '#64748b'
+                                    : compliance >= 85
+                                    ? '#15803d'
+                                    : compliance >= 75
+                                    ? '#1d4ed8'
+                                    : '#991b1b',
+                                  padding: '2px 8px',
+                                  borderRadius: '9999px',
+                                  fontWeight: 800,
+                                  fontSize: '0.74rem',
+                                }}
+                              >
+                                {hasHistory ? `${compliance}%` : '0% (New)'}
+                              </span>
+                            )
+                          })()}
                         </td>
                         <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', gap: '4px', background: '#f1f5f9', padding: '3px', borderRadius: '8px' }}>

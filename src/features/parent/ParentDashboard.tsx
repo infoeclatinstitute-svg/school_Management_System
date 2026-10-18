@@ -172,10 +172,14 @@ export function ParentDashboard() {
           <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--color-primary)' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Lecture Attendance Rate</div>
             <div style={{ fontSize: '1.85rem', fontWeight: 700, color: 'var(--color-primary)', marginTop: '0.25rem' }}>
-              {activeWard.attendance_rate}%
+              {activeWard.attendance_rate || 0}%
             </div>
-            <div style={{ fontSize: '0.75rem', color: activeWard.attendance_rate >= 75 ? '#16a34a' : '#ea580c', marginTop: '0.2rem' }}>
-              {activeWard.attendance_rate >= 75 ? '✓ Above Minimum Requirement' : '⚠️ Below 75% Requirement'}
+            <div style={{ fontSize: '0.75rem', color: (activeWard.attendance_rate || 0) >= 75 ? '#16a34a' : (!activeWard.attendance_rate || activeWard.attendance_rate === 0) ? '#64748b' : '#ea580c', marginTop: '0.2rem' }}>
+              {(activeWard.attendance_rate || 0) >= 75
+                ? '✓ Above Minimum Requirement'
+                : (!activeWard.attendance_rate || activeWard.attendance_rate === 0)
+                ? '0 Sessions Logged (Newly Enrolled)'
+                : '⚠️ Below 75% Requirement'}
             </div>
           </div>
 
@@ -192,10 +196,10 @@ export function ParentDashboard() {
           <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #7c3aed' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Academic Standing</div>
             <div style={{ fontSize: '1.65rem', fontWeight: 700, color: '#7c3aed', marginTop: '0.25rem' }}>
-              {wardReportCard ? wardReportCard.mean_grade : 'In Progress'}
+              {wardReportCard ? wardReportCard.mean_grade : 'Assessment Pending'}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.2rem' }}>
-              {wardReportCard ? `Rank #${wardReportCard.class_position} in Class` : 'Short Course Active'}
+              {wardReportCard ? `Rank #${wardReportCard.class_position} in Class` : 'Marks published upon grading'}
             </div>
           </div>
 

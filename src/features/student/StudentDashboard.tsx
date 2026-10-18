@@ -239,7 +239,7 @@ export function StudentDashboard() {
               admission_number: currentStudent?.admission_number || profile?.admission_number || '',
               course_title: matchingUnit?.title || currentStudent?.class_name || 'Certificate of Academic Completion',
               grade: studentTranscript?.mean_grade || (currentStudent?.fee_cleared ? 'Completed' : 'Pending Evaluation'),
-              percentage: studentTranscript?.mean_percentage ?? 100,
+              percentage: studentTranscript?.mean_percentage ?? (currentStudent?.fee_cleared ? 75 : 0),
               issue_date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
               certificate_no: `CERT-${(currentStudent?.admission_number || profile?.admission_number || `${Date.now()}`).replace(/[^a-zA-Z0-9]/g, '')}`,
               duration: matchingUnit?.course_duration || 'Prescribed Program Duration',

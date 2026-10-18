@@ -1178,7 +1178,7 @@ export function TenantStudentDesk({
                 <div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Class Rank:</div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 900, color: primaryColor }}>
-                    {classRanking.rank} of {classRanking.total}
+                    {hasGrades ? `${classRanking.rank} of ${classRanking.total}` : 'Pending'}
                   </div>
                 </div>
               </div>
