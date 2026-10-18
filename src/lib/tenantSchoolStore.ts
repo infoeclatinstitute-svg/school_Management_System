@@ -1548,6 +1548,7 @@ class TenantSchoolStore {
       net_salary: net,
       status: 'active',
       joined_date: new Date().toISOString().split('T')[0],
+      created_at: new Date().toISOString(),
     }
 
     this.staff.unshift(newStaff)
@@ -1588,7 +1589,8 @@ class TenantSchoolStore {
 
   public updateStaffMember(
     id: string,
-    updates: Partial<Omit<TenantStaffMember, 'id' | 'school_slug'>>
+    updates: Partial<Omit<TenantStaffMember, 'id' | 'school_slug'>>,
+    _options?: { override24HrWindow?: boolean }
   ): TenantStaffMember | null {
     if (this.staff.length === 0) this.loadStaff()
     const idx = this.staff.findIndex((s) => s.id === id)
@@ -1702,10 +1704,14 @@ class TenantSchoolStore {
     const newStudent: TenantStudentMember = {
       ...input,
       id: `std_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      gender: input.gender || 'Not Specified',
+      age: typeof input.age === 'number' && !isNaN(input.age) ? input.age : undefined,
+      fee_due_date: input.fee_due_date || undefined,
       fee_balance: feeBalance,
       attendance_percent: 100.0,
       status: 'active',
       admission_date: input.admission_date || new Date().toISOString().split('T')[0],
+      created_at: new Date().toISOString(),
       fee_payment_plan: input.fee_payment_plan || 'termly',
       fee_installments_count: installmentsCount,
       fee_installment_amount: installmentAmount,
@@ -1725,6 +1731,8 @@ class TenantSchoolStore {
         period_name: 'Opening Term Registration & Tuition',
         payment_method: 'Bank Wire',
         recorded_by: 'Admissions Registrar',
+        issuer_name: 'Admissions Registrar',
+        issuer_role: 'Registrar & Admissions Officer',
       })
     }
 
@@ -1756,7 +1764,11 @@ class TenantSchoolStore {
     return newStudent
   }
 
-  public updateStudent(id: string, updates: Partial<TenantStudentMember>): TenantStudentMember | null {
+  public updateStudent(
+    id: string,
+    updates: Partial<TenantStudentMember>,
+    _options?: { override24HrWindow?: boolean }
+  ): TenantStudentMember | null {
     if (this.students.length === 0) this.loadStudents()
     const student = this.students.find((s) => s.id === id)
     if (!student) return null
@@ -2223,6 +2235,8 @@ class TenantSchoolStore {
       id: `pmt_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       receipt_number: receiptNum,
       date: new Date().toISOString(),
+      issuer_name: input.issuer_name || input.recorded_by || 'Bursary Cashier',
+      issuer_role: input.issuer_role || 'Authorized Finance & Receipting Officer',
     }
 
     this.payments.unshift(newPayment)
@@ -2236,6 +2250,92 @@ class TenantSchoolStore {
     }
 
     return newPayment
+  }
+
+  public updateFeePayment(
+    id: string,
+    updates: Partial<Omit<TenantFeePayment, 'id' | 'receipt_number' | 'school_slug'>>,
+    options?: { override24HrWindow?: boolean }
+  ): { success: boolean; message: string; payment?: TenantFeePayment } {
+    if (this.payments.length === 0) this.loadPayments()
+    const idx = this.payments.findIndex((p) => p.id === id)
+    if (idx === -1) return { success: false, message: 'Fee payment transaction record not found.' }
+
+    const payment = this.payments[idx]
+    const pmtTime = new Date(payment.date).getTime()
+    const nowTime = Date.now()
+    const hoursElapsed = (nowTime - pmtTime) / (1000 * 60 * 60)
+
+    if (!options?.override24HrWindow && hoursElapsed > 24) {
+      return {
+        success: false,
+        message: `Security Lock: Payments can only be modified within 24 hours of recording (recorded ${Math.round(hoursElapsed)} hours ago). Please contact institution audit controller for retroactive adjustments.`,
+      }
+    }
+
+    const previousAmount = payment.amount
+    const newAmount = typeof updates.amount === 'number' && !isNaN(updates.amount) ? updates.amount : previousAmount
+    const diff = newAmount - previousAmount
+
+    const updatedPayment: TenantFeePayment = {
+      ...payment,
+      ...updates,
+      amount: newAmount,
+    }
+
+    this.payments[idx] = updatedPayment
+    this.savePayments()
+
+    // Recalculate student paid balance if amount altered
+    if (diff !== 0) {
+      const student = this.students.find((s) => s.id === payment.student_id)
+      if (student) {
+        const revisedPaid = Math.max(0, student.fee_paid + diff)
+        this.updateStudent(student.id, { fee_paid: revisedPaid })
+      }
+    }
+
+    return {
+      success: true,
+      message: `✓ Fee payment ${payment.receipt_number} successfully corrected.`,
+      payment: updatedPayment,
+    }
+  }
+
+  public voidFeePayment(
+    id: string,
+    options?: { override24HrWindow?: boolean }
+  ): { success: boolean; message: string } {
+    if (this.payments.length === 0) this.loadPayments()
+    const idx = this.payments.findIndex((p) => p.id === id)
+    if (idx === -1) return { success: false, message: 'Payment record not found.' }
+
+    const payment = this.payments[idx]
+    const pmtTime = new Date(payment.date).getTime()
+    const nowTime = Date.now()
+    const hoursElapsed = (nowTime - pmtTime) / (1000 * 60 * 60)
+
+    if (!options?.override24HrWindow && hoursElapsed > 24) {
+      return {
+        success: false,
+        message: `Security Lock: Faulty payments can only be voided/removed within 24 hours of recording (${Math.round(hoursElapsed)} hours elapsed).`,
+      }
+    }
+
+    // Revert student fee_paid
+    const student = this.students.find((s) => s.id === payment.student_id)
+    if (student) {
+      const revisedPaid = Math.max(0, student.fee_paid - payment.amount)
+      this.updateStudent(student.id, { fee_paid: revisedPaid })
+    }
+
+    this.payments.splice(idx, 1)
+    this.savePayments()
+
+    return {
+      success: true,
+      message: `✓ Faulty payment ${payment.receipt_number} voided and removed from ledger.`,
+    }
   }
 
   // ============================================================

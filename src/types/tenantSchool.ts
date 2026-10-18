@@ -196,6 +196,7 @@ export interface TenantStaffMember {
   net_salary: number
   status: 'active' | 'suspended'
   joined_date: string
+  created_at?: string
 }
 
 export interface TenantStudentMember {
@@ -218,6 +219,10 @@ export interface TenantStudentMember {
   campus?: string
   status: 'active' | 'graduated' | 'suspended'
   admission_date: string
+  created_at?: string
+  gender?: 'Male' | 'Female' | 'Other' | 'Prefer not to say' | string
+  age?: number
+  fee_due_date?: string
   fee_payment_plan?: 'termly' | 'monthly' | 'weekly' | 'custom'
   fee_installments_count?: number
   fee_installment_amount?: number
@@ -313,7 +318,11 @@ export interface TenantFeePayment {
   payment_method: 'Bank Wire' | 'Mobile Money (M-Pesa)' | 'Credit Card' | 'Cash'
   date: string
   recorded_by: string
+  issuer_name?: string
+  issuer_role?: string
   installment_label?: string
+  reference_code?: string
+  bursar_notes?: string
   notes?: string
 }
 

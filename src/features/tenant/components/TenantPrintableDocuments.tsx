@@ -1000,7 +1000,7 @@ export function FeeReceiptModal({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: '1rem',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -1015,7 +1015,7 @@ export function FeeReceiptModal({
             </div>
             <div>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>ADMISSION NUMBER</div>
-              <div style={{ fontSize: '1rem', fontWeight: 900, color: primaryColor }}>{receipt.admission_number}</div>
+              <div style={{ fontSize: '1rem', fontWeight: 900, color: primaryColor, fontFamily: 'monospace' }}>{receipt.admission_number}</div>
             </div>
             <div>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>FEE TERM / PERIOD</div>
@@ -1025,6 +1025,23 @@ export function FeeReceiptModal({
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800 }}>PAYMENT METHOD</div>
               <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>{receipt.payment_method}</div>
             </div>
+            <div>
+              <div style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 800, textTransform: 'uppercase' }}>ISSUED BY (OFFICER)</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a' }}>
+                👤 {receipt.issuer_name || receipt.recorded_by || 'Bursary Cashier'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                {receipt.issuer_role || 'Authorized Finance Officer'}
+              </div>
+            </div>
+            {receipt.installment_label && (
+              <div>
+                <div style={{ fontSize: '0.72rem', color: '#15803d', fontWeight: 800, textTransform: 'uppercase' }}>PAYMENT ALLOCATION</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#166534' }}>
+                  🏷️ {receipt.installment_label}
+                </div>
+              </div>
+            )}
           </div>
 
           <div
@@ -1043,8 +1060,11 @@ export function FeeReceiptModal({
               <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 800, textTransform: 'uppercase' }}>
                 AMOUNT RECEIVED &amp; CREDITED
               </div>
-              <div style={{ fontSize: '0.82rem', color: '#15803d' }}>
-                Recorded by: {receipt.recorded_by}
+              <div style={{ fontSize: '0.82rem', color: '#15803d', marginTop: '2px' }}>
+                Officer in Charge: <strong>{receipt.issuer_name || receipt.recorded_by || 'Bursar Desk'}</strong>
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#166534', marginTop: '1px' }}>
+                Official Transaction Timestamp: {new Date(receipt.date).toLocaleString('en-GB')}
               </div>
             </div>
             <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#15803d' }}>
@@ -1062,9 +1082,17 @@ export function FeeReceiptModal({
             }}
           >
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Authorized Signatory:</div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
-                Bursary Accounts Department
+              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>Issued &amp; Certified By:</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', marginTop: '2px' }}>
+                {receipt.issuer_name || receipt.recorded_by || 'Bursary Accounts Department'}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: primaryColor, fontWeight: 700 }}>
+                {receipt.issuer_role || 'Directorate of Finance & Student Treasury'}, {school.name}
+              </div>
+              <div style={{ height: '32px', display: 'flex', alignItems: 'center', marginTop: '4px' }}>
+                <span style={{ fontFamily: 'cursive', fontSize: '1.15rem', color: '#475569' }}>
+                  {(receipt.issuer_name || receipt.recorded_by || 'Bursar').split(' ')[0]}
+                </span>
               </div>
             </div>
             {/* Official Paid Stamp */}

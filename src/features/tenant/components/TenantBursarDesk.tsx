@@ -90,6 +90,22 @@ export function TenantBursarDesk({
   const [arrearsClassFilter, setArrearsClassFilter] = useState<string>('ALL')
   const [arrearsSeverityFilter, setArrearsSeverityFilter] = useState<'ALL' | 'CRITICAL' | 'ZERO_PAID'>('ALL')
   const [arrearsPlanFilter, setArrearsPlanFilter] = useState<'ALL' | 'termly' | 'monthly' | 'weekly' | 'custom'>('ALL')
+  const [arrearsAgingFilter, setArrearsAgingFilter] = useState<'ALL' | 'CURRENT' | '1-30' | '31-60' | '60+'>('ALL')
+
+  // WhatsApp Dispatcher Modal State (Bursar)
+  const [whatsAppModalData, setWhatsAppModalData] = useState<{
+    isOpen: boolean
+    student: TenantStudentMember | null
+    recipient: 'guardian' | 'student'
+    phone: string
+    message: string
+  }>({
+    isOpen: false,
+    student: null,
+    recipient: 'guardian',
+    phone: '',
+    message: '',
+  })
 
   // Payroll Filter States
   const availablePayrollMonths = useMemo(() => {
@@ -115,11 +131,20 @@ export function TenantBursarDesk({
   const [adjustedFeeTotalInput, setAdjustedFeeTotalInput] = useState<number>(0)
   const [adjustedPaymentPlanInput, setAdjustedPaymentPlanInput] = useState<'termly' | 'monthly' | 'weekly' | 'custom'>('termly')
   const [adjustedInstallmentsCountInput, setAdjustedInstallmentsCountInput] = useState<number>(1)
+  const [adjustedFeeDueDateInput, setAdjustedFeeDueDateInput] = useState<string>('')
   const [showDisburseBatchModal, setShowDisburseBatchModal] = useState(false)
   const [batchDisburseChannel, setBatchDisburseChannel] = useState<'Bank Wire' | 'Mobile Money' | 'Cheque'>('Bank Wire')
 
   // Exam clearance temporary permissions state (admission_number -> true)
   const [examClearanceOverrides, setExamClearanceOverrides] = useState<Record<string, boolean>>({})
+
+  // Payment Correction Modal State (24-hour security window)
+  const [editingPayment, setEditingPayment] = useState<TenantFeePayment | null>(null)
+  const [editPaymentAmount, setEditPaymentAmount] = useState<number>(0)
+  const [editPaymentMethod, setEditPaymentMethod] = useState<'Bank Wire' | 'Mobile Money (M-Pesa)' | 'Credit Card' | 'Cash'>('Mobile Money (M-Pesa)')
+  const [editPaymentRef, setEditPaymentRef] = useState<string>('')
+  const [editPaymentPeriod, setEditPaymentPeriod] = useState<string>('')
+  const [editPaymentNotes, setEditPaymentNotes] = useState<string>('')
 
   // Dynamic Cohorts list
   const cohortsList = useMemo(() => {
@@ -188,6 +213,7 @@ export function TenantBursarDesk({
       target_cohort: firstCohort,
       fee_payment_plan: (cohortStudents[0]?.fee_payment_plan || 'termly') as 'termly' | 'monthly' | 'weekly' | 'custom',
       fee_installments_count: cohortStudents[0]?.fee_installments_count || 1,
+      fee_due_date: cohortStudents[0]?.fee_due_date || '',
       tuition_component: existingFee > 0 ? Math.round(existingFee * 0.75) : 0,
       exam_component: existingFee > 0 ? Math.round(existingFee * 0.1) : 0,
       activity_component: existingFee > 0 ? Math.round(existingFee * 0.05) : 0,
@@ -246,6 +272,8 @@ export function TenantBursarDesk({
     const recordedByName = sessionUser
       ? `${sessionUser.name || sessionUser.full_name || 'Bursar'} (${school.name})`
       : `${school.name} Bursar's Office`
+    const issuerName = sessionUser?.name || sessionUser?.full_name || 'Bursary Officer'
+    const issuerRole = sessionUser?.role === 'bursar' ? 'Lead Bursar & Finance Controller' : 'Authorized Treasury Officer'
 
     const payment = tenantSchoolStore.recordFeePayment({
       school_slug: school.slug,
@@ -256,6 +284,8 @@ export function TenantBursarDesk({
       period_name: newPaymentInput.period_name || activePeriod,
       payment_method: newPaymentInput.payment_method,
       recorded_by: recordedByName,
+      issuer_name: issuerName,
+      issuer_role: issuerRole,
       installment_label: newPaymentInput.installment_label || undefined,
       notes: newPaymentInput.bursar_notes || undefined,
     })
@@ -297,6 +327,7 @@ export function TenantBursarDesk({
         fee_payment_plan: batchInvoiceForm.fee_payment_plan,
         fee_installments_count: instCount,
         fee_installment_amount: instAmount,
+        fee_due_date: batchInvoiceForm.fee_due_date || undefined,
       })
       updatedCount++
     })
@@ -328,6 +359,7 @@ export function TenantBursarDesk({
       fee_payment_plan: adjustedPaymentPlanInput,
       fee_installments_count: instCount,
       fee_installment_amount: instAmount,
+      fee_due_date: adjustedFeeDueDateInput || undefined,
     })
 
     setShowStudentFeeAdjustmentModal(false)
@@ -433,9 +465,60 @@ export function TenantBursarDesk({
 
       const matchPlan = arrearsPlanFilter === 'ALL' || (s.fee_payment_plan || 'termly') === arrearsPlanFilter
 
-      return matchQuery && matchClass && matchSeverity && matchPlan
+      let matchAging = true
+      if (arrearsAgingFilter !== 'ALL') {
+        const today = new Date().toISOString().split('T')[0]
+        const dueDate = s.fee_due_date || s.admission_date || today
+        const diffDays = Math.ceil((new Date(today).getTime() - new Date(dueDate).getTime()) / (1000 * 60 * 60 * 24))
+
+        if (arrearsAgingFilter === 'CURRENT') {
+          matchAging = diffDays <= 0
+        } else if (arrearsAgingFilter === '1-30') {
+          matchAging = diffDays >= 1 && diffDays <= 30
+        } else if (arrearsAgingFilter === '31-60') {
+          matchAging = diffDays >= 31 && diffDays <= 60
+        } else if (arrearsAgingFilter === '60+') {
+          matchAging = diffDays > 60
+        }
+      }
+
+      return matchQuery && matchClass && matchSeverity && matchPlan && matchAging
     })
-  }, [defaultersList, arrearsSearchQuery, arrearsClassFilter, arrearsSeverityFilter, arrearsPlanFilter])
+  }, [defaultersList, arrearsSearchQuery, arrearsClassFilter, arrearsSeverityFilter, arrearsPlanFilter, arrearsAgingFilter])
+
+  // Aged Receivables Metric Calculations
+  const agedReceivablesMetrics = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    let currentTotal = 0
+    let overdue1to30 = 0
+    let overdue31to60 = 0
+    let overdue60Plus = 0
+
+    defaultersList.forEach((s) => {
+      const bal = s.fee_balance || 0
+      if (bal <= 0) return
+      const dueDate = s.fee_due_date || s.admission_date || today
+      const diffDays = Math.ceil((new Date(today).getTime() - new Date(dueDate).getTime()) / (1000 * 60 * 60 * 24))
+
+      if (diffDays <= 0) {
+        currentTotal += bal
+      } else if (diffDays <= 30) {
+        overdue1to30 += bal
+      } else if (diffDays <= 60) {
+        overdue31to60 += bal
+      } else {
+        overdue60Plus += bal
+      }
+    })
+
+    return {
+      currentTotal,
+      overdue1to30,
+      overdue31to60,
+      overdue60Plus,
+      totalOverdue: overdue1to30 + overdue31to60 + overdue60Plus,
+    }
+  }, [defaultersList])
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -1163,83 +1246,174 @@ export function TenantBursarDesk({
                     <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
                       Official Slip
                     </th>
+                    <th style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: '#0f172a', textAlign: 'center' }}>
+                      Audit &amp; Correction (24h)
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPayments.map((p) => (
-                    <tr
-                      key={p.id}
-                      style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s ease' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#fcfdfe')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <td style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: primaryColor }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{p.receipt_number}</span>
-                      </td>
-                      <td style={{ padding: '0.85rem 0.75rem' }}>
-                        <div style={{ fontWeight: 800, color: '#0f172a' }}>{p.student_name}</div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Adm: {p.admission_number}</div>
-                      </td>
-                      <td style={{ padding: '0.85rem 0.75rem', color: '#64748b' }}>
-                        {new Date(p.date).toLocaleDateString('en-GB', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </td>
-                      <td style={{ padding: '0.85rem 0.75rem' }}>
-                        <span
-                          style={{
-                            background:
-                              p.payment_method.includes('M-Pesa') || p.payment_method.includes('Mobile')
-                                ? '#dcfce7'
-                                : p.payment_method === 'Bank Wire'
-                                ? '#e0f2fe'
-                                : '#f1f5f9',
-                            color:
-                              p.payment_method.includes('M-Pesa') || p.payment_method.includes('Mobile')
-                                ? '#166534'
-                                : p.payment_method === 'Bank Wire'
-                                ? '#0369a1'
-                                : '#334155',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '0.74rem',
-                            fontWeight: 700,
-                          }}
-                        >
-                          {p.payment_method}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.85rem 0.75rem', color: '#475569', fontSize: '0.78rem' }}>
-                        {p.period_name || activePeriod}
-                      </td>
-                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: 900, color: '#16a34a', fontSize: '0.95rem' }}>
-                        {currency} {p.amount.toLocaleString()}
-                      </td>
-                      <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={() => onOpenReceipt(p)}
-                          style={{
-                            background: '#ffffff',
-                            border: '1px solid #cbd5e1',
-                            padding: '0.4rem 0.75rem',
-                            borderRadius: '8px',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                          }}
-                        >
-                          <span>🖨️</span> Print Slip
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredPayments.map((p) => {
+                    const pmtHoursElapsed = (Date.now() - new Date(p.date).getTime()) / (1000 * 60 * 60)
+                    const isPmtWithin24h = pmtHoursElapsed <= 24
+                    const pmtHoursRemaining = Math.max(0, 24 - Math.floor(pmtHoursElapsed))
+
+                    return (
+                      <tr
+                        key={p.id}
+                        style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s ease' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#fcfdfe')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <td style={{ padding: '0.85rem 0.75rem', fontWeight: 800, color: primaryColor }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{p.receipt_number}</span>
+                        </td>
+                        <td style={{ padding: '0.85rem 0.75rem' }}>
+                          <div style={{ fontWeight: 800, color: '#0f172a' }}>{p.student_name}</div>
+                          <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Adm: {p.admission_number}</div>
+                        </td>
+                        <td style={{ padding: '0.85rem 0.75rem', color: '#64748b' }}>
+                          {new Date(p.date).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </td>
+                        <td style={{ padding: '0.85rem 0.75rem' }}>
+                          <span
+                            style={{
+                              background:
+                                p.payment_method.includes('M-Pesa') || p.payment_method.includes('Mobile')
+                                  ? '#dcfce7'
+                                  : p.payment_method === 'Bank Wire'
+                                  ? '#e0f2fe'
+                                  : '#f1f5f9',
+                              color:
+                                p.payment_method.includes('M-Pesa') || p.payment_method.includes('Mobile')
+                                  ? '#166534'
+                                  : p.payment_method === 'Bank Wire'
+                                  ? '#0369a1'
+                                  : '#334155',
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.74rem',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {p.payment_method}
+                          </span>
+                        </td>
+                        <td style={{ padding: '0.85rem 0.75rem', color: '#475569', fontSize: '0.78rem' }}>
+                          {p.period_name || activePeriod}
+                        </td>
+                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'right', fontWeight: 900, color: '#16a34a', fontSize: '0.95rem' }}>
+                          {currency} {p.amount.toLocaleString()}
+                        </td>
+                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            onClick={() => onOpenReceipt(p)}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #cbd5e1',
+                              padding: '0.4rem 0.75rem',
+                              borderRadius: '8px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            }}
+                          >
+                            <span>🖨️</span> Print Slip
+                          </button>
+                        </td>
+                        <td style={{ padding: '0.85rem 0.75rem', textAlign: 'center' }}>
+                          {isPmtWithin24h ? (
+                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingPayment(p)
+                                  setEditPaymentAmount(p.amount)
+                                  setEditPaymentMethod(p.payment_method)
+                                  setEditPaymentRef(p.reference_code || '')
+                                  setEditPaymentPeriod(p.period_name || activePeriod)
+                                  setEditPaymentNotes(p.bursar_notes || '')
+                                }}
+                                style={{
+                                  background: '#fef3c7',
+                                  color: '#92400e',
+                                  border: '1px solid #fde68a',
+                                  padding: '0.35rem 0.55rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                                title={`Correction window active (${pmtHoursRemaining}h remaining)`}
+                              >
+                                ✏️ Edit ({pmtHoursRemaining}h)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      `⚠️ VOID PAYMENT AUDIT CONFIRMATION:\n\nAre you sure you want to void faulty receipt "${p.receipt_number}" for ${p.student_name} (${currency} ${p.amount.toLocaleString()})?\n\nThis will automatically reverse the fee balance on the student's ledger.`
+                                    )
+                                  ) {
+                                    const res = tenantSchoolStore.voidFeePayment(p.id)
+                                    if (res.success) {
+                                      alert(res.message)
+                                      onReloadData()
+                                    } else {
+                                      alert(`Error: ${res.message}`)
+                                    }
+                                  }
+                                }}
+                                style={{
+                                  background: '#fee2e2',
+                                  color: '#dc2626',
+                                  border: '1px solid #fca5a5',
+                                  padding: '0.35rem 0.5rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 800,
+                                  cursor: 'pointer',
+                                }}
+                                title="Void faulty transaction within 24h window"
+                              >
+                                🗑️ Void
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              style={{
+                                background: '#f8fafc',
+                                color: '#64748b',
+                                border: '1px solid #e2e8f0',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                              }}
+                              title="Audit Locked: Cannot modify payment transactions recorded over 24 hours ago"
+                            >
+                              🔒 Locked (&gt;24h)
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1395,6 +1569,108 @@ export function TenantBursarDesk({
             </div>
           </div>
 
+          {/* Aged Receivables Aging Telemetry Ribbon */}
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '14px',
+              padding: '1rem',
+              marginBottom: '1.5rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                📊 Aged Receivables &amp; Delinquency Breakdown
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                Total Overdue: <strong style={{ color: agedReceivablesMetrics.totalOverdue > 0 ? '#b91c1c' : '#16a34a' }}>{currency} {agedReceivablesMetrics.totalOverdue.toLocaleString()}</strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.75rem' }}>
+              <div
+                onClick={() => setArrearsAgingFilter(arrearsAgingFilter === 'CURRENT' ? 'ALL' : 'CURRENT')}
+                style={{
+                  background: arrearsAgingFilter === 'CURRENT' ? '#dcfce7' : '#ffffff',
+                  border: `1.5px solid ${arrearsAgingFilter === 'CURRENT' ? '#16a34a' : '#86efac'}`,
+                  borderRadius: '10px',
+                  padding: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>
+                  ✓ Current / On Track
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#15803d', marginTop: '2px' }}>
+                  {currency} {agedReceivablesMetrics.currentTotal.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#166534' }}>Due in future / cleared</div>
+              </div>
+
+              <div
+                onClick={() => setArrearsAgingFilter(arrearsAgingFilter === '1-30' ? 'ALL' : '1-30')}
+                style={{
+                  background: arrearsAgingFilter === '1-30' ? '#fef3c7' : '#ffffff',
+                  border: `1.5px solid ${arrearsAgingFilter === '1-30' ? '#d97706' : '#fde68a'}`,
+                  borderRadius: '10px',
+                  padding: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#92400e', textTransform: 'uppercase' }}>
+                  ⚠️ 1–30 Days Overdue
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#b45309', marginTop: '2px' }}>
+                  {currency} {agedReceivablesMetrics.overdue1to30.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#92400e' }}>1st reminder stage</div>
+              </div>
+
+              <div
+                onClick={() => setArrearsAgingFilter(arrearsAgingFilter === '31-60' ? 'ALL' : '31-60')}
+                style={{
+                  background: arrearsAgingFilter === '31-60' ? '#ffedd5' : '#ffffff',
+                  border: `1.5px solid ${arrearsAgingFilter === '31-60' ? '#ea580c' : '#fed7aa'}`,
+                  borderRadius: '10px',
+                  padding: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#9a3412', textTransform: 'uppercase' }}>
+                  ⏰ 31–60 Days Overdue
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#c2410c', marginTop: '2px' }}>
+                  {currency} {agedReceivablesMetrics.overdue31to60.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#9a3412' }}>Escalated arrears</div>
+              </div>
+
+              <div
+                onClick={() => setArrearsAgingFilter(arrearsAgingFilter === '60+' ? 'ALL' : '60+')}
+                style={{
+                  background: arrearsAgingFilter === '60+' ? '#fee2e2' : '#ffffff',
+                  border: `1.5px solid ${arrearsAgingFilter === '60+' ? '#dc2626' : '#fca5a5'}`,
+                  borderRadius: '10px',
+                  padding: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#991b1b', textTransform: 'uppercase' }}>
+                  🚨 60+ Days Delinquent
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#dc2626', marginTop: '2px' }}>
+                  {currency} {agedReceivablesMetrics.overdue60Plus.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#991b1b' }}>High risk debt</div>
+              </div>
+            </div>
+          </div>
+
           {/* Filtering Bar */}
           <div
             style={{
@@ -1470,6 +1746,28 @@ export function TenantBursarDesk({
 
             <div>
               <select
+                value={arrearsAgingFilter}
+                onChange={(e) => setArrearsAgingFilter(e.target.value as any)}
+                style={{
+                  padding: '0.55rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1.5px solid #dc2626',
+                  fontSize: '0.84rem',
+                  background: '#fff5f5',
+                  fontWeight: 800,
+                  color: '#991b1b',
+                }}
+              >
+                <option value="ALL">All Aging Buckets</option>
+                <option value="CURRENT">✓ Current / On Track (&lt;=0 Days)</option>
+                <option value="1-30">⚠️ 1–30 Days Overdue</option>
+                <option value="31-60">⏰ 31–60 Days Overdue</option>
+                <option value="60+">🚨 60+ Days Overdue</option>
+              </select>
+            </div>
+
+            <div>
+              <select
                 value={arrearsSeverityFilter}
                 onChange={(e) => setArrearsSeverityFilter(e.target.value as any)}
                 style={{
@@ -1514,6 +1812,7 @@ export function TenantBursarDesk({
                     <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Student &amp; Class</th>
                     <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Guardian Contact</th>
                     <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Payment Plan &amp; Rate</th>
+                    <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Payment Deadline &amp; Aging</th>
                     <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a' }}>Installments Tracked</th>
                     <th style={{ padding: '0.85rem 0.65rem', fontWeight: 800, color: '#0f172a', textAlign: 'right' }}>
                       Billed Total
@@ -1561,6 +1860,18 @@ export function TenantBursarDesk({
                         <td style={{ padding: '0.85rem 0.65rem' }}>
                           <div style={{ fontWeight: 800, color: '#0f172a' }}>{s.full_name}</div>
                           <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{s.grade_class}</div>
+                          <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+                            {s.gender && (
+                              <span style={{ fontSize: '0.66rem', fontWeight: 700, background: '#f1f5f9', color: '#475569', padding: '1px 4px', borderRadius: '3px' }}>
+                                {s.gender}
+                              </span>
+                            )}
+                            {s.age !== undefined && s.age !== null && (
+                              <span style={{ fontSize: '0.66rem', fontWeight: 700, background: '#e0f2fe', color: '#0369a1', padding: '1px 4px', borderRadius: '3px' }}>
+                                {s.age} yrs
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ padding: '0.85rem 0.65rem' }}>
                           <div style={{ fontWeight: 700, color: '#334155' }}>{s.guardian_name || 'Guardian'}</div>
@@ -1606,6 +1917,37 @@ export function TenantBursarDesk({
                               {currency} {instAmount.toLocaleString()} / inst
                             </div>
                           )}
+                        </td>
+                        <td style={{ padding: '0.85rem 0.65rem' }}>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>
+                            {s.fee_due_date ? `⏰ ${s.fee_due_date}` : '🗓 Not specified'}
+                          </div>
+                          {(() => {
+                            const today = new Date().toISOString().split('T')[0]
+                            const dueDate = s.fee_due_date || s.admission_date || today
+                            const diffDays = Math.ceil((new Date(today).getTime() - new Date(dueDate).getTime()) / (1000 * 60 * 60 * 24))
+                            return (
+                              <div style={{ marginTop: '3px' }}>
+                                {diffDays <= 0 ? (
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '4px' }}>
+                                    ✓ Current (On track)
+                                  </span>
+                                ) : diffDays <= 30 ? (
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#fef3c7', color: '#b45309', padding: '1px 6px', borderRadius: '4px' }}>
+                                    ⚠️ {diffDays}d Overdue (1-30d)
+                                  </span>
+                                ) : diffDays <= 60 ? (
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#ffedd5', color: '#c2410c', padding: '1px 6px', borderRadius: '4px' }}>
+                                    ⏰ {diffDays}d Overdue (31-60d)
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#fee2e2', color: '#dc2626', padding: '1px 6px', borderRadius: '4px' }}>
+                                    🚨 {diffDays}d Delinquent (60+d)
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })()}
                         </td>
                         <td style={{ padding: '0.85rem 0.65rem' }}>
                           {plan === 'termly' ? (
@@ -1693,26 +2035,43 @@ export function TenantBursarDesk({
                               ⚡ {plan !== 'termly' ? 'Pay Inst' : 'Pay Bal'}
                             </button>
 
-                            {/* WhatsApp Demand Notice */}
-                            <a
-                              href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMsg)}`}
-                              target="_blank"
-                              rel="noreferrer"
+                            {/* Interactive WhatsApp Dispatcher Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const initialTarget = s.guardian_phone ? 'guardian' : 'student'
+                                const targetPhone = s.guardian_phone || ''
+                                const today = new Date().toISOString().split('T')[0]
+                                const dueDate = s.fee_due_date || s.admission_date || today
+                                const diffDays = Math.ceil((new Date(today).getTime() - new Date(dueDate).getTime()) / (1000 * 60 * 60 * 24))
+                                const deadlineTxt = s.fee_due_date ? ` Payment deadline is ${s.fee_due_date}.` : ''
+                                const agingWarning = diffDays > 0 ? ` Note: Account is currently ${diffDays} day(s) overdue.` : ''
+                                const msg = `Dear ${initialTarget === 'guardian' ? (s.guardian_name || 'Guardian') : s.full_name}, official fee reminder from ${school.name} Bursar's Office regarding student ${s.full_name} (${s.admission_number}). The outstanding tuition balance is ${currency} ${s.fee_balance.toLocaleString()}${plan !== 'termly' ? ` (${instPending} installment(s) pending)` : ''}.${deadlineTxt}${agingWarning} Kindly arrange settlement via ${bankingConfig.bank_name || 'Bank'} / ${bankingConfig.mobile_channel || 'M-Pesa'} (Paybill: ${bankingConfig.paybill_number}). For inquiries, contact ${school.contact_phone || 'our finance desk'}. Thank you.`
+                                setWhatsAppModalData({
+                                  isOpen: true,
+                                  student: s,
+                                  recipient: initialTarget,
+                                  phone: targetPhone,
+                                  message: msg,
+                                })
+                              }}
                               style={{
                                 background: '#25D366',
                                 color: '#ffffff',
+                                border: 'none',
                                 padding: '0.35rem 0.55rem',
                                 borderRadius: '6px',
-                                textDecoration: 'none',
                                 fontSize: '0.74rem',
                                 fontWeight: 800,
+                                cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
+                                gap: '2px',
                               }}
                               title="Send WhatsApp Notice"
                             >
                               💬
-                            </a>
+                            </button>
 
                             {/* Official Statement / Fee Invoice PDF */}
                             {onOpenInvoice && (
@@ -2400,6 +2759,7 @@ export function TenantBursarDesk({
                                   setAdjustedFeeTotalInput(s.fee_total)
                                   setAdjustedPaymentPlanInput(s.fee_payment_plan || 'termly')
                                   setAdjustedInstallmentsCountInput(s.fee_installments_count || 1)
+                                  setAdjustedFeeDueDateInput(s.fee_due_date || '')
                                   setShowStudentFeeAdjustmentModal(true)
                                 }}
                                 style={{
@@ -3067,6 +3427,288 @@ export function TenantBursarDesk({
       )}
 
       {/* ============================================================ */}
+      {/* MODAL 1B: CORRECTION OF FAULTY PAYMENT (24H WINDOW) */}
+      {/* ============================================================ */}
+      {editingPayment && (() => {
+        const pmtHoursElapsed = (Date.now() - new Date(editingPayment.date).getTime()) / (1000 * 60 * 60)
+        const pmtHoursRemaining = Math.max(0, 24 - Math.floor(pmtHoursElapsed))
+
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: '1rem',
+            }}
+          >
+            <div
+              style={{
+                maxHeight: 'calc(100dvh - 2rem)',
+                overflowY: 'auto',
+                background: '#ffffff',
+                borderRadius: '24px',
+                width: '100%',
+                maxWidth: '560px',
+                padding: '2rem',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <div>
+                  <span
+                    style={{
+                      background: '#fef3c7',
+                      color: '#92400e',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                    }}
+                  >
+                    24-HOUR CORRECTION WINDOW
+                  </span>
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: 900, margin: '6px 0 0', color: '#0f172a' }}>
+                    Correct Faulty Payment
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingPayment(null)}
+                  style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: 800 }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Time remaining banner */}
+              <div
+                style={{
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  borderRadius: '12px',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <span style={{ fontSize: '1.4rem' }}>⏳</span>
+                <div>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#92400e' }}>
+                    Active Security Correction Window: {pmtHoursRemaining} Hour(s) Remaining
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#b45309' }}>
+                    This transaction was recorded {Math.round(pmtHoursElapsed * 10) / 10}h ago. Faulty values can be updated within 24h. Student ledger balances will automatically rebalance.
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction details badge */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '12px',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Receipt #:</span>
+                  <strong style={{ fontSize: '0.82rem', fontFamily: 'monospace', color: primaryColor }}>{editingPayment.receipt_number}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Student:</span>
+                  <strong style={{ fontSize: '0.82rem', color: '#0f172a' }}>{editingPayment.student_name} ({editingPayment.admission_number})</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Original Amount:</span>
+                  <strong style={{ fontSize: '0.82rem', color: '#16a34a' }}>{currency} {editingPayment.amount.toLocaleString()}</strong>
+                </div>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (!editingPayment) return
+                  const numAmt = Number(editPaymentAmount)
+                  if (isNaN(numAmt) || numAmt <= 0) {
+                    alert('Please enter a valid positive payment amount.')
+                    return
+                  }
+                  const res = tenantSchoolStore.updateFeePayment(editingPayment.id, {
+                    amount: numAmt,
+                    payment_method: editPaymentMethod,
+                    reference_code: editPaymentRef.trim(),
+                    period_name: editPaymentPeriod.trim() || activePeriod,
+                    bursar_notes: editPaymentNotes.trim(),
+                  })
+                  if (res.success) {
+                    alert(res.message)
+                    setEditingPayment(null)
+                    onReloadData()
+                  } else {
+                    alert(`Update failed: ${res.message}`)
+                  }
+                }}
+              >
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Correct Payment Amount ({currency}) *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={editPaymentAmount}
+                    onChange={(e) => setEditPaymentAmount(Number(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '1rem',
+                      fontWeight: 800,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                      Payment Channel *
+                    </label>
+                    <select
+                      value={editPaymentMethod}
+                      onChange={(e) => setEditPaymentMethod(e.target.value as any)}
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem',
+                        borderRadius: '10px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.84rem',
+                        background: '#ffffff',
+                        fontWeight: 600,
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <option value="Mobile Money (M-Pesa)">Mobile Money (M-Pesa)</option>
+                      <option value="Bank Wire">Bank Wire / Deposit</option>
+                      <option value="Credit Card">Credit / Debit Card</option>
+                      <option value="Cash">Cash Deposit</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                      Academic Period *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={editPaymentPeriod}
+                      onChange={(e) => setEditPaymentPeriod(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.65rem',
+                        borderRadius: '10px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.84rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Reference / Confirmation Code
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. QKJ8923KJ1 (M-Pesa / Bank Slip Code)"
+                    value={editPaymentRef}
+                    onChange={(e) => setEditPaymentRef(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.84rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginBottom: '4px' }}>
+                    Audit Correction Note / Reason *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Corrected amount typo from initial teller entry"
+                    value={editPaymentNotes}
+                    onChange={(e) => setEditPaymentNotes(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.65rem',
+                      borderRadius: '10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.84rem',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => setEditingPayment(null)}
+                    style={{
+                      padding: '0.65rem 1.25rem',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '0.65rem 1.5rem',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: primaryColor,
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      boxShadow: '0 4px 14px -2px rgba(180, 83, 9, 0.4)',
+                    }}
+                  >
+                    Save Correction &amp; Rebalance
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ============================================================ */}
       {/* MODAL 2: BATCH COHORT INVOICING */}
       {/* ============================================================ */}
       {showBatchInvoiceModal && (
@@ -3253,6 +3895,21 @@ export function TenantBursarDesk({
                   </div>
                 </div>
 
+                <div style={{ marginTop: '0.85rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#b91c1c', marginBottom: '4px' }}>
+                    ⏰ Cohort Payment Due Date / Deadline (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={batchInvoiceForm.fee_due_date || ''}
+                    onChange={(e) => setBatchInvoiceForm({ ...batchInvoiceForm, fee_due_date: e.target.value })}
+                    style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1.5px solid #fca5a5', background: '#fff5f5', fontSize: '0.82rem', fontWeight: 700, boxSizing: 'border-box' }}
+                  />
+                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px' }}>
+                    Sets the official payment deadline across all students in this cohort to compute aged receivables.
+                  </div>
+                </div>
+
                 {batchInvoiceForm.fee_payment_plan !== 'termly' && (
                   <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.75rem', background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0', fontSize: '0.75rem', color: '#065f46', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>
@@ -3335,9 +3992,32 @@ export function TenantBursarDesk({
             <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: '0 0 0.5rem', color: '#0f172a' }}>
               Adjust Student Billing Schedule &amp; Plan
             </h3>
-            <p style={{ fontSize: '0.84rem', color: '#64748b', margin: '0 0 1.25rem' }}>
+            <p style={{ fontSize: '0.84rem', color: '#64748b', margin: '0 0 1rem' }}>
               Student: <strong>{selectedStudentForAdjustment.full_name}</strong> ({selectedStudentForAdjustment.admission_number})
             </p>
+
+            {(() => {
+              const studentTime = selectedStudentForAdjustment.created_at || selectedStudentForAdjustment.admission_date
+              const hoursElapsed = studentTime ? (Date.now() - new Date(studentTime).getTime()) / (1000 * 60 * 60) : 0
+              const isWithin24h = !studentTime || hoursElapsed <= 24
+              const hoursRemaining = Math.max(0, 24 - Math.floor(hoursElapsed))
+
+              return isWithin24h ? (
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '0.65rem 0.85rem', marginBottom: '1rem', fontSize: '0.78rem', color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>⏳</span>
+                  <div>
+                    <strong>24-Hour Correction Window Active ({hoursRemaining}h remaining):</strong> You can adjust initial enrollment fee assessments without ledger audit penalties.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '10px', padding: '0.65rem 0.85rem', marginBottom: '1rem', fontSize: '0.78rem', color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🔒</span>
+                  <div>
+                    <strong>Security Audit Notice (&gt;24h since enrollment):</strong> Adjusting fees on an established student will update current receivables and balances on official statements.
+                  </div>
+                </div>
+              )
+            })()}
 
             <form onSubmit={handleExecuteStudentFeeAdjustment}>
               <div style={{ marginBottom: '1.15rem' }}>
@@ -3402,6 +4082,21 @@ export function TenantBursarDesk({
                     onChange={(e) => setAdjustedInstallmentsCountInput(Math.max(1, Number(e.target.value)))}
                     style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: adjustedPaymentPlanInput === 'termly' ? '#f1f5f9' : '#ffffff', boxSizing: 'border-box' }}
                   />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1.15rem' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, color: '#b91c1c', marginBottom: '4px' }}>
+                  ⏰ Student Payment Due Date / Deadline
+                </label>
+                <input
+                  type="date"
+                  value={adjustedFeeDueDateInput}
+                  onChange={(e) => setAdjustedFeeDueDateInput(e.target.value)}
+                  style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1.5px solid #fca5a5', background: '#fff5f5', fontSize: '0.85rem', fontWeight: 700, boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '3px' }}>
+                  Aged receivables ledger tracks overdue days relative to this deadline.
                 </div>
               </div>
 
@@ -3544,6 +4239,200 @@ export function TenantBursarDesk({
                 }}
               >
                 Confirm &amp; Disburse Batch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================== */}
+      {/* MODAL: WHATSAPP DIRECT DISPATCHER (BURSAR) */}
+      {/* ========================================== */}
+      {whatsAppModalData.isOpen && whatsAppModalData.student && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '540px',
+              width: '100%',
+              padding: '1.75rem',
+              boxSizing: 'border-box',
+              border: '2px solid #25D366',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.4rem' }}>💬</span>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
+                  Send WhatsApp Fee Notice
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWhatsAppModalData((prev) => ({ ...prev, isOpen: false }))}
+                style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '1rem', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.82rem' }}>
+              <div>Student: <strong>{whatsAppModalData.student.full_name}</strong> ({whatsAppModalData.student.admission_number})</div>
+              <div>Class: {whatsAppModalData.student.grade_class} • Pending Balance: <strong style={{ color: '#dc2626' }}>{currency} {(whatsAppModalData.student.fee_balance || 0).toLocaleString()}</strong></div>
+              {whatsAppModalData.student.fee_due_date && (
+                <div style={{ color: '#b91c1c', fontWeight: 700, marginTop: '2px' }}>
+                  ⏰ Due Date: {whatsAppModalData.student.fee_due_date}
+                </div>
+              )}
+            </div>
+
+            {/* Recipient Selection Toggle */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '6px' }}>
+                Send Message To:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const st = whatsAppModalData.student!
+                    const today = new Date().toISOString().split('T')[0]
+                    const dueDate = st.fee_due_date || st.admission_date || today
+                    const diffDays = Math.ceil((new Date(today).getTime() - new Date(dueDate).getTime()) / (1000 * 60 * 60 * 24))
+                    const deadlineTxt = st.fee_due_date ? ` Payment deadline is ${st.fee_due_date}.` : ''
+                    const agingWarning = diffDays > 0 ? ` Note: Account is currently ${diffDays} day(s) overdue.` : ''
+                    const msg = `Dear ${st.guardian_name || 'Guardian'}, official fee reminder from ${school.name} Bursar's Office regarding student ${st.full_name} (${st.admission_number}). The outstanding tuition balance is ${currency} ${(st.fee_balance || 0).toLocaleString()}.${deadlineTxt}${agingWarning} Kindly arrange settlement via ${bankingConfig.bank_name || 'Bank'} / ${bankingConfig.mobile_channel || 'M-Pesa'} (Paybill: ${bankingConfig.paybill_number}). For inquiries, contact ${school.contact_phone || 'our finance desk'}. Thank you.`
+                    setWhatsAppModalData((prev) => ({
+                      ...prev,
+                      recipient: 'guardian',
+                      phone: st.guardian_phone || '',
+                      message: msg,
+                    }))
+                  }}
+                  style={{
+                    padding: '0.6rem',
+                    borderRadius: '8px',
+                    border: `2px solid ${whatsAppModalData.recipient === 'guardian' ? '#25D366' : '#e2e8f0'}`,
+                    background: whatsAppModalData.recipient === 'guardian' ? '#f0fdf4' : '#ffffff',
+                    fontWeight: whatsAppModalData.recipient === 'guardian' ? 800 : 600,
+                    color: whatsAppModalData.recipient === 'guardian' ? '#166534' : '#475569',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  👨‍👩‍👦 Guardian ({whatsAppModalData.student.guardian_name || 'Parent'})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const st = whatsAppModalData.student!
+                    const today = new Date().toISOString().split('T')[0]
+                    const dueDate = st.fee_due_date || st.admission_date || today
+                    const diffDays = Math.ceil((new Date(today).getTime() - new Date(dueDate).getTime()) / (1000 * 60 * 60 * 24))
+                    const deadlineTxt = st.fee_due_date ? ` Payment deadline is ${st.fee_due_date}.` : ''
+                    const agingWarning = diffDays > 0 ? ` Account is ${diffDays} day(s) overdue.` : ''
+                    const msg = `Dear ${st.full_name}, this is an urgent fee clearance notice from ${school.name} Bursar's Office (${st.admission_number}). You have a pending tuition balance of ${currency} ${(st.fee_balance || 0).toLocaleString()}.${deadlineTxt}${agingWarning} Please present this notice to your guardian/sponsor to avoid disruption during exams or registration. Thank you.`
+                    setWhatsAppModalData((prev) => ({
+                      ...prev,
+                      recipient: 'student',
+                      phone: st.guardian_phone || '',
+                      message: msg,
+                    }))
+                  }}
+                  style={{
+                    padding: '0.6rem',
+                    borderRadius: '8px',
+                    border: `2px solid ${whatsAppModalData.recipient === 'student' ? '#25D366' : '#e2e8f0'}`,
+                    background: whatsAppModalData.recipient === 'student' ? '#f0fdf4' : '#ffffff',
+                    fontWeight: whatsAppModalData.recipient === 'student' ? 800 : 600,
+                    color: whatsAppModalData.recipient === 'student' ? '#166534' : '#475569',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  🎓 Student Directly
+                </button>
+              </div>
+            </div>
+
+            {/* Recipient Phone */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
+                WhatsApp Phone Number (with Country Code)
+              </label>
+              <input
+                type="tel"
+                value={whatsAppModalData.phone}
+                onChange={(e) => setWhatsAppModalData((prev) => ({ ...prev, phone: e.target.value }))}
+                placeholder="e.g. +254700000000 or 0700000000"
+                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            {/* Message Textarea */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
+                Message Content
+              </label>
+              <textarea
+                rows={4}
+                value={whatsAppModalData.message}
+                onChange={(e) => setWhatsAppModalData((prev) => ({ ...prev, message: e.target.value }))}
+                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setWhatsAppModalData((prev) => ({ ...prev, isOpen: false }))}
+                style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  let rawPhone = whatsAppModalData.phone.replace(/[^0-9]/g, '')
+                  if (!rawPhone) {
+                    alert('Please enter a valid phone number.')
+                    return
+                  }
+                  if (rawPhone.startsWith('0') && rawPhone.length === 10) {
+                    rawPhone = '254' + rawPhone.slice(1)
+                  }
+                  const url = `https://wa.me/${rawPhone}?text=${encodeURIComponent(whatsAppModalData.message)}`
+                  window.open(url, '_blank')
+                  setWhatsAppModalData((prev) => ({ ...prev, isOpen: false }))
+                }}
+                style={{
+                  padding: '0.6rem 1.5rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#25D366',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>💬</span> Launch WhatsApp
               </button>
             </div>
           </div>

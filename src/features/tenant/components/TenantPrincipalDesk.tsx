@@ -286,6 +286,10 @@ export function TenantPrincipalDesk({
     salary_pension: 0,
   })
 
+  // 24-Hour Security Audit Window States (Admin corrections)
+  const [staffAuditOverrideConfirmed, setStaffAuditOverrideConfirmed] = useState(false)
+  const [studentAuditOverrideConfirmed, setStudentAuditOverrideConfirmed] = useState(false)
+
   // Add/Edit Student Form State (Zero hardcoded defaults)
   const [studentForm, setStudentForm] = useState({
     full_name: '',
@@ -295,10 +299,28 @@ export function TenantPrincipalDesk({
     guardian_phone: '',
     guardian_email: '',
     admission_date: new Date().toISOString().split('T')[0],
+    gender: 'Male' as 'Male' | 'Female' | 'Other' | 'Prefer not to say',
+    age: '' as string | number,
+    fee_due_date: '',
     fee_total: 0,
     fee_paid: 0,
     fee_payment_plan: 'termly' as 'termly' | 'monthly' | 'weekly' | 'custom',
     fee_installments_count: 1,
+  })
+
+  // WhatsApp Dispatcher Modal State
+  const [whatsAppModalData, setWhatsAppModalData] = useState<{
+    isOpen: boolean
+    student: TenantStudentMember | null
+    recipient: 'guardian' | 'student'
+    phone: string
+    message: string
+  }>({
+    isOpen: false,
+    student: null,
+    recipient: 'guardian',
+    phone: '',
+    message: '',
   })
 
   // Add/Edit Timetable Entry State
@@ -444,6 +466,9 @@ export function TenantPrincipalDesk({
       guardian_phone: app.guardian_phone || app.phone,
       guardian_email: app.email,
       admission_date: new Date().toISOString().split('T')[0],
+      gender: 'Male',
+      age: '',
+      fee_due_date: '',
       fee_total: 0,
       fee_paid: 0,
       fee_payment_plan: 'termly',
@@ -477,6 +502,7 @@ export function TenantPrincipalDesk({
   const handleOpenAddStaff = () => {
     if (!requireActivation('Faculty & staff onboarding')) return
     setEditingStaffMember(null)
+    setStaffAuditOverrideConfirmed(false)
     setStaffForm({
       full_name: '',
       role: 'teacher',
@@ -500,6 +526,7 @@ export function TenantPrincipalDesk({
 
   const handleOpenEditStaff = (staff: TenantStaffMember) => {
     setEditingStaffMember(staff)
+    setStaffAuditOverrideConfirmed(false)
     setStaffForm({
       full_name: staff.full_name,
       role: staff.role,
@@ -548,29 +575,43 @@ export function TenantPrincipalDesk({
       .replace(/\.+/g, '.')
 
     if (editingStaffMember) {
-      tenantSchoolStore.updateStaffMember(editingStaffMember.id, {
-        full_name: staffForm.full_name.trim(),
-        role: staffForm.role,
-        department: finalDept,
-        title: staffForm.title.trim() || (staffForm.role === 'teacher' ? 'Lecturer / Instructor' : 'Staff Member'),
-        email: staffForm.email.trim() || `${nameSlug}@${slug}.edu`,
-        phone: staffForm.phone.trim(),
-        username: staffForm.username.trim() || editingStaffMember.username,
-        temp_password: staffForm.temp_password.trim() || editingStaffMember.temp_password,
-        assigned_classes: staffForm.assigned_classes
-          .split(',')
-          .map((c) => c.trim())
-          .filter(Boolean),
-        assigned_subjects: staffForm.assigned_subjects
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
-        salary_base: Number(staffForm.salary_base) || 0,
-        salary_housing: Number(staffForm.salary_housing) || 0,
-        salary_transport: Number(staffForm.salary_transport) || 0,
-        salary_tax: Number(staffForm.salary_tax) || 0,
-        salary_pension: Number(staffForm.salary_pension) || 0,
-      })
+      const staffHours = editingStaffMember.created_at
+        ? (Date.now() - new Date(editingStaffMember.created_at).getTime()) / (1000 * 60 * 60)
+        : 0
+      if (staffHours > 24 && !staffAuditOverrideConfirmed) {
+        alert(
+          '🔒 Security Audit Notice: This faculty member was enrolled more than 24 hours ago. For institutional compliance and security purposes, please check the "Administrator Audit Override" confirmation box to authorize historical changes.'
+        )
+        return
+      }
+
+      tenantSchoolStore.updateStaffMember(
+        editingStaffMember.id,
+        {
+          full_name: staffForm.full_name.trim(),
+          role: staffForm.role,
+          department: finalDept,
+          title: staffForm.title.trim() || (staffForm.role === 'teacher' ? 'Lecturer / Instructor' : 'Staff Member'),
+          email: staffForm.email.trim() || `${nameSlug}@${slug}.edu`,
+          phone: staffForm.phone.trim(),
+          username: staffForm.username.trim() || editingStaffMember.username,
+          temp_password: staffForm.temp_password.trim() || editingStaffMember.temp_password,
+          assigned_classes: staffForm.assigned_classes
+            .split(',')
+            .map((c) => c.trim())
+            .filter(Boolean),
+          assigned_subjects: staffForm.assigned_subjects
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
+          salary_base: Number(staffForm.salary_base) || 0,
+          salary_housing: Number(staffForm.salary_housing) || 0,
+          salary_transport: Number(staffForm.salary_transport) || 0,
+          salary_tax: Number(staffForm.salary_tax) || 0,
+          salary_pension: Number(staffForm.salary_pension) || 0,
+        },
+        { override24HrWindow: staffHours > 24 }
+      )
       setShowAddStaffModal(false)
       setEditingStaffMember(null)
       onReloadData()
@@ -636,6 +677,7 @@ export function TenantPrincipalDesk({
   const handleOpenAdmitStudent = () => {
     if (!requireActivation('Student admission enrollment')) return
     setEditingStudentMember(null)
+    setStudentAuditOverrideConfirmed(false)
     setStudentForm({
       full_name: '',
       grade_class: availableClasses[0] || '',
@@ -644,6 +686,9 @@ export function TenantPrincipalDesk({
       guardian_phone: '',
       guardian_email: '',
       admission_date: new Date().toISOString().split('T')[0],
+      gender: 'Male',
+      age: '',
+      fee_due_date: '',
       fee_total: 0,
       fee_paid: 0,
       fee_payment_plan: 'termly',
@@ -654,6 +699,7 @@ export function TenantPrincipalDesk({
 
   const handleOpenEditStudent = (student: TenantStudentMember) => {
     setEditingStudentMember(student)
+    setStudentAuditOverrideConfirmed(false)
     setStudentForm({
       full_name: student.full_name,
       grade_class: student.grade_class,
@@ -662,6 +708,9 @@ export function TenantPrincipalDesk({
       guardian_phone: student.guardian_phone || '',
       guardian_email: student.guardian_email || '',
       admission_date: student.admission_date || new Date().toISOString().split('T')[0],
+      gender: (student.gender as any) || 'Male',
+      age: student.age !== undefined && student.age !== null ? student.age : '',
+      fee_due_date: student.fee_due_date || '',
       fee_total: student.fee_total || 0,
       fee_paid: student.fee_paid || 0,
       fee_payment_plan: student.fee_payment_plan || 'termly',
@@ -692,21 +741,40 @@ export function TenantPrincipalDesk({
 
     const installmentsCount = studentForm.fee_installments_count || (studentForm.fee_payment_plan === 'monthly' ? 3 : studentForm.fee_payment_plan === 'weekly' ? 10 : 1)
     const installmentAmount = installmentsCount > 1 && Number(studentForm.fee_total) > 0 ? Math.ceil(Number(studentForm.fee_total) / installmentsCount) : Number(studentForm.fee_total) || 0
+    const parsedAge = studentForm.age !== '' && !isNaN(Number(studentForm.age)) ? Number(studentForm.age) : undefined
 
     if (editingStudentMember) {
-      tenantSchoolStore.updateStudent(editingStudentMember.id, {
-        full_name: studentForm.full_name.trim(),
-        grade_class: finalClass,
-        guardian_name: studentForm.guardian_name.trim(),
-        guardian_phone: studentForm.guardian_phone.trim(),
-        guardian_email: studentForm.guardian_email.trim(),
-        admission_date: studentForm.admission_date || new Date().toISOString().split('T')[0],
-        fee_total: Number(studentForm.fee_total) || 0,
-        fee_paid: Number(studentForm.fee_paid) || 0,
-        fee_payment_plan: studentForm.fee_payment_plan,
-        fee_installments_count: installmentsCount,
-        fee_installment_amount: installmentAmount,
-      })
+      const studentTime = editingStudentMember.created_at || editingStudentMember.admission_date
+      const studentHours = studentTime
+        ? (Date.now() - new Date(studentTime).getTime()) / (1000 * 60 * 60)
+        : 0
+      if (studentHours > 24 && !studentAuditOverrideConfirmed) {
+        alert(
+          '🔒 Security Audit Notice: This student was enrolled more than 24 hours ago. For institutional integrity and fee compliance, please check the "Administrator Audit Override" confirmation box to authorize historical changes.'
+        )
+        return
+      }
+
+      tenantSchoolStore.updateStudent(
+        editingStudentMember.id,
+        {
+          full_name: studentForm.full_name.trim(),
+          grade_class: finalClass,
+          guardian_name: studentForm.guardian_name.trim(),
+          guardian_phone: studentForm.guardian_phone.trim(),
+          guardian_email: studentForm.guardian_email.trim(),
+          admission_date: studentForm.admission_date || new Date().toISOString().split('T')[0],
+          gender: studentForm.gender || 'Not Specified',
+          age: parsedAge,
+          fee_due_date: studentForm.fee_due_date || undefined,
+          fee_total: Number(studentForm.fee_total) || 0,
+          fee_paid: Number(studentForm.fee_paid) || 0,
+          fee_payment_plan: studentForm.fee_payment_plan,
+          fee_installments_count: installmentsCount,
+          fee_installment_amount: installmentAmount,
+        },
+        { override24HrWindow: studentHours > 24 }
+      )
       setShowAdmitStudentModal(false)
       setEditingStudentMember(null)
       onReloadData()
@@ -729,6 +797,9 @@ export function TenantPrincipalDesk({
         username,
         temp_password: tempPin,
         admission_date: studentForm.admission_date || new Date().toISOString().split('T')[0],
+        gender: studentForm.gender || 'Not Specified',
+        age: parsedAge,
+        fee_due_date: studentForm.fee_due_date || undefined,
         fee_total: Number(studentForm.fee_total) || 0,
         fee_paid: Number(studentForm.fee_paid) || 0,
         fee_payment_plan: studentForm.fee_payment_plan,
@@ -2413,22 +2484,34 @@ export function TenantPrincipalDesk({
                           >
                             🔑 Pass
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditStaff(s)}
-                            style={{
-                              background: '#f8fafc',
-                              border: '1px solid #cbd5e1',
-                              color: '#0f172a',
-                              padding: '0.35rem 0.65rem',
-                              borderRadius: '6px',
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            ✏️ Edit
-                          </button>
+                          {(() => {
+                            const staffHours = s.created_at ? (Date.now() - new Date(s.created_at).getTime()) / (1000 * 60 * 60) : 0
+                            const isStaffWithin24h = !s.created_at || staffHours <= 24
+                            const staffHoursRemaining = Math.max(0, 24 - Math.floor(staffHours))
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditStaff(s)}
+                                style={{
+                                  background: isStaffWithin24h ? '#fef3c7' : '#f8fafc',
+                                  border: `1px solid ${isStaffWithin24h ? '#fde68a' : '#cbd5e1'}`,
+                                  color: isStaffWithin24h ? '#92400e' : '#0f172a',
+                                  padding: '0.35rem 0.65rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                                title={isStaffWithin24h ? `Correction window active (${staffHoursRemaining}h remaining)` : 'Staff record created >24h ago (Security Audit protected)'}
+                              >
+                                {isStaffWithin24h ? `✏️ Edit (${staffHoursRemaining}h)` : '🔒 Edit (>24h)'}
+                              </button>
+                            )
+                          })()}
                           <button
                             type="button"
                             onClick={() => handleDeleteStaff(s)}
@@ -2706,14 +2789,27 @@ export function TenantPrincipalDesk({
                         {s.admission_number}
                       </td>
                       <td style={{ padding: '0.75rem', fontWeight: 800, color: '#0f172a' }}>
-                        {s.full_name}
+                        <div>{s.full_name}</div>
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '3px', flexWrap: 'wrap' }}>
+                          {s.gender && (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#f1f5f9', color: '#475569', padding: '1px 5px', borderRadius: '4px' }}>
+                              {s.gender}
+                            </span>
+                          )}
+                          {s.age !== undefined && s.age !== null && (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 700, background: '#e0f2fe', color: '#0369a1', padding: '1px 5px', borderRadius: '4px' }}>
+                              {s.age} yrs
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '0.75rem', color: '#334155', fontWeight: 700, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                         📅 {s.admission_date || 'N/A'}
                       </td>
                       <td style={{ padding: '0.75rem', color: '#475569', fontWeight: 600 }}>{s.grade_class}</td>
                       <td style={{ padding: '0.75rem', color: '#64748b' }}>
-                        {s.guardian_name} {s.guardian_phone ? `• ${s.guardian_phone}` : ''}
+                        <div>{s.guardian_name}</div>
+                        {s.guardian_phone && <div style={{ fontSize: '0.74rem' }}>{s.guardian_phone}</div>}
                       </td>
                       <td
                         style={{
@@ -2727,6 +2823,15 @@ export function TenantPrincipalDesk({
                         <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
                           {(s.fee_balance || 0) <= 0 ? '✓ Cleared' : `Paid ${currency} ${(s.fee_paid || 0).toLocaleString()}`}
                         </div>
+                        {s.fee_due_date && (s.fee_balance || 0) > 0 && (() => {
+                          const today = new Date().toISOString().split('T')[0]
+                          const diffDays = Math.ceil((new Date(today).getTime() - new Date(s.fee_due_date).getTime()) / (1000 * 60 * 60 * 24))
+                          return (
+                            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: diffDays > 0 ? '#b91c1c' : '#0369a1', marginTop: '2px' }}>
+                              ⏰ Due: {s.fee_due_date} {diffDays > 0 ? `(${diffDays}d overdue)` : ''}
+                            </div>
+                          )
+                        })()}
                         {s.fee_payment_plan && s.fee_payment_plan !== 'termly' && (
                           <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#b45309', background: '#fef3c7', padding: '1px 6px', borderRadius: '4px', display: 'inline-block', marginTop: '3px' }}>
                             {s.fee_payment_plan === 'monthly' ? `Monthly (${s.fee_installments_count || 3} mo)` : s.fee_payment_plan === 'weekly' ? `Weekly (${s.fee_installments_count || 10} wk)` : 'Installments'}
@@ -2751,7 +2856,41 @@ export function TenantPrincipalDesk({
                         </button>
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {/* WhatsApp Dispatcher Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const initialTarget = s.guardian_phone ? 'guardian' : 'student'
+                              const targetPhone = s.guardian_phone || ''
+                              const bal = s.fee_balance || 0
+                              const deadlineTxt = s.fee_due_date ? ` Payment deadline is ${s.fee_due_date}.` : ''
+                              const msg = `Dear ${initialTarget === 'guardian' ? (s.guardian_name || 'Guardian') : s.full_name}, official communication from ${school.name} regarding student ${s.full_name} (${s.admission_number}).${bal > 0 ? ` Outstanding fee balance is ${currency} ${bal.toLocaleString()}.${deadlineTxt} Please arrange timely settlement.` : ' We appreciate your continued partnership with the institution.'} For assistance, contact ${school.contact_phone || 'our offices'}. Thank you.`
+                              setWhatsAppModalData({
+                                isOpen: true,
+                                student: s,
+                                recipient: initialTarget,
+                                phone: targetPhone,
+                                message: msg,
+                              })
+                            }}
+                            style={{
+                              background: '#25D366',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '0.35rem 0.55rem',
+                              borderRadius: '6px',
+                              fontSize: '0.74rem',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                            }}
+                            title="Send WhatsApp Message"
+                          >
+                            💬
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
@@ -2773,22 +2912,35 @@ export function TenantPrincipalDesk({
                           >
                             🔑 PIN
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditStudent(s)}
-                            style={{
-                              background: '#f8fafc',
-                              border: '1px solid #cbd5e1',
-                              color: '#0f172a',
-                              padding: '0.35rem 0.65rem',
-                              borderRadius: '6px',
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            ✏️ Edit
-                          </button>
+                          {(() => {
+                            const studentTime = s.created_at || s.admission_date
+                            const studentHours = studentTime ? (Date.now() - new Date(studentTime).getTime()) / (1000 * 60 * 60) : 0
+                            const isStudentWithin24h = !studentTime || studentHours <= 24
+                            const studentHoursRemaining = Math.max(0, 24 - Math.floor(studentHours))
+
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditStudent(s)}
+                                style={{
+                                  background: isStudentWithin24h ? '#fef3c7' : '#f8fafc',
+                                  border: `1px solid ${isStudentWithin24h ? '#fde68a' : '#cbd5e1'}`,
+                                  color: isStudentWithin24h ? '#92400e' : '#0f172a',
+                                  padding: '0.35rem 0.65rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                }}
+                                title={isStudentWithin24h ? `Correction window active (${studentHoursRemaining}h remaining)` : 'Student record created >24h ago (Security Audit protected)'}
+                              >
+                                {isStudentWithin24h ? `✏️ Edit (${studentHoursRemaining}h)` : '🔒 Edit (>24h)'}
+                              </button>
+                            )
+                          })()}
                           <button
                             type="button"
                             onClick={() => handleDeleteStudent(s)}
@@ -3920,6 +4072,49 @@ export function TenantPrincipalDesk({
               </button>
             </div>
 
+            {editingStaffMember && (() => {
+              const staffHours = editingStaffMember.created_at
+                ? (Date.now() - new Date(editingStaffMember.created_at).getTime()) / (1000 * 60 * 60)
+                : 0
+              const isStaffWithin24h = !editingStaffMember.created_at || staffHours <= 24
+              const staffHoursRemaining = Math.max(0, 24 - Math.floor(staffHours))
+
+              return isStaffWithin24h ? (
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '1.3rem' }}>⏳</span>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#065f46' }}>
+                      24-Hour Active Correction Window ({staffHoursRemaining}h remaining)
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#047857' }}>
+                      Staff onboarding details (salary, department, contact info, qualifications) can be corrected freely during this initial window.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: '#fffbeb', border: '1.5px solid #fef3c7', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>🔒</span>
+                    <strong style={{ fontSize: '0.82rem', color: '#92400e' }}>
+                      Security Audit Notice: Record Created &gt;24 Hours Ago
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#b45309', marginBottom: '8px' }}>
+                    For security compliance and payroll integrity, altering established employee credentials or salary structures requires explicit administrative authorization.
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#92400e', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={staffAuditOverrideConfirmed}
+                      onChange={(e) => setStaffAuditOverrideConfirmed(e.target.checked)}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    I confirm as Administrator that these post-24h corrections are authorized for audit compliance.
+                  </label>
+                </div>
+              )
+            })()}
+
             <form onSubmit={handleSaveStaff}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
@@ -4621,6 +4816,50 @@ export function TenantPrincipalDesk({
               </button>
             </div>
 
+            {editingStudentMember && (() => {
+              const studentTime = editingStudentMember.created_at || editingStudentMember.admission_date
+              const studentHours = studentTime
+                ? (Date.now() - new Date(studentTime).getTime()) / (1000 * 60 * 60)
+                : 0
+              const isStudentWithin24h = !studentTime || studentHours <= 24
+              const studentHoursRemaining = Math.max(0, 24 - Math.floor(studentHours))
+
+              return isStudentWithin24h ? (
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '1.3rem' }}>⏳</span>
+                  <div>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#065f46' }}>
+                      24-Hour Active Enrollment Correction Window ({studentHoursRemaining}h remaining)
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#047857' }}>
+                      Faulty candidate entries (name, gender, age, admission date, cohort, tuition assessment) can be corrected freely during this initial window.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: '#fffbeb', border: '1.5px solid #fef3c7', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>🔒</span>
+                    <strong style={{ fontSize: '0.82rem', color: '#92400e' }}>
+                      Security Audit Notice: Candidate Enrolled &gt;24 Hours Ago
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: '#b45309', marginBottom: '8px' }}>
+                    To preserve student SIS registry integrity and tuition ledger history, modifying an enrolled student's record requires Administrator Audit Confirmation.
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: 700, color: '#92400e', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={studentAuditOverrideConfirmed}
+                      onChange={(e) => setStudentAuditOverrideConfirmed(e.target.checked)}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    I confirm as Administrator that these post-24h student registry changes are authorized.
+                  </label>
+                </div>
+              )
+            })()}
+
             <form onSubmit={handleSaveStudent}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
@@ -4679,6 +4918,38 @@ export function TenantPrincipalDesk({
                     value={studentForm.admission_date || new Date().toISOString().split('T')[0]}
                     onChange={(e) => setStudentForm({ ...studentForm, admission_date: e.target.value })}
                     style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1.5px solid #3b82f6', background: '#eff6ff', fontSize: '0.85rem', fontWeight: 700, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
+                    Gender *
+                  </label>
+                  <select
+                    value={studentForm.gender || 'Male'}
+                    onChange={(e) => setStudentForm({ ...studentForm, gender: e.target.value as any })}
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box', background: '#ffffff' }}
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
+                    Age (Years, Optional)
+                  </label>
+                  <input
+                    type="number"
+                    min="3"
+                    max="100"
+                    placeholder="e.g. 16 (Leave blank if unknown)"
+                    value={studentForm.age}
+                    onChange={(e) => setStudentForm({ ...studentForm, age: e.target.value })}
+                    style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
@@ -4763,7 +5034,7 @@ export function TenantPrincipalDesk({
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '4px' }}>
                       Fee Payment Plan
@@ -4789,7 +5060,7 @@ export function TenantPrincipalDesk({
 
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '4px' }}>
-                      Number of Installments
+                      Installments
                     </label>
                     <input
                       type="number"
@@ -4799,6 +5070,18 @@ export function TenantPrincipalDesk({
                       value={studentForm.fee_payment_plan === 'termly' ? 1 : (studentForm.fee_installments_count || 1)}
                       onChange={(e) => setStudentForm({ ...studentForm, fee_installments_count: Math.max(1, Number(e.target.value)) })}
                       style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: studentForm.fee_payment_plan === 'termly' ? '#f1f5f9' : '#ffffff', fontSize: '0.85rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 800, marginBottom: '4px', color: '#b91c1c' }}>
+                      ⏰ Fee Due Date
+                    </label>
+                    <input
+                      type="date"
+                      value={studentForm.fee_due_date || ''}
+                      onChange={(e) => setStudentForm({ ...studentForm, fee_due_date: e.target.value })}
+                      style={{ width: '100%', padding: '0.55rem', borderRadius: '8px', border: '1.5px solid #fca5a5', background: '#fff5f5', fontSize: '0.82rem', fontWeight: 700, boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
@@ -4838,6 +5121,194 @@ export function TenantPrincipalDesk({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================== */}
+      {/* MODAL: WHATSAPP DIRECT DISPATCHER (PRINCIPAL) */}
+      {/* ========================================== */}
+      {whatsAppModalData.isOpen && whatsAppModalData.student && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '20px',
+              maxWidth: '540px',
+              width: '100%',
+              padding: '1.75rem',
+              boxSizing: 'border-box',
+              border: '2px solid #25D366',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.4rem' }}>💬</span>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
+                  Send WhatsApp Notice
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWhatsAppModalData((prev) => ({ ...prev, isOpen: false }))}
+                style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '1rem', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.82rem' }}>
+              <div>Student: <strong>{whatsAppModalData.student.full_name}</strong> ({whatsAppModalData.student.admission_number})</div>
+              <div>Class: {whatsAppModalData.student.grade_class} • Pending Balance: <strong style={{ color: (whatsAppModalData.student.fee_balance || 0) > 0 ? '#dc2626' : '#16a34a' }}>{currency} {(whatsAppModalData.student.fee_balance || 0).toLocaleString()}</strong></div>
+              {whatsAppModalData.student.fee_due_date && (
+                <div style={{ color: '#b91c1c', fontWeight: 700, marginTop: '2px' }}>
+                  ⏰ Due Date: {whatsAppModalData.student.fee_due_date}
+                </div>
+              )}
+            </div>
+
+            {/* Recipient Selection Toggle */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '6px' }}>
+                Send Message To:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const st = whatsAppModalData.student!
+                    const bal = st.fee_balance || 0
+                    const deadlineTxt = st.fee_due_date ? ` Payment deadline is ${st.fee_due_date}.` : ''
+                    const msg = `Dear ${st.guardian_name || 'Guardian'}, official fee notice from ${school.name} regarding student ${st.full_name} (${st.admission_number}).${bal > 0 ? ` Outstanding tuition balance is ${currency} ${bal.toLocaleString()}.${deadlineTxt} Please arrange timely settlement.` : ' Fee balance is fully cleared. Thank you for your support.'} For queries, contact ${school.contact_phone || 'our offices'}.`
+                    setWhatsAppModalData((prev) => ({
+                      ...prev,
+                      recipient: 'guardian',
+                      phone: st.guardian_phone || '',
+                      message: msg,
+                    }))
+                  }}
+                  style={{
+                    padding: '0.6rem',
+                    borderRadius: '8px',
+                    border: `2px solid ${whatsAppModalData.recipient === 'guardian' ? '#25D366' : '#e2e8f0'}`,
+                    background: whatsAppModalData.recipient === 'guardian' ? '#f0fdf4' : '#ffffff',
+                    fontWeight: whatsAppModalData.recipient === 'guardian' ? 800 : 600,
+                    color: whatsAppModalData.recipient === 'guardian' ? '#166534' : '#475569',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  👨‍👩‍👦 Guardian ({whatsAppModalData.student.guardian_name || 'Parent'})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const st = whatsAppModalData.student!
+                    const bal = st.fee_balance || 0
+                    const deadlineTxt = st.fee_due_date ? ` Deadline: ${st.fee_due_date}.` : ''
+                    const msg = `Dear ${st.full_name}, this is an official advisory from ${school.name} (${st.admission_number}).${bal > 0 ? ` Your pending tuition balance is ${currency} ${bal.toLocaleString()}.${deadlineTxt} Please notify your sponsor/guardian to avoid disruption of studies.` : ' Your fee account is currently in good standing.'} Thank you.`
+                    setWhatsAppModalData((prev) => ({
+                      ...prev,
+                      recipient: 'student',
+                      phone: st.guardian_phone || '',
+                      message: msg,
+                    }))
+                  }}
+                  style={{
+                    padding: '0.6rem',
+                    borderRadius: '8px',
+                    border: `2px solid ${whatsAppModalData.recipient === 'student' ? '#25D366' : '#e2e8f0'}`,
+                    background: whatsAppModalData.recipient === 'student' ? '#f0fdf4' : '#ffffff',
+                    fontWeight: whatsAppModalData.recipient === 'student' ? 800 : 600,
+                    color: whatsAppModalData.recipient === 'student' ? '#166534' : '#475569',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  🎓 Student Directly
+                </button>
+              </div>
+            </div>
+
+            {/* Recipient Phone */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
+                WhatsApp Phone Number (with Country Code)
+              </label>
+              <input
+                type="tel"
+                value={whatsAppModalData.phone}
+                onChange={(e) => setWhatsAppModalData((prev) => ({ ...prev, phone: e.target.value }))}
+                placeholder="e.g. +254700000000 or 0700000000"
+                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            {/* Message Textarea */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
+                Message Content
+              </label>
+              <textarea
+                rows={4}
+                value={whatsAppModalData.message}
+                onChange={(e) => setWhatsAppModalData((prev) => ({ ...prev, message: e.target.value }))}
+                style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.82rem', fontFamily: 'inherit', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setWhatsAppModalData((prev) => ({ ...prev, isOpen: false }))}
+                style={{ padding: '0.6rem 1.25rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '0.85rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  let rawPhone = whatsAppModalData.phone.replace(/[^0-9]/g, '')
+                  if (!rawPhone) {
+                    alert('Please enter a valid phone number.')
+                    return
+                  }
+                  if (rawPhone.startsWith('0') && rawPhone.length === 10) {
+                    rawPhone = '254' + rawPhone.slice(1)
+                  }
+                  const url = `https://wa.me/${rawPhone}?text=${encodeURIComponent(whatsAppModalData.message)}`
+                  window.open(url, '_blank')
+                  setWhatsAppModalData((prev) => ({ ...prev, isOpen: false }))
+                }}
+                style={{
+                  padding: '0.6rem 1.5rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: '#25D366',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  fontSize: '0.85rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>💬</span> Launch WhatsApp
+              </button>
+            </div>
           </div>
         </div>
       )}
