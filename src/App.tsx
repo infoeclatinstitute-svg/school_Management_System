@@ -77,8 +77,8 @@ function RequireAuth({ children, allowedRoles }: { children: ReactElement; allow
   if (!profile) return <Navigate to="/login" replace />
 
   // Strict role authorization check
-  if (allowedRoles && !allowedRoles.includes(profile.role)) {
-    if (profile.role === 'admin') return <Navigate to="/admin" replace />
+  // Administrator and Principal profiles have superuser oversight across all desks
+  if (allowedRoles && !allowedRoles.includes(profile.role) && profile.role !== 'admin' && (profile.role as string) !== 'principal') {
     if (profile.role === 'bursar') return <Navigate to="/bursar" replace />
     if (profile.role === 'teacher') return <Navigate to="/teacher" replace />
     if (profile.role === 'parent') return <Navigate to="/parent" replace />
@@ -236,7 +236,7 @@ export function App() {
           <Route
             path="/fees"
             element={
-              <RequireAuth allowedRoles={['admin', 'bursar']}>
+              <RequireAuth allowedRoles={['admin', 'bursar', 'student', 'parent']}>
                 <FeeManagement />
               </RequireAuth>
             }
@@ -369,7 +369,7 @@ export function App() {
           <Route
             path="/student/courses"
             element={
-              <RequireAuth allowedRoles={['student', 'admin']}>
+              <RequireAuth allowedRoles={['student', 'teacher', 'admin']}>
                 <StudentNativeGuard>
                   <CourseList />
                 </StudentNativeGuard>
@@ -379,7 +379,7 @@ export function App() {
           <Route
             path="/student/courses/:id"
             element={
-              <RequireAuth allowedRoles={['student', 'admin']}>
+              <RequireAuth allowedRoles={['student', 'teacher', 'admin']}>
                 <StudentNativeGuard>
                   <CourseDetail />
                 </StudentNativeGuard>
@@ -389,7 +389,7 @@ export function App() {
           <Route
             path="/student/lesson/:lessonId"
             element={
-              <RequireAuth allowedRoles={['student', 'admin']}>
+              <RequireAuth allowedRoles={['student', 'teacher', 'admin']}>
                 <StudentNativeGuard>
                   <LessonPlayer />
                 </StudentNativeGuard>
@@ -399,7 +399,7 @@ export function App() {
           <Route
             path="/student/lessons/:lessonId"
             element={
-              <RequireAuth allowedRoles={['student', 'admin']}>
+              <RequireAuth allowedRoles={['student', 'teacher', 'admin']}>
                 <StudentNativeGuard>
                   <LessonPlayer />
                 </StudentNativeGuard>
@@ -442,7 +442,7 @@ export function App() {
           <Route
             path="/teacher/courses/new"
             element={
-              <RequireAuth allowedRoles={['admin']}>
+              <RequireAuth allowedRoles={['teacher', 'admin']}>
                 <CreateCourse />
               </RequireAuth>
             }
@@ -458,7 +458,7 @@ export function App() {
           <Route
             path="/teacher/lesson/new"
             element={
-              <RequireAuth allowedRoles={['admin']}>
+              <RequireAuth allowedRoles={['teacher', 'admin']}>
                 <LessonUploader />
               </RequireAuth>
             }

@@ -14,6 +14,8 @@ import { initializePaystackCheckout } from '@/lib/paystack'
 export function FeeManagement() {
   const { profile } = useAuth()
   const isStudent = profile?.role === 'student'
+  const isParent = profile?.role === 'parent'
+  const isLearnerOrGuardian = isStudent || isParent
   const defaultIssuer = profile?.full_name
     ? `${profile.full_name} (${profile.role === 'admin' ? 'Principal & Administrator' : 'Bursar & Accounts Directorate'})`
     : 'Accounts & Finance Desk'
@@ -107,9 +109,10 @@ export function FeeManagement() {
         (myIdClean && sId === myIdClean) ||
         (myAdmClean && sAdm === myAdmClean) ||
         (myAdmAlpha && sAdmAlpha === myAdmAlpha) ||
-        (myNameAlpha && myNameAlpha.length > 3 && sNameAlpha === myNameAlpha)
+        (myNameAlpha && myNameAlpha.length > 3 && sNameAlpha === myNameAlpha) ||
+        (isParent && (s.guardian?.phone === profile?.admission_number || s.parent_phone === profile?.admission_number))
       )
-    }) || null
+    }) || (isParent ? students[0] : null)
 
   const unitReg = schoolStore.getRegistrationForStudent(currentStudent?.admission_number || profile?.admission_number || '')
 
@@ -418,14 +421,14 @@ export function FeeManagement() {
   }
 
   // -------------------------------------------------------------
-  // Dedicated Student Personal Fee Statement
+  // Dedicated Student & Parent Personal Fee Statement
   // -------------------------------------------------------------
-  if (isStudent) {
+  if (isLearnerOrGuardian) {
     return (
       <div className="page-container">
         <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
           <div>
-            <h1 className="page-title">My Tuition Statement & Payment Portal</h1>
+            <h1 className="page-title">{isParent ? `${currentStudent?.full_name || 'Ward'}'s Tuition Statement & Payment Portal` : 'My Tuition Statement & Payment Portal'}</h1>
             <p className="page-subtitle">
               View your course fees, payment receipts, tuition clearance status, and direct payment channels.
             </p>

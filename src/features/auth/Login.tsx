@@ -92,7 +92,7 @@ export function Login() {
         return
       }
 
-      if (role === 'admin') navigate('/admin')
+      if (role === 'admin' || (role as string) === 'principal') navigate('/admin')
       else if (role === 'bursar') navigate('/bursar')
       else if (role === 'teacher') navigate('/teacher')
       else if (role === 'parent') navigate('/parent')

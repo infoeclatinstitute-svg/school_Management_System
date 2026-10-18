@@ -15,7 +15,7 @@ import type { Profile, Role, Class } from '@/lib/database.types'
 export function ManageUsers() {
   const queryClient = useQueryClient()
 
-  const [activeRoleTab, setActiveRoleTab] = useState<'all' | 'student' | 'teacher' | 'bursar' | 'parent'>('all')
+  const [activeRoleTab, setActiveRoleTab] = useState<'all' | 'admin' | 'student' | 'teacher' | 'bursar' | 'parent'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
@@ -512,7 +512,13 @@ export function ManageUsers() {
             + Issue Teacher Login
           </Button>
           <Button variant="secondary" onClick={() => openProvisionModal('bursar')}>
-            + Issue Bursar / Parent Login
+            + Issue Bursar Login
+          </Button>
+          <Button variant="outline" onClick={() => openProvisionModal('parent')}>
+            + Issue Parent Login
+          </Button>
+          <Button variant="outline" onClick={() => openProvisionModal('admin')}>
+            + Issue Admin Login
           </Button>
         </div>
       }
@@ -594,6 +600,12 @@ export function ManageUsers() {
               onClick={() => setActiveRoleTab('all')}
             >
               All Users ({users?.length || 0})
+            </button>
+            <button
+              className={`tab-btn ${activeRoleTab === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveRoleTab('admin')}
+            >
+              🛡️ Admins ({users?.filter((u) => u.role === 'admin').length || 0})
             </button>
             <button
               className={`tab-btn ${activeRoleTab === 'student' ? 'active' : ''}`}
@@ -794,6 +806,7 @@ export function ManageUsers() {
                 openProvisionModal(nextRole)
               }}
             >
+              <option value="admin">🛡️ Administrator / Principal Office</option>
               <option value="student">🎓 Student (Students Portal)</option>
               <option value="teacher">👩‍🏫 Faculty Lecturer / Teacher Portal</option>
               <option value="bursar">💳 Bursar &amp; Finance Officer Portal</option>

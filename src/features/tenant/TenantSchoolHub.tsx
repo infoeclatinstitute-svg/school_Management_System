@@ -1091,12 +1091,29 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               {sectionLabel('Campus Overview')}
               {item('hub', '🏫', 'School Campus Hub')}
 
-              {divider('d1')}
               {sectionLabel('Role Workspaces')}
-              {activeRole === 'admin' && item('principal', '🛡️', 'Principal Office')}
-              {activeRole === 'bursar' && item('bursar', '💳', 'Bursar Desk')}
-              {activeRole === 'teacher' && item('teacher', '📖', 'Teacher Portal')}
-              {activeRole === 'student' && item('student', '🎓', 'Student Portal')}
+              {activeRole === 'admin' && (
+                <>
+                  {item('principal', '🛡️', `${school.principal_title || 'Principal'} Office`)}
+                  {item('teacher', '📖', 'Teacher & Faculty Desk')}
+                  {item('bursar', '💳', 'Bursar & Finance Desk')}
+                  {item('student', '🎓', 'Student Portal (Live View)')}
+                  {item('billing', '💳', 'Billing & Cloud License')}
+                </>
+              )}
+              {activeRole === 'bursar' && (
+                <>
+                  {item('bursar', '💳', 'Bursar & Finance Desk')}
+                  {item('student', '🎓', 'Student Fee Statements')}
+                </>
+              )}
+              {activeRole === 'teacher' && (
+                <>
+                  {item('teacher', '📖', 'Teacher & Faculty Desk')}
+                  {item('student', '🎓', 'Student Learning Workspace')}
+                </>
+              )}
+              {activeRole === 'student' && item('student', '🎓', 'Student Learning Portal')}
               {activeRole === 'public' && (
                 <button
                   type="button"
@@ -1536,11 +1553,27 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
           {(
             [
               { tab: 'hub', icon: '🏫', label: 'Campus Hub' },
-              ...(activeRole === 'admin' ? [{ tab: 'principal', icon: '🛡️', label: 'Principal Office' }] : []),
-              ...(activeRole === 'bursar' ? [{ tab: 'bursar', icon: '💳', label: 'Bursar Desk' }] : []),
-              ...(activeRole === 'teacher' ? [{ tab: 'teacher', icon: '📖', label: 'Teacher Portal' }] : []),
-              ...(activeRole === 'student' ? [{ tab: 'student', icon: '🎓', label: 'Student Portal' }] : []),
-              ...(activeRole === 'admin' ? [{ tab: 'billing', icon: '💳', label: 'Billing & License' }] : []),
+              ...(activeRole === 'admin'
+                ? [
+                    { tab: 'principal', icon: '🛡️', label: `${school.principal_title || 'Principal'} Office` },
+                    { tab: 'teacher', icon: '📖', label: 'Teacher Desk' },
+                    { tab: 'bursar', icon: '💳', label: 'Bursar Desk' },
+                    { tab: 'student', icon: '🎓', label: 'Student Desk' },
+                    { tab: 'billing', icon: '💳', label: 'Billing & License' },
+                  ]
+                : activeRole === 'bursar'
+                ? [
+                    { tab: 'bursar', icon: '💳', label: 'Bursar Desk' },
+                    { tab: 'student', icon: '🎓', label: 'Student Records' },
+                  ]
+                : activeRole === 'teacher'
+                ? [
+                    { tab: 'teacher', icon: '📖', label: 'Teacher Desk' },
+                    { tab: 'student', icon: '🎓', label: 'Student Workspace' },
+                  ]
+                : activeRole === 'student'
+                ? [{ tab: 'student', icon: '🎓', label: 'Student Portal' }]
+                : []),
               ...(currentSession ? [{ tab: 'profile', icon: '👤', label: 'My Profile' }] : []),
             ] as { tab: typeof activeTab; icon: string; label: string }[]
           ).map(({ tab, icon, label }) => {
@@ -2364,13 +2397,11 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
         {/* VIEW 3: STUDENT DESK */}
         {activeTab === 'student' && (
-          activeRole !== 'student' ? (
+          activeRole !== 'student' && activeRole !== 'admin' && activeRole !== 'teacher' && activeRole !== 'bursar' ? (
             renderRestrictedCard(
               'Student Learning Portal',
-              activeRole === 'admin'
-                ? 'This workspace is restricted to enrolled students. As an Executive Administrator, please use the Admissions & Student Registry inside your Principal Office to manage students, inspect transcripts, and generate fee invoices.'
-                : 'This workspace contains personalized course modules, lecture notes, timetable periods, attendance tracking, and individual report card results. Access is strictly scoped to enrolled students.',
-              'Enrolled Student Only'
+              'This workspace contains personalized course modules, lecture notes, timetable periods, attendance tracking, and individual report card results. Access is strictly scoped to enrolled students and authorized institution staff.',
+              'Enrolled Student & Staff'
             )
           ) : (
             <TenantStudentDesk
@@ -2401,13 +2432,11 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
         {/* VIEW 4: TEACHER DESK */}
         {activeTab === 'teacher' && (
-          activeRole !== 'teacher' ? (
+          activeRole !== 'teacher' && activeRole !== 'admin' ? (
             renderRestrictedCard(
               'Teacher & Faculty Workspace',
-              activeRole === 'admin'
-                ? 'This workspace is restricted to teaching faculty. As an Executive Administrator, please manage teaching staff assignments and curriculum in your Principal Office.'
-                : 'This workspace contains attendance registers, continuous assessment test (CAT) gradebooks, student examination marks entry, and curriculum materials. Only authenticated teaching faculty may enter.',
-              'Teaching Faculty Only'
+              'This workspace contains attendance registers, continuous assessment test (CAT) gradebooks, student examination marks entry, and curriculum materials. Only authenticated teaching faculty and executive administrators may enter.',
+              'Teaching Faculty & Executive Admin'
             )
           ) : (
             <TenantTeacherDesk
@@ -2423,13 +2452,11 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
         {/* VIEW 5: BURSAR DESK */}
         {activeTab === 'bursar' && (
-          activeRole !== 'bursar' ? (
+          activeRole !== 'bursar' && activeRole !== 'admin' ? (
             renderRestrictedCard(
               'Bursar & Finance Office',
-              activeRole === 'admin'
-                ? 'This finance workspace is restricted to authorized Bursars & Finance Officers. Executive revenue totals and payroll approvals can be accessed in your Principal Office.'
-                : 'This finance desk contains confidential institution revenue ledgers, student fee balances, tuition invoices, and receipt printing. Only bursars and executive finance officers may enter.',
-              'Bursar / Finance Officer Only'
+              'This finance desk contains confidential institution revenue ledgers, student fee balances, tuition invoices, and receipt printing. Only bursars and executive administrators may enter.',
+              'Bursar / Finance Officer & Executive Admin'
             )
           ) : (
             <TenantBursarDesk
@@ -3110,15 +3137,23 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
         {[
           { id: 'hub' as const, icon: '🏫', label: 'Campus' },
           ...(activeRole === 'student'
-            ? [{ id: 'student' as const, icon: '🎓', label: 'Student Desk' }]
+            ? [{ id: 'student' as const, icon: '🎓', label: 'Student' }]
             : activeRole === 'teacher'
-            ? [{ id: 'teacher' as const, icon: '📖', label: 'Teacher Desk' }]
+            ? [
+                { id: 'teacher' as const, icon: '📖', label: 'Teacher' },
+                { id: 'student' as const, icon: '🎓', label: 'Student' },
+              ]
             : activeRole === 'bursar'
-            ? [{ id: 'bursar' as const, icon: '💳', label: 'Bursar Desk' }]
+            ? [
+                { id: 'bursar' as const, icon: '💳', label: 'Bursar' },
+                { id: 'student' as const, icon: '🎓', label: 'Student' },
+              ]
             : activeRole === 'admin'
             ? [
                 { id: 'principal' as const, icon: '🛡️', label: 'Principal' },
+                { id: 'teacher' as const, icon: '📖', label: 'Teacher' },
                 { id: 'bursar' as const, icon: '💳', label: 'Bursar' },
+                { id: 'student' as const, icon: '🎓', label: 'Student' },
               ]
             : [{ id: 'programs' as const, icon: '📚', label: 'Programs', isPrograms: true }]),
           ...(activeRole === 'public'

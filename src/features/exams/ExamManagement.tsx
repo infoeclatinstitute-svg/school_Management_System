@@ -11,6 +11,8 @@ import { Link } from 'react-router-dom'
 export function ExamManagement() {
   const { profile } = useAuth()
   const isStudent = profile?.role === 'student'
+  const isParent = profile?.role === 'parent'
+  const isLearnerOrGuardian = isStudent || isParent
 
   const [exams] = useState<ExamSession[]>(() => schoolStore.getExams())
   const [reportCards] = useState<ReportCard[]>(() => schoolStore.getReportCards())
@@ -23,8 +25,9 @@ export function ExamManagement() {
     allStudents.find(
       (s) =>
         (profile?.admission_number && s.admission_number.toLowerCase() === profile.admission_number.toLowerCase()) ||
-        s.id === profile?.id
-    ) || null
+        s.id === profile?.id ||
+        (isParent && (s.guardian.phone === profile?.admission_number || s.parent_phone === profile?.admission_number))
+    ) || (isParent ? allStudents[0] : null)
 
   const myReportCard: ReportCard | null = currentStudent
     ? reportCards.find(
@@ -38,15 +41,15 @@ export function ExamManagement() {
   const averageMean = (reportCards.reduce((acc, c) => acc + c.mean_percentage, 0) / (reportCards.length || 1)).toFixed(1)
 
   // -------------------------------------------------------------
-  // Dedicated Student Personal Academic View
+  // Dedicated Student & Parent Personal Academic View
   // -------------------------------------------------------------
-  if (isStudent) {
+  if (isLearnerOrGuardian) {
     return (
       <div className="page-container">
         {/* Student Academic Header */}
         <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
           <div>
-            <h1 className="page-title">My Academic Transcripts & Assessment Results</h1>
+            <h1 className="page-title">{isParent ? `${currentStudent?.full_name || 'Ward'}'s Academic Transcripts` : 'My Academic Transcripts & Assessment Results'}</h1>
             <p className="page-subtitle">
               Official modular evaluation results, continuous assessments (CAT), and academic completion transcripts.
             </p>
