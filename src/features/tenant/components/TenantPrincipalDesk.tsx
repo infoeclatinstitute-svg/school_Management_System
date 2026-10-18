@@ -104,10 +104,10 @@ export function TenantPrincipalDesk({
 
   // Dynamic Class Cohorts
   const availableClasses = useMemo(() => {
-    const set = new Set<string>()
-    if (Array.isArray(school.classes_list) && school.classes_list.length > 0) {
-      school.classes_list.forEach((c) => { if (c && c.trim()) set.add(c.trim()) })
+    if (Array.isArray(school.classes_list)) {
+      return school.classes_list.map((c) => c && c.trim()).filter(Boolean)
     }
+    const set = new Set<string>()
     schoolPrograms.forEach((p) => {
       if (p.title && p.title.trim()) set.add(p.title.trim())
     })
@@ -132,10 +132,10 @@ export function TenantPrincipalDesk({
 
   // Dynamic Available Subjects / Units / Modules
   const availableSubjects = useMemo(() => {
-    const subs = new Set<string>()
     if (Array.isArray(school.subjects_list)) {
-      school.subjects_list.forEach((s) => s && subs.add(s.trim()))
+      return school.subjects_list.map((s) => s && s.trim()).filter(Boolean)
     }
+    const subs = new Set<string>()
     const tt = tenantSchoolStore.getTimetableBySchool(school.slug)
     tt.forEach((entry) => {
       if (entry.subject_name) subs.add(entry.subject_name.trim())
@@ -230,8 +230,10 @@ export function TenantPrincipalDesk({
   const [editStudentUsername, setEditStudentUsername] = useState('')
   const [editStudentPassword, setEditStudentPassword] = useState('')
 
-  // New Class Input State
+  // Class and Subject Management State
+  const [manageClassesActiveTab, setManageClassesActiveTab] = useState<'classes' | 'subjects'>('classes')
   const [newClassNameInput, setNewClassNameInput] = useState('')
+  const [newSubjectNameInput, setNewSubjectNameInput] = useState('')
   // New Department Input State
   const [newDeptNameInput, setNewDeptNameInput] = useState('')
 
@@ -826,8 +828,9 @@ export function TenantPrincipalDesk({
     if (!requireActivation('Adding class cohort')) return
     const trimmed = newClassNameInput.trim()
     if (!trimmed) return
-    if (!availableClasses.includes(trimmed)) {
-      const updated = [...availableClasses, trimmed]
+    const currentList = Array.isArray(school.classes_list) ? school.classes_list : availableClasses
+    if (!currentList.includes(trimmed)) {
+      const updated = [...currentList, trimmed]
       tenantSchoolStore.updateSchoolBranding(school.slug, { classes_list: updated })
       setNewClassNameInput('')
       onReloadData()
@@ -841,7 +844,8 @@ export function TenantPrincipalDesk({
       return
     }
     if (window.confirm(`Are you sure you want to remove the class cohort "${className}"?`)) {
-      const updated = availableClasses.filter((c) => c !== className)
+      const currentList = Array.isArray(school.classes_list) ? school.classes_list : availableClasses
+      const updated = currentList.filter((c) => c !== className)
       tenantSchoolStore.updateSchoolBranding(school.slug, { classes_list: updated })
       // Reassign any students with this class so it doesn't resurrect from studentList
       studentList.forEach((s) => {
@@ -849,9 +853,71 @@ export function TenantPrincipalDesk({
           tenantSchoolStore.updateStudent(s.id, { grade_class: updated[0] || 'Unassigned' })
         }
       })
+      // Clean up staff assigned classes
+      staffList.forEach((st) => {
+        if (st.assigned_classes) {
+          const cList = Array.isArray(st.assigned_classes)
+            ? st.assigned_classes
+            : String(st.assigned_classes).split(',').map((c) => c.trim())
+          if (cList.includes(className)) {
+            const updatedAssigned = cList.filter((c) => c !== className)
+            tenantSchoolStore.updateStaffMember(st.id, { assigned_classes: updatedAssigned })
+          }
+        }
+      })
+      // Clean up timetable periods for this cohort
+      const tt = tenantSchoolStore.getTimetableBySchool(school.slug)
+      tt.forEach((entry) => {
+        if (entry.class_name === className) {
+          tenantSchoolStore.deleteTimetableEntry(entry.id)
+        }
+      })
       if (selectedTimetableClass === className) {
         setSelectedTimetableClass(updated[0] || 'Main Class')
       }
+      onReloadData()
+    }
+  }
+
+  const handleAddSubject = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!requireActivation('Adding academic subject')) return
+    const trimmed = newSubjectNameInput.trim()
+    if (!trimmed) return
+    const currentList = Array.isArray(school.subjects_list) ? school.subjects_list : availableSubjects
+    if (!currentList.includes(trimmed)) {
+      const updated = [...currentList, trimmed]
+      tenantSchoolStore.updateSchoolBranding(school.slug, { subjects_list: updated })
+      setNewSubjectNameInput('')
+      onReloadData()
+    }
+  }
+
+  const handleRemoveSubject = (subjectName: string) => {
+    if (!requireActivation('Removing academic subject')) return
+    if (window.confirm(`Are you sure you want to remove the subject / course unit "${subjectName}"?`)) {
+      const currentList = Array.isArray(school.subjects_list) ? school.subjects_list : availableSubjects
+      const updated = currentList.filter((s) => s !== subjectName)
+      tenantSchoolStore.updateSchoolBranding(school.slug, { subjects_list: updated })
+      // Remove this subject from all staff members' assigned_subjects
+      staffList.forEach((st) => {
+        if (st.assigned_subjects) {
+          const sList = Array.isArray(st.assigned_subjects)
+            ? st.assigned_subjects
+            : String(st.assigned_subjects).split(',').map((s) => s.trim())
+          if (sList.includes(subjectName)) {
+            const updatedAssigned = sList.filter((s) => s !== subjectName)
+            tenantSchoolStore.updateStaffMember(st.id, { assigned_subjects: updatedAssigned })
+          }
+        }
+      })
+      // Clean up timetable periods for this subject
+      const tt = tenantSchoolStore.getTimetableBySchool(school.slug)
+      tt.forEach((entry) => {
+        if (entry.subject_name === subjectName) {
+          tenantSchoolStore.deleteTimetableEntry(entry.id)
+        }
+      })
       onReloadData()
     }
   }
@@ -2382,7 +2448,10 @@ export function TenantPrincipalDesk({
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                onClick={() => setShowManageClassesModal(true)}
+                onClick={() => {
+                  setManageClassesActiveTab('classes')
+                  setShowManageClassesModal(true)
+                }}
                 style={{
                   background: '#f8fafc',
                   color: '#0f172a',
@@ -2395,6 +2464,25 @@ export function TenantPrincipalDesk({
                 }}
               >
                 ⚙️ Classes ({availableClasses.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setManageClassesActiveTab('subjects')
+                  setShowManageClassesModal(true)
+                }}
+                style={{
+                  background: '#f8fafc',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  padding: '0.5rem 0.95rem',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                }}
+              >
+                📚 Subjects ({availableSubjects.length})
               </button>
               <button
                 type="button"
@@ -3117,7 +3205,10 @@ export function TenantPrincipalDesk({
               </select>
               <button
                 type="button"
-                onClick={() => setShowManageClassesModal(true)}
+                onClick={() => {
+                  setManageClassesActiveTab('classes')
+                  setShowManageClassesModal(true)
+                }}
                 style={{
                   background: '#f8fafc',
                   color: '#0f172a',
@@ -3133,6 +3224,28 @@ export function TenantPrincipalDesk({
                 }}
               >
                 ⚙️ Manage Classes
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setManageClassesActiveTab('subjects')
+                  setShowManageClassesModal(true)
+                }}
+                style={{
+                  background: '#f8fafc',
+                  color: '#0f172a',
+                  border: '1px solid #cbd5e1',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                📚 Manage Subjects
               </button>
               <button
                 type="button"
@@ -4814,13 +4927,13 @@ export function TenantPrincipalDesk({
               border: `2px solid ${primaryColor}`,
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
-                  🎓 Manage Class Cohorts
+                  🎓 Manage Classes &amp; Curriculum Subjects
                 </h3>
                 <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-                  Add or retire academic classes for {school.name}
+                  Configure active academic classes and taught subjects for {school.name}
                 </div>
               </div>
               <button
@@ -4832,88 +4945,191 @@ export function TenantPrincipalDesk({
               </button>
             </div>
 
-            {schoolPrograms.length > 0 && (
-              <div style={{ marginBottom: '1rem', background: '#eff6ff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ fontSize: '0.78rem', color: '#1e40af' }}>
-                  <strong>{schoolPrograms.length} Academic Programs</strong> configured in catalog.
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const programTitles = schoolPrograms.map((p) => p.title.trim()).filter(Boolean)
-                    const combined = Array.from(new Set([...(school.classes_list || []), ...programTitles]))
-                    tenantSchoolStore.updateSchoolBranding(school.slug, { classes_list: combined })
-                    onReloadData()
-                  }}
-                  style={{
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '6px',
-                    fontSize: '0.76rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                  }}
-                >
-                  ⚡ Sync All to Classes
-                </button>
-              </div>
-            )}
-
-            {/* Add New Class Form */}
-            <form onSubmit={handleAddClassCohort} style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem' }}>
-              <input
-                type="text"
-                placeholder="Enter class cohort (e.g. Diploma in Software Eng - Year 1)..."
-                value={newClassNameInput}
-                onChange={(e) => setNewClassNameInput(e.target.value)}
-                style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.84rem' }}
-              />
+            {/* Tab Switcher */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>
               <button
-                type="submit"
-                style={{ background: primaryColor, color: '#ffffff', border: 'none', padding: '0.55rem 1rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
+                type="button"
+                onClick={() => setManageClassesActiveTab('classes')}
+                style={{
+                  padding: '0.45rem 0.95rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: manageClassesActiveTab === 'classes' ? primaryColor : '#f1f5f9',
+                  color: manageClassesActiveTab === 'classes' ? '#ffffff' : '#475569',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                }}
               >
-                + Add Class
+                🎓 Class Cohorts ({availableClasses.length})
               </button>
-            </form>
+              <button
+                type="button"
+                onClick={() => setManageClassesActiveTab('subjects')}
+                style={{
+                  padding: '0.45rem 0.95rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: manageClassesActiveTab === 'subjects' ? primaryColor : '#f1f5f9',
+                  color: manageClassesActiveTab === 'subjects' ? '#ffffff' : '#475569',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  cursor: 'pointer',
+                }}
+              >
+                📚 Subjects &amp; Units ({availableSubjects.length})
+              </button>
+            </div>
 
-            <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {availableClasses.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '1.5rem', color: '#64748b', fontSize: '0.85rem' }}>
-                  No class cohorts added yet. Use the field above to add your first class cohort.
-                </div>
-              ) : (
-                availableClasses.map((className) => {
-                const count = studentList.filter((s) => s.grade_class === className).length
-                return (
-                  <div
-                    key={className}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '0.65rem 0.85rem',
-                      background: '#f8fafc',
-                      borderRadius: '10px',
-                      border: '1px solid #e2e8f0',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{className}</div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{count} enrolled students</div>
+            {manageClassesActiveTab === 'classes' ? (
+              <>
+                {schoolPrograms.length > 0 && (
+                  <div style={{ marginBottom: '1rem', background: '#eff6ff', padding: '0.75rem 1rem', borderRadius: '12px', border: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#1e40af' }}>
+                      <strong>{schoolPrograms.length} Academic Programs</strong> configured in catalog.
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleRemoveClassCohort(className)}
-                      style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                      onClick={() => {
+                        const programTitles = schoolPrograms.map((p) => p.title.trim()).filter(Boolean)
+                        const combined = Array.from(new Set([...(school.classes_list || []), ...programTitles]))
+                        tenantSchoolStore.updateSchoolBranding(school.slug, { classes_list: combined })
+                        onReloadData()
+                      }}
+                      style={{
+                        background: '#2563eb',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        fontSize: '0.76rem',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                      }}
                     >
-                      Remove
+                      ⚡ Sync All to Classes
                     </button>
                   </div>
-                )
-              }))}
-            </div>
+                )}
+
+                {/* Add New Class Form */}
+                <form onSubmit={handleAddClassCohort} style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter class cohort (e.g. Diploma in Software Eng - Year 1)..."
+                    value={newClassNameInput}
+                    onChange={(e) => setNewClassNameInput(e.target.value)}
+                    style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.84rem' }}
+                  />
+                  <button
+                    type="submit"
+                    style={{ background: primaryColor, color: '#ffffff', border: 'none', padding: '0.55rem 1rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
+                  >
+                    + Add Class
+                  </button>
+                </form>
+
+                <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {availableClasses.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem', color: '#64748b', fontSize: '0.85rem' }}>
+                      No class cohorts added yet. Use the field above to add your first class cohort.
+                    </div>
+                  ) : (
+                    availableClasses.map((className) => {
+                      const count = studentList.filter((s) => s.grade_class === className).length
+                      return (
+                        <div
+                          key={className}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.65rem 0.85rem',
+                            background: '#f8fafc',
+                            borderRadius: '10px',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{className}</div>
+                            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{count} enrolled students</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveClassCohort(className)}
+                            style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Add New Subject Form */}
+                <form onSubmit={handleAddSubject} style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter subject or course unit (e.g. Data Structures &amp; Algorithms)..."
+                    value={newSubjectNameInput}
+                    onChange={(e) => setNewSubjectNameInput(e.target.value)}
+                    style={{ flex: 1, padding: '0.55rem 0.85rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.84rem' }}
+                  />
+                  <button
+                    type="submit"
+                    style={{ background: '#059669', color: '#ffffff', border: 'none', padding: '0.55rem 1rem', borderRadius: '8px', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
+                  >
+                    + Add Subject
+                  </button>
+                </form>
+
+                <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {availableSubjects.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem', color: '#64748b', fontSize: '0.85rem' }}>
+                      No subjects or course units added yet. Use the field above to add your first subject.
+                    </div>
+                  ) : (
+                    availableSubjects.map((subjectName) => {
+                      const teacherCount = staffList.filter((st) => {
+                        const subs = Array.isArray(st.assigned_subjects)
+                          ? st.assigned_subjects
+                          : String(st.assigned_subjects || '').split(',').map((s) => s.trim())
+                        return subs.includes(subjectName)
+                      }).length
+                      return (
+                        <div
+                          key={subjectName}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '0.65rem 0.85rem',
+                            background: '#f8fafc',
+                            borderRadius: '10px',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>{subjectName}</div>
+                            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{teacherCount} assigned instructor{teacherCount === 1 ? '' : 's'}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSubject(subjectName)}
+                            style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
               <button

@@ -238,6 +238,13 @@ export function ManageSubjects() {
   const handleDeleteSubject = async (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to delete Subject "${name}"?`)) {
       await schoolStore.deleteSubject(id)
+      await schoolStore.deleteCourseUnit(id)
+      const matching = schoolStore.getCourseUnits().find(
+        (u) => u.title.toLowerCase() === name.toLowerCase() || u.id === id
+      )
+      if (matching) {
+        await schoolStore.deleteCourseUnit(matching.id)
+      }
       setSubjects(schoolStore.getSubjects())
     }
   }

@@ -248,6 +248,9 @@ export function ManageClasses() {
     setIsSavingCourse(true)
     try {
       await courseStore.deleteCourse(courseToDelete.id)
+      try {
+        await supabase.from('classes').delete().eq('id', `class-${courseToDelete.id}-2026`)
+      } catch {}
       setCourses(courseStore.getCourses())
       setCourseToDelete(null)
     } catch (err: any) {
