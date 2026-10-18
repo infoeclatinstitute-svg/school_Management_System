@@ -151,6 +151,57 @@ function TenantSubdomainWatcher() {
   return null
 }
 
+/** Dynamic SEO & Page Title Watcher: Ensures each route has an optimized, keyword-rich title with "Global College" */
+function SeoRouteWatcher() {
+  const location = useLocation()
+
+  useEffect(() => {
+    const path = location.pathname.toLowerCase()
+    let pageTitle = 'Global College — School Management System & Academic Portal'
+
+    if (path === '/' || path === '/index.html') {
+      pageTitle = 'Global College — School Management System, Student Portal & Cloud SIS'
+    } else if (path === '/login') {
+      pageTitle = 'Sign In — Global College Portal'
+    } else if (path === '/register-school') {
+      pageTitle = 'Register Your School / Institution — Global College'
+    } else if (path === '/faq' || path === '/help') {
+      pageTitle = 'FAQ & Knowledge Base — Global College'
+    } else if (path === '/library') {
+      pageTitle = 'Digital Resource Library — Global College'
+    } else if (path === '/teach-with-us' || path === '/publish-course') {
+      pageTitle = 'Publish Course & Teach — Global College'
+    } else if (path.startsWith('/s/') || path.startsWith('/schools/')) {
+      const parts = path.split('/').filter(Boolean)
+      const slug = parts[1]
+      const school = tenantSchoolStore.getSchoolBySlug(slug)
+      pageTitle = school ? `${school.name} — Global College Portal` : 'Campus Portal — Global College'
+    } else if (path.startsWith('/admin')) {
+      pageTitle = 'Principal Desk & Administration — Global College'
+    } else if (path.startsWith('/bursar')) {
+      pageTitle = 'Bursar & Finance Desk — Global College'
+    } else if (path.startsWith('/teacher')) {
+      pageTitle = 'Faculty & Teacher Desk — Global College'
+    } else if (path.startsWith('/student')) {
+      pageTitle = 'Student Academic Portal — Global College'
+    } else if (path.startsWith('/parent')) {
+      pageTitle = 'Parent & Guardian Portal — Global College'
+    } else if (path.startsWith('/timetable')) {
+      pageTitle = 'Academic Timetable — Global College'
+    } else if (path.startsWith('/exams')) {
+      pageTitle = 'Examinations & Assessments — Global College'
+    } else if (path.startsWith('/fees')) {
+      pageTitle = 'Fees Management & Bursar — Global College'
+    } else if (path.startsWith('/saas-admin')) {
+      pageTitle = 'Platform Administration — Global College'
+    }
+
+    document.title = pageTitle
+  }, [location.pathname])
+
+  return null
+}
+
 /** Smart Route Resolver: Allows students to access school portal via /schoolSlug directly without /s/ */
 function FallbackOrSchoolSlug() {
   const location = useLocation()
@@ -193,6 +244,7 @@ export function App() {
   return (
     <Suspense fallback={<LoadingScreen message="Loading..." />}>
       <TenantSubdomainWatcher />
+      <SeoRouteWatcher />
       <PullToRefresh />
       <ConcurrentSessionAlertModal />
       <OTAUpdateBanner />

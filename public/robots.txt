@@ -4,7 +4,7 @@ Disallow: /saas-admin
 Disallow: /superadmin
 Disallow: /licensing
 
-# Search Engine Crawlers
+# Major Search Engine Crawlers
 User-agent: Googlebot
 Allow: /
 
@@ -17,6 +17,16 @@ Allow: /
 User-agent: Applebot
 Allow: /
 
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+# AI Assistants & Search Overviews
 User-agent: GPTBot
 Allow: /
 

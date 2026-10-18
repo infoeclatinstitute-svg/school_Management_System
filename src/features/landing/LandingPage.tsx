@@ -271,7 +271,7 @@ export function LandingPage() {
             }}
           >
             <span>🚀</span>
-            <span>CLOUD SCHOOL MANAGEMENT PLATFORM</span>
+            <span>GLOBAL COLLEGE &bull; CLOUD SCHOOL MANAGEMENT SYSTEM</span>
           </div>
 
           {/* Heading */}
@@ -307,12 +307,12 @@ export function LandingPage() {
               color: '#e2e8f0',
               lineHeight: 1.65,
               margin: '0 0 2rem',
-              maxWidth: '640px',
+              maxWidth: '680px',
               marginLeft: 'auto',
               marginRight: 'auto',
             }}
           >
-            Manage students, faculty, fees, exams, and transcripts from your school&apos;s own dedicated cloud portal. Live in under 5 minutes.
+            Global College is the premier cloud School Information Management System (SIS/SMS) and student portal. Manage admissions, faculty, automated fee invoices, exams, and verifiable transcripts from your school&apos;s own dedicated cloud portal.
           </p>
 
           {/* CTA Buttons */}
@@ -794,28 +794,21 @@ export function LandingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{ background: '#0a0f1d', color: '#64748b', padding: '2rem 1.5rem', textAlign: 'center', fontSize: '0.82rem', borderTop: '1px solid #1e293b' }}>
-        <div style={{ marginBottom: '0.5rem', fontWeight: 700, color: '#94a3b8' }}>
-          Global College &bull; Cloud School Management System & Educational Infrastructure &bull;{' '}
-          <button
-            type="button"
-            onClick={() => navigate('/faq')}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#38bdf8',
-              cursor: 'pointer',
-              fontWeight: 800,
-              fontSize: 'inherit',
-              padding: 0,
-              textDecoration: 'underline',
-            }}
-          >
-            FAQ &amp; Help Desk
-          </button>
+      <footer style={{ background: '#0a0f1d', color: '#64748b', padding: '2.5rem 1.5rem', textAlign: 'center', fontSize: '0.84rem', borderTop: '1px solid #1e293b' }}>
+        <div style={{ marginBottom: '0.85rem', fontWeight: 700, color: '#cbd5e1', display: 'flex', justifyContent: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+          <a href="/login" onClick={(e) => { e.preventDefault(); navigate('/login') }} style={{ color: '#93c5fd', textDecoration: 'none' }}>Portal Login</a>
+          <span style={{ color: '#475569' }}>&bull;</span>
+          <a href="/register-school" onClick={(e) => { e.preventDefault(); navigate('/register-school') }} style={{ color: '#93c5fd', textDecoration: 'none' }}>Register Institution</a>
+          <span style={{ color: '#475569' }}>&bull;</span>
+          <a href="/library" onClick={(e) => { e.preventDefault(); navigate('/library') }} style={{ color: '#93c5fd', textDecoration: 'none' }}>Digital E-Library</a>
+          <span style={{ color: '#475569' }}>&bull;</span>
+          <a href="/faq" onClick={(e) => { e.preventDefault(); navigate('/faq') }} style={{ color: '#93c5fd', textDecoration: 'none' }}>FAQ &amp; Help Desk</a>
         </div>
-        <div>
-          &copy; {new Date().getFullYear()} Global College SMS. 256-Bit SSL Encrypted Campus Network.
+        <div style={{ marginBottom: '0.45rem', fontWeight: 600, color: '#94a3b8' }}>
+          Global College &bull; Enterprise Cloud School Information Management System (SIS) &amp; Academic Portals
+        </div>
+        <div style={{ color: '#64748b', fontSize: '0.78rem' }}>
+          &copy; {new Date().getFullYear()} Global College. All rights reserved. 256-Bit SSL Encrypted Campus Infrastructure.
         </div>
       </footer>
 
