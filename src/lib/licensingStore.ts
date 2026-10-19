@@ -283,11 +283,11 @@ class LicensingStore {
   }): ProductKeyLicense {
     const campusCount = Math.max(1, params.campus_count || 1)
     const isLifetime = params.tier === 'lifetime' || params.plan_duration === 'perpetual'
-    const tier: SubscriptionTierType = isLifetime ? 'lifetime' : (params.tier || 'gold')
+    const tier: SubscriptionTierType = isLifetime ? 'lifetime' : (params.tier === 'lifetime' ? 'lifetime' : 'silver')
     const effectiveDuration: LicenseDurationType = isLifetime ? 'perpetual' : params.plan_duration
     const ratePerCampus = isLifetime
       ? 30000
-      : (SUBSCRIPTION_TIER_RATES[tier] || (tier === 'gold' ? 3000 : 2500))
+      : (SUBSCRIPTION_TIER_RATES[tier] || 2500)
 
     let months = 1
     if (effectiveDuration === '3_months') months = 3
@@ -306,10 +306,6 @@ class LicensingStore {
     const tierPrefix =
       tier === 'lifetime'
         ? 'LFT'
-        : tier === 'gold'
-        ? 'GLD'
-        : tier === 'platinum'
-        ? 'PLT'
         : 'SLV'
     const key = `GC-${tierPrefix}-${randPart()}-${randPart()}-${randPart()}-${randPart()}`
 
@@ -457,16 +453,12 @@ class LicensingStore {
     if (isLifetime) {
       return {
         success: true,
-        message: `Successfully activated ♾️ LIFETIME PURCHASE (KES ${(30000 * license.campus_count).toLocaleString()} One-Time + KES ${(1000 * license.campus_count).toLocaleString()}/year maintenance fee) for ${license.campus_count} campus(es)! All Gold & Platinum features unlocked.`,
+        message: `Successfully activated ♾️ LIFETIME PURCHASE (KES ${(30000 * license.campus_count).toLocaleString()} One-Time + KES ${(1000 * license.campus_count).toLocaleString()}/year maintenance fee) for ${license.campus_count} campus(es)! All institutional features & dedicated public showcase unlocked.`,
         license,
       }
     }
 
-    const tierBadge = resolvedTier === 'gold'
-      ? '🥇 GOLD TIER (Dedicated Public Showcase Unlocked)'
-      : resolvedTier === 'platinum'
-      ? '💎 PLATINUM TIER'
-      : '🥈 SILVER TIER'
+    const tierBadge = '⭐ STANDARD MONTHLY PLAN (KES 2,500/mo)'
 
     return {
       success: true,

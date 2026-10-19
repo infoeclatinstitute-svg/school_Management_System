@@ -31,12 +31,17 @@ export function TenantPublicShowcase({
   onOpenLicense: _onOpenLicense,
   currentSession: _currentSession,
 }: TenantPublicShowcaseProps) {
-  // Gold / Lifetime Tier Authorization
-  const isGoldTier =
+  // Institutional Plan Authorization: Standard Monthly (KES 2,500) and Lifetime Purchase
+  const isShowcaseUnlocked =
+    school.subscription_tier === 'silver' ||
     school.subscription_tier === 'gold' ||
     school.subscription_tier === 'platinum' ||
     school.subscription_tier === 'lifetime' ||
-    school.subscription_tier === 'enterprise'
+    school.subscription_tier === 'enterprise' ||
+    !school.subscription_tier ||
+    Boolean(school.active_license_key) ||
+    school.subscription_status === 'active' ||
+    school.subscription_status === 'licensed'
 
   const [previewMode, setPreviewMode] = useState(false)
 
@@ -152,7 +157,7 @@ export function TenantPublicShowcase({
 
   // Dedicated Public Showcase: Only renders when the institution has unlocked it, or during an active Executive Preview
   // Never expose internal SaaS tier sales pitches, upgrade nags, or pricing to public visitors, students, or parents
-  if (!isGoldTier && !previewMode) {
+  if (!isShowcaseUnlocked && !previewMode) {
     return null
   }
 

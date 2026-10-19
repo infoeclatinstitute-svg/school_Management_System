@@ -284,8 +284,8 @@ export function SchoolRegistrationPage() {
   const [adminPassword, setAdminPassword] = useState(() => generateDynamicPassword('GC'))
   const [isPasswordManual, setIsPasswordManual] = useState(false)
 
-  // Step 5: Campuses & Subscription Tier Selection (Silver KES 2,500, Gold KES 3,000, Platinum KES 5,000, Lifetime KES 30,000 + KES 1,000/yr)
-  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTierType>('gold')
+  // Step 5: Campuses & Subscription Tier Selection (Standard Monthly KES 2,500/mo or Lifetime KES 30,000 + KES 1,000/yr)
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTierType>('silver')
   const [campusCount, setCampusCount] = useState<number>(1)
   const [campusesList, setCampusesList] = useState<string[]>(['Main Campus'])
   const [newCampusInput, setNewCampusInput] = useState('')
@@ -427,7 +427,7 @@ export function SchoolRegistrationPage() {
   }
 
   const isLifetimeSelected = subscriptionTier === 'lifetime' || billingCycle === 'lifetime'
-  const currentTierRate = isLifetimeSelected ? 30000 : (SUBSCRIPTION_TIER_RATES[subscriptionTier] || 3000)
+  const currentTierRate = isLifetimeSelected ? 30000 : (SUBSCRIPTION_TIER_RATES[subscriptionTier] || 2500)
   const computedSubscriptionRate = isLifetimeSelected
     ? campusCount * 30000
     : billingCycle === 'monthly'
@@ -2216,7 +2216,7 @@ export function SchoolRegistrationPage() {
                         type="button"
                         onClick={() => {
                           setBillingCycle('monthly')
-                          if (subscriptionTier === 'lifetime') setSubscriptionTier('gold')
+                          if (subscriptionTier === 'lifetime') setSubscriptionTier('silver')
                         }}
                         style={{
                           background: billingCycle === 'monthly' && !isLifetimeSelected ? '#ffffff' : 'transparent',
@@ -2235,7 +2235,7 @@ export function SchoolRegistrationPage() {
                         type="button"
                         onClick={() => {
                           setBillingCycle('annually')
-                          if (subscriptionTier === 'lifetime') setSubscriptionTier('gold')
+                          if (subscriptionTier === 'lifetime') setSubscriptionTier('silver')
                         }}
                         style={{
                           background: billingCycle === 'annually' && !isLifetimeSelected ? '#ffffff' : 'transparent',
@@ -2415,8 +2415,8 @@ export function SchoolRegistrationPage() {
                     <label style={{ display: 'block', fontSize: '0.86rem', fontWeight: 800, color: '#334155', marginBottom: '0.5rem' }}>
                       Institutional Subscription Tier *
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
-                      {(['silver', 'gold', 'platinum', 'lifetime'] as SubscriptionTierType[]).map((tierKey) => {
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                      {(['silver', 'lifetime'] as SubscriptionTierType[]).map((tierKey) => {
                         const tierInfo = SUBSCRIPTION_TIER_DETAILS[tierKey]
                         const isSelected = subscriptionTier === tierKey
                         return (
@@ -2441,49 +2441,49 @@ export function SchoolRegistrationPage() {
                                   ? '#ecfdf5'
                                   : '#eff6ff'
                                 : '#ffffff',
-                              borderRadius: '14px',
-                              padding: '1rem',
+                              borderRadius: '16px',
+                              padding: '1.25rem',
                               cursor: 'pointer',
                               display: 'flex',
                               flexDirection: 'column',
                               justifyContent: 'space-between',
-                              boxShadow: isSelected ? '0 4px 12px rgba(29, 78, 216, 0.12)' : 'none',
+                              boxShadow: isSelected ? '0 4px 14px rgba(29, 78, 216, 0.12)' : 'none',
                               position: 'relative',
                             }}
                           >
                             <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isSelected ? (tierKey === 'lifetime' ? '#047857' : '#1d4ed8') : '#475569' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 900, color: isSelected ? (tierKey === 'lifetime' ? '#047857' : '#1d4ed8') : '#475569' }}>
                                   {tierInfo.badge}
                                 </span>
-                                {tierKey === 'gold' && (
-                                  <span style={{ fontSize: '0.65rem', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                {tierKey === 'silver' && (
+                                  <span style={{ fontSize: '0.65rem', background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
                                     RECOMMENDED
                                   </span>
                                 )}
                                 {tierKey === 'lifetime' && (
-                                  <span style={{ fontSize: '0.65rem', background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                  <span style={{ fontSize: '0.65rem', background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '4px', fontWeight: 800 }}>
                                     BEST VALUE
                                   </span>
                                 )}
                               </div>
-                              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.2rem' }}>
+                              <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.2rem' }}>
                                 {currency} {tierInfo.rateKes.toLocaleString()}{' '}
-                                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>
                                   {tierKey === 'lifetime' ? 'One-Time' : '/ mo'}
                                 </span>
                               </div>
                               {tierKey === 'lifetime' && (
-                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#047857', marginBottom: '0.3rem' }}>
+                                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#047857', marginBottom: '0.35rem' }}>
                                   + Only {currency} 1,000 / year Maintenance Fee
                                 </div>
                               )}
-                              <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.6rem' }}>
+                              <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '0.75rem' }}>
                                 {tierInfo.tagline}
                               </div>
                             </div>
-                            <div style={{ fontSize: '0.72rem', color: '#334155', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                              {tierInfo.features.slice(0, 2).map((feat, fi) => (
+                            <div style={{ fontSize: '0.75rem', color: '#334155', borderTop: '1px solid #e2e8f0', paddingTop: '0.65rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {tierInfo.features.slice(0, 3).map((feat, fi) => (
                                 <div key={fi}>✓ {feat}</div>
                               ))}
                             </div>
@@ -2561,7 +2561,7 @@ export function SchoolRegistrationPage() {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem', fontSize: '0.78rem', color: '#334155', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem' }}>
                       <div>✅ Full Access to all 4 Role Portals (Admin, Teacher, Student, Bursar)</div>
-                      <div>✅ {subscriptionTier === 'gold' || subscriptionTier === 'platinum' || isLifetimeSelected ? 'Dedicated Public Programs & Courses Showcase Page' : 'Core SIS & Academic Gradebooks'}</div>
+                      <div>✅ Dedicated Public Programs &amp; Courses Showcase Page</div>
                       <div>✅ M-Pesa automated fee reconciliation &amp; digital receipts</div>
                       <div>✅ Official printable report cards &amp; QR transcripts with digital seal</div>
                       <div>✅ Product activation key unlocking via Master SaaS Billing Portal</div>

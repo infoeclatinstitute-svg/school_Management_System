@@ -99,7 +99,7 @@ export function MasterSaasPortal() {
   const [customSchoolSlug, setCustomSchoolSlug] = useState<string>('')
   const [campusCount, setCampusCount] = useState<number>(1)
   const [planDuration, setPlanDuration] = useState<LicenseDurationType>('1_month')
-  const [selectedTier, setSelectedTier] = useState<SubscriptionTierType>('gold')
+  const [selectedTier, setSelectedTier] = useState<SubscriptionTierType>('silver')
   const [customerContact, setCustomerContact] = useState<string>('')
   const [generatorNotes, setGeneratorNotes] = useState<string>('')
   const [latestGeneratedKey, setLatestGeneratedKey] = useState<ProductKeyLicense | null>(null)
@@ -1220,7 +1220,7 @@ export function MasterSaasPortal() {
                 ⚡ Generate Official Product Key
               </h3>
               <p style={{ color: '#94a3b8', fontSize: '0.84rem', margin: '0 0 1.5rem', lineHeight: 1.5 }}>
-                Issue activation keys for client institutions. <strong>Gold Tier (KES 3,000/mo)</strong> unlocks the dedicated public showcase, programs catalog, About Us &amp; facilities; <strong>Silver Tier (KES 2,500/mo)</strong> covers core role portals.
+                Issue activation keys for client institutions. <strong>Standard Monthly (KES 2,500/campus/mo)</strong> or <strong>Lifetime Purchase (KES 30,000 one-time + KES 1,000/yr maint)</strong> unlocks all 4 role portals, dedicated public showcase, programs catalog, About Us &amp; facilities.
               </p>
 
               <form onSubmit={handleGenerateKey} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
@@ -1315,8 +1315,8 @@ export function MasterSaasPortal() {
                       ♾️ Lifetime = KES 30,000 + KES 1,000/yr Maint.
                     </span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
-                    {(['gold', 'silver', 'platinum', 'lifetime'] as SubscriptionTierType[]).map((tierKey) => {
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                    {(['silver', 'lifetime'] as SubscriptionTierType[]).map((tierKey) => {
                       const details = SUBSCRIPTION_TIER_DETAILS[tierKey]
                       const isSel = selectedTier === tierKey
                       return (
@@ -1334,19 +1334,11 @@ export function MasterSaasPortal() {
                             background: isSel
                               ? tierKey === 'lifetime'
                                 ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.08) 100%)'
-                                : tierKey === 'gold'
-                                ? 'linear-gradient(135deg, rgba(217, 119, 6, 0.25) 0%, rgba(245, 158, 11, 0.08) 100%)'
-                                : tierKey === 'platinum'
-                                ? 'rgba(99, 102, 241, 0.2)'
-                                : 'rgba(59, 130, 246, 0.15)'
+                                : 'linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(30, 58, 138, 0.08) 100%)'
                               : '#0a0f1d',
                             border: isSel
                               ? tierKey === 'lifetime'
                                 ? '2px solid #10b981'
-                                : tierKey === 'gold'
-                                ? '2px solid #f59e0b'
-                                : tierKey === 'platinum'
-                                ? '2px solid #818cf8'
                                 : '2px solid #3b82f6'
                               : '1px solid #334155',
                             borderRadius: '14px',
@@ -1357,12 +1349,12 @@ export function MasterSaasPortal() {
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: tierKey === 'lifetime' ? '#34d399' : tierKey === 'gold' ? '#fbbf24' : '#ffffff' }}>
+                            <span style={{ fontSize: '0.88rem', fontWeight: 900, color: tierKey === 'lifetime' ? '#34d399' : '#60a5fa' }}>
                               {details.badge}
                             </span>
-                            {tierKey === 'gold' && (
-                              <span style={{ fontSize: '0.62rem', background: '#f59e0b', color: '#000000', fontWeight: 900, padding: '2px 6px', borderRadius: '4px' }}>
-                                POPULAR
+                            {tierKey === 'silver' && (
+                              <span style={{ fontSize: '0.62rem', background: '#3b82f6', color: '#ffffff', fontWeight: 900, padding: '2px 6px', borderRadius: '4px' }}>
+                                STANDARD
                               </span>
                             )}
                             {tierKey === 'lifetime' && (
@@ -1384,12 +1376,8 @@ export function MasterSaasPortal() {
                           )}
                           <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px', lineHeight: 1.35 }}>
                             {tierKey === 'lifetime'
-                              ? '♾️ Perpetual buyout + KES 1,000/yr maintenance • All Gold & Platinum features'
-                              : tierKey === 'gold'
-                              ? '⭐ Unlocks dedicated public page, programs catalog & facilities'
-                              : tierKey === 'platinum'
-                              ? 'Enterprise multi-campus federation & custom domain'
-                              : 'Standard core portals (Learner, Teacher, Bursar, Principal)'}
+                              ? '♾️ Perpetual buyout + KES 1,000/yr maintenance • All features unlocked forever'
+                              : '⭐ Standard institutional access • All 4 portals + public showcase & catalog'}
                           </div>
                         </div>
                       )
@@ -1441,7 +1429,7 @@ export function MasterSaasPortal() {
                         if (val === 'perpetual') {
                           setSelectedTier('lifetime')
                         } else if (selectedTier === 'lifetime') {
-                          setSelectedTier('gold')
+                          setSelectedTier('silver')
                         }
                       }}
                       style={{
@@ -1844,7 +1832,7 @@ export function MasterSaasPortal() {
                   Client Institutions &amp; Campuses Ledger ({schools.length})
                 </h3>
                 <p style={{ margin: '3px 0 0', color: '#94a3b8', fontSize: '0.84rem' }}>
-                  Billing Rules: Monthly (KES 2,500–5,000/campus) or Lifetime Buyout (KES 30,000 one-time + KES 1,000/yr maintenance per campus).
+                  Billing Rules: Standard Monthly (KES 2,500/campus) or Lifetime Buyout (KES 30,000 one-time + KES 1,000/yr maintenance per campus).
                 </p>
               </div>
 
@@ -1922,7 +1910,7 @@ export function MasterSaasPortal() {
                       .map((sch) => {
                         const cCount = sch.campus_count || (sch.campuses_list ? sch.campuses_list.length : 1) || 1
                         const isLifetime = sch.subscription_tier === 'lifetime' || sch.subscription_billing_cycle === 'lifetime'
-                        const tierRate = isLifetime ? 30000 : sch.subscription_tier === 'gold' ? 3000 : sch.subscription_tier === 'platinum' ? 5000 : 2500
+                        const tierRate = isLifetime ? 30000 : 2500
                         const monthlyRate = cCount * tierRate
 
                         return (
@@ -1941,15 +1929,15 @@ export function MasterSaasPortal() {
                                   fontWeight: 900,
                                   padding: '3px 8px',
                                   borderRadius: '6px',
-                                  background: isLifetime ? '#dcfce7' : sch.subscription_tier === 'gold' ? '#fef3c7' : sch.subscription_tier === 'platinum' ? '#e0e7ff' : '#f1f5f9',
-                                  color: isLifetime ? '#065f46' : sch.subscription_tier === 'gold' ? '#b45309' : sch.subscription_tier === 'platinum' ? '#4338ca' : '#475569',
-                                  border: isLifetime ? '1px solid #6ee7b7' : sch.subscription_tier === 'gold' ? '1px solid #fde047' : '1px solid #cbd5e1',
+                                  background: isLifetime ? '#dcfce7' : '#eff6ff',
+                                  color: isLifetime ? '#065f46' : '#1e40af',
+                                  border: isLifetime ? '1px solid #6ee7b7' : '1px solid #bfdbfe',
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '4px',
                                 }}
                               >
-                                {isLifetime ? '♾️ LIFETIME' : sch.subscription_tier === 'gold' ? '🥇 GOLD' : sch.subscription_tier === 'platinum' ? '💎 PLATINUM' : '🥈 SILVER'}
+                                {isLifetime ? '♾️ LIFETIME' : '⭐ MONTHLY (2,500)'}
                               </span>
                             </td>
                             <td style={{ padding: '0.85rem 0.75rem' }}>
@@ -2013,32 +2001,8 @@ export function MasterSaasPortal() {
                                   type="button"
                                   onClick={() => {
                                     setSelectedSchoolSlug(sch.slug)
-                                    setSelectedTier('gold')
-                                    setActiveTab('keys')
-                                  }}
-                                  style={{
-                                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '0.4rem 0.7rem',
-                                    borderRadius: '8px',
-                                    fontSize: '0.74rem',
-                                    fontWeight: 800,
-                                    cursor: 'pointer',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    boxShadow: '0 2px 6px rgba(217, 119, 6, 0.3)',
-                                  }}
-                                  title="Issue Gold Tier Key (KES 3,000/mo - Unlocks Public Showcase & Programs Catalog)"
-                                >
-                                  <span>🥇 Issue Gold Key</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedSchoolSlug(sch.slug)
                                     setSelectedTier('silver')
+                                    setPlanDuration('1_month')
                                     setActiveTab('keys')
                                   }}
                                   style={{
@@ -2050,9 +2014,39 @@ export function MasterSaasPortal() {
                                     fontSize: '0.74rem',
                                     fontWeight: 800,
                                     cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
                                   }}
+                                  title="Issue Standard Monthly Key (KES 2,500/mo per campus)"
                                 >
-                                  + Silver Key
+                                  <span>+ Monthly Key (2,500)</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedSchoolSlug(sch.slug)
+                                    setSelectedTier('lifetime')
+                                    setPlanDuration('perpetual')
+                                    setActiveTab('keys')
+                                  }}
+                                  style={{
+                                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '0.4rem 0.7rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    boxShadow: '0 2px 6px rgba(5, 150, 105, 0.3)',
+                                  }}
+                                  title="Issue Lifetime Purchase Key (KES 30,000 one-time + KES 1,000/yr maintenance)"
+                                >
+                                  <span>♾️ Lifetime Key</span>
                                 </button>
                                 <button
                                   type="button"
@@ -2925,7 +2919,7 @@ export function MasterSaasPortal() {
                   <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
                     {inspectedSchool.subscription_tier === 'lifetime' || inspectedSchool.subscription_billing_cycle === 'lifetime'
                       ? `Lifetime License: KES ${((inspectedSchool.campus_count || 1) * 30000).toLocaleString()} One-Time (+ KES ${((inspectedSchool.campus_count || 1) * 1000).toLocaleString()}/yr Maint.)`
-                      : `Billing Rate: KES ${((inspectedSchool.campus_count || 1) * (inspectedSchool.subscription_tier === 'gold' ? 3000 : inspectedSchool.subscription_tier === 'platinum' ? 5000 : 2500)).toLocaleString()} / Month`}
+                      : `Billing Rate: KES ${((inspectedSchool.campus_count || 1) * 2500).toLocaleString()} / Month`}
                   </div>
                 </div>
 
@@ -3394,9 +3388,7 @@ export function MasterSaasPortal() {
                         fontSize: '0.88rem',
                       }}
                     >
-                      <option value="gold">Gold Tier (KES 3,000 / mo per campus)</option>
-                      <option value="silver">Silver Tier (KES 2,500 / mo per campus)</option>
-                      <option value="platinum">Platinum Tier (KES 5,000 / mo per campus)</option>
+                      <option value="silver">Standard Monthly Plan (KES 2,500 / mo per campus)</option>
                       <option value="lifetime">♾️ Lifetime Purchase (KES 30,000 + KES 1,000/yr Maint.)</option>
                     </select>
                   </div>
