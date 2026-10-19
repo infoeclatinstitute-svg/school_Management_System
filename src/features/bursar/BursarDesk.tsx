@@ -50,7 +50,6 @@ export function BursarDesk() {
   const [selectedReceipt, setSelectedReceipt] = useState<FeePaymentReceipt | null>(null)
   const [editingReceipt, setEditingReceipt] = useState<FeePaymentReceipt | null>(null)
   const currencySymbol = INSTITUTION_CONFIG.pricing.currencySymbol || '$'
-  const currencyCode = INSTITUTION_CONFIG.pricing.currencyCode || 'USD'
   const defaultTuitionFee = INSTITUTION_CONFIG.pricing.defaultTuitionFee || 0
 
   const [editFormData, setEditFormData] = useState({

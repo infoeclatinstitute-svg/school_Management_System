@@ -1173,7 +1173,7 @@ export function StudentTranscriptModal({
   const primaryColor = school.primary_color || '#881337'
   const accentColor = school.accent_color || '#d4af37'
 
-  const hasScores = grades.length > 0 && grades.some((g) => typeof g.total_score === 'number')
+  const hasScores = grades.some((g) => typeof g.total_score === 'number')
 
   const meanScore = hasScores
     ? Math.round((grades.reduce((acc, g) => acc + (g.total_score || 0), 0) / grades.length) * 10) / 10

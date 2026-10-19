@@ -28,7 +28,7 @@ export function TenantPublicShowcase({
   accentColor,
   onOpenAdmissions,
   onOpenLogin,
-  onOpenLicense,
+  onOpenLicense: _onOpenLicense,
   currentSession: _currentSession,
 }: TenantPublicShowcaseProps) {
   // Gold / Lifetime Tier Authorization
@@ -37,9 +37,6 @@ export function TenantPublicShowcase({
     school.subscription_tier === 'platinum' ||
     school.subscription_tier === 'lifetime' ||
     school.subscription_tier === 'enterprise'
-
-  const isPrincipalOrAdmin =
-    _currentSession?.role === 'admin' || _currentSession?.role === 'principal'
 
   const [previewMode, setPreviewMode] = useState(false)
 

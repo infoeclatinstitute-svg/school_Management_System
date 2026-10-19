@@ -1835,14 +1835,11 @@ export function TenantBursarDesk({
                   {filteredDefaulters.map((s) => {
                     const pctPaid = s.fee_total > 0 ? Math.round((s.fee_paid / s.fee_total) * 100) : 0
                     const isPermitted = examClearanceOverrides[s.admission_number] || false
-                    const cleanPhone = (s.guardian_phone || '').replace(/[^0-9]/g, '')
                     const plan = s.fee_payment_plan || 'termly'
                     const totalInst = s.fee_installments_count || 1
                     const instAmount = s.fee_installment_amount || (totalInst > 0 ? Math.round(s.fee_total / totalInst) : s.fee_total)
                     const instPaid = instAmount > 0 ? Math.floor(s.fee_paid / instAmount) : 0
                     const instPending = Math.max(0, totalInst - instPaid)
-
-                    const whatsappMsg = `Dear ${s.guardian_name}, this is an official fee reminder from ${school.name} Bursar's Office regarding student ${s.full_name} (${s.admission_number}). The outstanding tuition balance is ${currency} ${s.fee_balance.toLocaleString()}${plan !== 'termly' ? ` (${instPending} installment(s) pending)` : ''}. Kindly arrange clearance before the upcoming assessment period. For inquiries, contact ${school.contact_phone}. Thank you.`
 
                     return (
                       <tr
@@ -3145,7 +3142,6 @@ export function TenantBursarDesk({
                 const totalInst = selectedStudentForPayment.fee_installments_count || 1
                 const instAmount = selectedStudentForPayment.fee_installment_amount || (totalInst > 0 ? Math.round(selectedStudentForPayment.fee_total / totalInst) : selectedStudentForPayment.fee_total)
                 const instPaid = instAmount > 0 ? Math.floor(selectedStudentForPayment.fee_paid / instAmount) : 0
-                const nextInstNumber = Math.min(totalInst, instPaid + 1)
 
                 return (
                   <div
