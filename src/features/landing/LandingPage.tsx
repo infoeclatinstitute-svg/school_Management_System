@@ -447,14 +447,7 @@ export function LandingPage() {
                 type="button"
                 onClick={() => {
                   const q = searchQuery.trim().toLowerCase()
-                  if (!q) {
-                    if (schools.length > 0) {
-                      navigate(`/s/${schools[0].slug}`)
-                    } else {
-                      navigate('/login')
-                    }
-                    return
-                  }
+                  if (!q) return
                   const match = schools.find(
                     (s) => s.slug.toLowerCase() === q || s.name.toLowerCase().includes(q)
                   )
@@ -485,7 +478,7 @@ export function LandingPage() {
               </button>
             </div>
 
-            {/* Live Search Results or Registered Schools List */}
+            {/* Live Search Results: Only rendered when user actively searches */}
             {searchQuery.trim() ? (
               <div
                 style={{
@@ -546,47 +539,19 @@ export function LandingPage() {
                   ))
                 ) : (
                   <div style={{ padding: '10px', textAlign: 'center', fontSize: '0.78rem', color: '#64748b' }}>
-                    No school campus found matching &quot;{searchQuery}&quot;. Press &quot;Enter ➔&quot; to open direct slug <code>/s/{searchQuery.trim().toLowerCase()}</code>.
+                    No registered campus found matching &quot;{searchQuery}&quot;. Press &quot;Enter ➔&quot; to open direct slug <code>/s/{searchQuery.trim().toLowerCase()}</code>.
                   </div>
                 )}
               </div>
-            ) : schools.length > 0 ? (
-              <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 600 }}>Active Campuses:</span>
-                {schools.slice(0, 4).map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => navigate(`/s/${s.slug}`)}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.12)',
-                      border: '1px solid rgba(255, 255, 255, 0.22)',
-                      color: '#ffffff',
-                      borderRadius: '999px',
-                      padding: '3px 10px',
-                      fontSize: '0.74rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <span>🏛️</span>
-                    <span>{s.name}</span>
-                    <span style={{ color: '#93c5fd' }}>➔</span>
-                  </button>
-                ))}
-              </div>
             ) : (
-              <div style={{ marginTop: '0.65rem', fontSize: '0.74rem', color: '#94a3b8' }}>
-                💡 New to the platform?{' '}
+              <div style={{ marginTop: '0.65rem', fontSize: '0.76rem', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                <span>Type your school or campus name to search</span>
                 <span
                   onClick={() => navigate('/register-school')}
                   style={{ color: '#93c5fd', textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }}
                 >
-                  Register your school profile
-                </span>{' '}
+                  Register New School
+                </span>
               </div>
             )}
           </div>
