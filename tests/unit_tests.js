@@ -631,6 +631,21 @@ test('5-Step School & College Onboarding Wizard & Cloud Provisioning verificatio
   assert.ok(tenantStore.includes('this.setActiveSession(finalSlug,'), 'registerSchool must pre-authenticate the Principal session upon onboarding')
 })
 
+test('Lifetime Purchase (KES 30,000 one-time + KES 1,000/year maintenance) verification', () => {
+  const licensingTypes = fs.readFileSync(path.join(ROOT_DIR, 'src', 'types', 'licensing.ts'), 'utf8')
+  const licensingStoreContent = fs.readFileSync(path.join(ROOT_DIR, 'src', 'lib', 'licensingStore.ts'), 'utf8')
+  const regPage = fs.readFileSync(path.join(ROOT_DIR, 'src', 'features', 'tenant', 'SchoolRegistrationPage.tsx'), 'utf8')
+  const saasPortal = fs.readFileSync(path.join(ROOT_DIR, 'src', 'features', 'saas', 'MasterSaasPortal.tsx'), 'utf8')
+  const publicShowcase = fs.readFileSync(path.join(ROOT_DIR, 'src', 'features', 'tenant', 'components', 'TenantPublicShowcase.tsx'), 'utf8')
+
+  assert.ok(licensingTypes.includes('LIFETIME_PURCHASE_KES = 30000'), 'LIFETIME_PURCHASE_KES must be 30000')
+  assert.ok(licensingTypes.includes('LIFETIME_YEARLY_MAINTENANCE_KES = 1000'), 'LIFETIME_YEARLY_MAINTENANCE_KES must be 1000')
+  assert.ok(licensingStoreContent.includes("'LFT'"), 'licensingStore must support GC-LFT- product key prefix for Lifetime licenses')
+  assert.ok(regPage.includes("'lifetime'"), 'SchoolRegistrationPage must offer the Lifetime Purchase option')
+  assert.ok(saasPortal.includes("'lifetime'"), 'MasterSaasPortal must support issuing and managing Lifetime licenses')
+  assert.ok(publicShowcase.includes("school.subscription_tier === 'lifetime'"), 'Lifetime institutions must unlock the Dedicated Public Showcase & Programs Catalog')
+})
+
 // ============================================================================
 // SUMMARY
 // ============================================================================
