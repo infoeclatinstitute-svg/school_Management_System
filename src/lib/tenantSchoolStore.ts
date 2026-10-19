@@ -1005,11 +1005,15 @@ class TenantSchoolStore {
         ? input.campuses_list
         : [{ id: `cmp_${Date.now()}_main`, name: 'Main Campus', is_main: true }]
 
-    // Monthly subscription rate dynamically mapped to tier (silver, gold, platinum)
+    // Monthly or Lifetime subscription rate dynamically mapped to tier (silver, gold, platinum, lifetime)
     const chosenTier = (input.subscription_tier as SubscriptionTierType) || 'silver'
-    const tierRate = SUBSCRIPTION_TIER_RATES[chosenTier] || 2500
+    const isLifetime = chosenTier === 'lifetime' || input.subscription_billing_cycle === 'lifetime'
+    const tierRate = isLifetime ? 30000 : (SUBSCRIPTION_TIER_RATES[chosenTier] || 2500)
     const monthlyRate =
       input.subscription_monthly_rate ?? (campusCount * tierRate)
+    const maintenanceFeeYearly = isLifetime
+      ? (input.subscription_maintenance_fee_yearly ?? (campusCount * 1000))
+      : input.subscription_maintenance_fee_yearly
 
     const newSchool: PartnerSchoolTenant = {
       id: `sch_${Date.now()}`,
@@ -1041,9 +1045,10 @@ class TenantSchoolStore {
       subdomain: finalSlug,
       campus_count: campusCount,
       campuses_list: campusesList,
-      subscription_tier: input.subscription_tier || 'silver',
+      subscription_tier: isLifetime ? 'lifetime' : (input.subscription_tier || 'silver'),
       subscription_monthly_rate: monthlyRate,
-      subscription_billing_cycle: input.subscription_billing_cycle || 'monthly',
+      subscription_maintenance_fee_yearly: maintenanceFeeYearly,
+      subscription_billing_cycle: isLifetime ? 'lifetime' : (input.subscription_billing_cycle || 'monthly'),
       subscription_status: input.subscription_status || 'trial',
       active_license_key: input.active_license_key,
       license_valid_until: input.license_valid_until,

@@ -103,9 +103,10 @@ export interface PartnerSchoolTenant {
   campus_facilities?: string[] // Notable campus facilities & infrastructure
   admin_username?: string
   admin_password?: string
-  subscription_tier?: 'silver' | 'gold' | 'platinum' | 'starter' | 'growth' | 'enterprise'
-  subscription_monthly_rate?: number // e.g. KES 2,500 (Silver) or KES 3,000 (Gold) per campus/month
-  subscription_billing_cycle?: 'monthly' | 'annually'
+  subscription_tier?: 'silver' | 'gold' | 'platinum' | 'lifetime' | 'starter' | 'growth' | 'enterprise'
+  subscription_monthly_rate?: number // e.g. KES 2,500 (Silver), KES 3,000 (Gold), or KES 30,000 (Lifetime one-time)
+  subscription_maintenance_fee_yearly?: number // KES 1,000 / year for lifetime purchase
+  subscription_billing_cycle?: 'monthly' | 'annually' | 'lifetime'
   subscription_status?: 'active' | 'trial' | 'past_due' | 'expired' | 'licensed' | 'suspended'
   active_license_key?: string
   license_valid_until?: string
@@ -168,9 +169,10 @@ export interface CreateTenantSchoolInput {
   admin_password?: string
   custom_domain?: string
   features_enabled?: Partial<PartnerSchoolTenant['features_enabled']>
-  subscription_tier?: 'silver' | 'gold' | 'platinum' | 'starter' | 'growth' | 'enterprise'
+  subscription_tier?: 'silver' | 'gold' | 'platinum' | 'lifetime' | 'starter' | 'growth' | 'enterprise'
   subscription_monthly_rate?: number
-  subscription_billing_cycle?: 'monthly' | 'annually'
+  subscription_maintenance_fee_yearly?: number
+  subscription_billing_cycle?: 'monthly' | 'annually' | 'lifetime'
   subscription_status?: 'active' | 'trial' | 'past_due' | 'expired' | 'licensed'
   active_license_key?: string
   license_valid_until?: string

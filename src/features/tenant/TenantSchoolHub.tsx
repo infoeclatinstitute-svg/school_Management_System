@@ -2554,17 +2554,34 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                     {school.campus_count || (school.campuses_list ? school.campuses_list.length : 1)} Campus(es)
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
-                    Standard Rate: <strong>KES 2,500 / campus / month</strong>
+                    {school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime' ? (
+                      <>Lifetime Buyout: <strong>KES 30,000 one-time / campus</strong></>
+                    ) : (
+                      <>Active Rate: <strong>KES {(school.subscription_tier === 'gold' ? 3000 : school.subscription_tier === 'platinum' ? 5000 : 2500).toLocaleString()} / campus / month</strong></>
+                    )}
                   </div>
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Monthly Billing Total</div>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                    {school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime' ? 'Lifetime License & Maintenance' : 'Monthly Billing Total'}
+                  </div>
                   <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#1e3a8a', marginTop: '4px' }}>
-                    KES {((school.campus_count || (school.campuses_list ? school.campuses_list.length : 1)) * 2500).toLocaleString()}
+                    KES {(
+                      (school.campus_count || (school.campuses_list ? school.campuses_list.length : 1)) *
+                      (school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime'
+                        ? 30000
+                        : school.subscription_tier === 'gold'
+                        ? 3000
+                        : school.subscription_tier === 'platinum'
+                        ? 5000
+                        : 2500)
+                    ).toLocaleString()}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
-                    Billed Monthly • Unlimited Users
+                    {school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime'
+                      ? `+ KES ${((school.campus_count || (school.campuses_list ? school.campuses_list.length : 1)) * 1000).toLocaleString()} / year maintenance • Unlimited Users`
+                      : 'Billed Monthly • Unlimited Users'}
                   </div>
                 </div>
 
@@ -2574,7 +2591,11 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                     {school.active_license_key || 'No Key Activated'}
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
-                    {school.license_valid_until ? `Valid Through: ${new Date(school.license_valid_until).toLocaleDateString()}` : 'Activation Required'}
+                    {school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime'
+                      ? 'Perpetual Lifetime License (KES 1,000/yr Maint.)'
+                      : school.license_valid_until
+                      ? `Valid Through: ${new Date(school.license_valid_until).toLocaleDateString()}`
+                      : 'Activation Required'}
                   </div>
                 </div>
               </div>
@@ -2584,11 +2605,11 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
                   <span style={{ fontSize: '1.5rem' }}>📲</span>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#065f46' }}>
-                    M-Pesa Subscription Payment Channel
+                    M-Pesa Subscription &amp; Lifetime Purchase Channel
                   </h3>
                 </div>
                 <p style={{ margin: '0 0 10px', fontSize: '0.84rem', color: '#047857' }}>
-                  Send your institution's monthly subscription fee (<strong>KES 2,500 per campus</strong>) to:
+                  Send your institution's subscription fee (<strong>KES 2,500–5,000/mo</strong>) or <strong>Lifetime Buyout (KES 30,000 one-time + KES 1,000/yr maintenance per campus)</strong> to:
                 </p>
                 <div style={{ background: '#ffffff', border: '1px solid #6ee7b7', padding: '0.75rem 1.25rem', borderRadius: '10px', display: 'inline-block', fontSize: '1.25rem', fontWeight: 900, color: '#047857', letterSpacing: '0.04em' }}>
                   M-Pesa: 0740027346
@@ -2936,17 +2957,23 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   fontSize: '0.78rem',
                   padding: '2px 8px',
                   borderRadius: '6px',
-                  background: school.subscription_tier === 'gold' ? '#fef3c7' : '#eff6ff',
-                  color: school.subscription_tier === 'gold' ? '#b45309' : '#1e40af',
-                  border: school.subscription_tier === 'gold' ? '1px solid #fde047' : '1px solid #bfdbfe',
+                  background: school.subscription_tier === 'lifetime' ? '#dcfce7' : school.subscription_tier === 'gold' ? '#fef3c7' : school.subscription_tier === 'platinum' ? '#e0e7ff' : '#eff6ff',
+                  color: school.subscription_tier === 'lifetime' ? '#065f46' : school.subscription_tier === 'gold' ? '#b45309' : school.subscription_tier === 'platinum' ? '#4338ca' : '#1e40af',
+                  border: school.subscription_tier === 'lifetime' ? '1px solid #6ee7b7' : school.subscription_tier === 'gold' ? '1px solid #fde047' : '1px solid #bfdbfe',
                 }}>
-                  {school.subscription_tier === 'gold' ? '🥇 GOLD TIER (KES 3,000/mo)' : '🥈 SILVER TIER (KES 2,500/mo)'}
+                  {school.subscription_tier === 'lifetime'
+                    ? '♾️ LIFETIME LICENSE (KES 30k + 1k/yr)'
+                    : school.subscription_tier === 'gold'
+                    ? '🥇 GOLD TIER (KES 3,000/mo)'
+                    : school.subscription_tier === 'platinum'
+                    ? '💎 PLATINUM TIER (KES 5,000/mo)'
+                    : '🥈 SILVER TIER (KES 2,500/mo)'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span style={{ color: '#64748b' }}>Public Page Showcase:</span>
-                <span style={{ fontWeight: 800, color: school.subscription_tier === 'gold' ? '#15803d' : '#b45309' }}>
-                  {school.subscription_tier === 'gold' ? '✓ Dedicated Page Unlocked' : '⭐ Requires Gold Tier (KES 3,000)'}
+                <span style={{ fontWeight: 800, color: school.subscription_tier === 'gold' || school.subscription_tier === 'platinum' || school.subscription_tier === 'lifetime' ? '#15803d' : '#b45309' }}>
+                  {school.subscription_tier === 'gold' || school.subscription_tier === 'platinum' || school.subscription_tier === 'lifetime' ? '✓ Dedicated Page Unlocked' : '⭐ Requires Gold or Lifetime Tier'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -2965,7 +2992,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               {school.license_valid_until && (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#64748b' }}>Valid Through:</span>
-                  <strong>{new Date(school.license_valid_until).toLocaleDateString()}</strong>
+                  <strong>{school.subscription_tier === 'lifetime' ? 'Perpetual (KES 1,000/yr Maint.)' : new Date(school.license_valid_until).toLocaleDateString()}</strong>
                 </div>
               )}
             </div>
@@ -2973,6 +3000,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
             <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1rem', fontSize: '0.82rem', color: '#065f46' }}>
               <div style={{ fontWeight: 800, marginBottom: '4px' }}>📲 Subscription &amp; Tier Activation (M-Pesa):</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '6px', fontSize: '0.8rem' }}>
+                <div>• <strong>♾️ Lifetime Purchase:</strong> KES 30,000 one-time / campus + only KES 1,000 / year maintenance (Unlocks ALL Gold &amp; Platinum features forever)</div>
                 <div>• <strong>Gold Tier:</strong> KES 3,000 / campus / month (Unlocks Dedicated Public Page, Programs Catalog &amp; Facilities)</div>
                 <div>• <strong>Silver Tier:</strong> KES 2,500 / campus / month (Standard Core SIS/LMS Portals)</div>
               </div>
@@ -2981,7 +3009,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 M-Pesa: 0740027346
               </div>
               <div style={{ fontSize: '0.74rem', color: '#059669', marginTop: '3px' }}>
-                Once processed, your 19-character Product Key (e.g. <code>GC-GLD-...</code> or <code>GC-SLV-...</code>) will be issued to activate access below.
+                Once processed, your 19-character Product Key (e.g. <code>GC-LFT-...</code>, <code>GC-GLD-...</code>, or <code>GC-SLV-...</code>) will be issued to activate access below.
               </div>
             </div>
 

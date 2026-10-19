@@ -4272,7 +4272,13 @@ export function TenantPrincipalDesk({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px', flexWrap: 'wrap', gap: '6px' }}>
                   <div style={{ fontSize: '1.15rem', fontWeight: 900, color: primaryColor, textTransform: 'capitalize' }}>
-                    {school.subscription_tier === 'gold' ? '👑 Gold Tier' : school.subscription_tier === 'platinum' ? '💎 Platinum Tier' : '🥈 Silver Tier'}
+                    {school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime'
+                      ? '♾️ Lifetime License'
+                      : school.subscription_tier === 'gold'
+                      ? '👑 Gold Tier'
+                      : school.subscription_tier === 'platinum'
+                      ? '💎 Platinum Tier'
+                      : '🥈 Silver Tier'}
                   </div>
                   <span
                     style={{
@@ -4280,16 +4286,47 @@ export function TenantPrincipalDesk({
                       fontWeight: 800,
                       padding: '2px 8px',
                       borderRadius: '12px',
-                      background: school.subscription_tier === 'gold' ? '#fef3c7' : '#e0f2fe',
-                      color: school.subscription_tier === 'gold' ? '#92400e' : '#0369a1',
-                      border: `1px solid ${school.subscription_tier === 'gold' ? '#fde68a' : '#bae6fd'}`,
+                      background:
+                        school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime'
+                          ? '#dcfce7'
+                          : school.subscription_tier === 'gold'
+                          ? '#fef3c7'
+                          : '#e0f2fe',
+                      color:
+                        school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime'
+                          ? '#065f46'
+                          : school.subscription_tier === 'gold'
+                          ? '#92400e'
+                          : '#0369a1',
+                      border: `1px solid ${
+                        school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime'
+                          ? '#86efac'
+                          : school.subscription_tier === 'gold'
+                          ? '#fde68a'
+                          : '#bae6fd'
+                      }`,
                     }}
                   >
-                    {school.subscription_tier === 'gold' ? 'Public Showcase Active' : 'Standard Portals'}
+                    {school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime'
+                      ? 'Perpetual + Public Showcase'
+                      : school.subscription_tier === 'gold' || school.subscription_tier === 'platinum'
+                      ? 'Public Showcase Active'
+                      : 'Standard Portals'}
                   </span>
                 </div>
                 <div style={{ fontSize: '0.82rem', color: '#0f172a', marginTop: '4px' }}>
-                  <strong>{currency} {((school.campus_count || 1) * (SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500))).toLocaleString()} / month</strong> ({school.campus_count || 1} Campus @ {currency} {(SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500)).toLocaleString()}/mo)
+                  {school.subscription_tier === 'lifetime' || school.subscription_billing_cycle === 'lifetime' ? (
+                    <>
+                      <strong>{currency} {((school.campus_count || 1) * 30000).toLocaleString()} One-Time Buyout</strong> +{' '}
+                      <span style={{ color: '#059669', fontWeight: 800 }}>
+                        {currency} {((school.campus_count || 1) * 1000).toLocaleString()} / year Maintenance Fee
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <strong>{currency} {((school.campus_count || 1) * (SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500))).toLocaleString()} / month</strong> ({school.campus_count || 1} Campus @ {currency} {(SUBSCRIPTION_TIER_RATES[(school.subscription_tier as SubscriptionTierType)] || (school.subscription_tier === 'gold' ? 3000 : 2500)).toLocaleString()}/mo)
+                    </>
+                  )}
                 </div>
                 <div
                   style={{
@@ -4303,10 +4340,10 @@ export function TenantPrincipalDesk({
                     ? '✓ Subscription Active & Product Key Authorized'
                     : '⚠️ Active Campus Licensing'}
                 </div>
-                {school.subscription_tier !== 'gold' && school.subscription_tier !== 'platinum' && (
+                {school.subscription_tier !== 'gold' && school.subscription_tier !== 'platinum' && school.subscription_tier !== 'lifetime' && (
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #cbd5e1' }}>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '8px' }}>
-                      Upgrade to <strong>Gold Tier ({currency} 3,000/mo)</strong> to unlock your Dedicated Public Landing Page, Academic Programs Catalog &amp; Campus Facilities showcase.
+                      Upgrade to <strong>Gold Tier ({currency} 3,000/mo)</strong> or <strong>♾️ Lifetime Purchase ({currency} 30,000 one-time + {currency} 1,000/yr maintenance)</strong> to unlock your Dedicated Public Landing Page, Academic Programs Catalog &amp; Campus Facilities showcase.
                     </div>
                     {onOpenLicenseModal && (
                       <button
@@ -4323,12 +4360,12 @@ export function TenantPrincipalDesk({
                           cursor: 'pointer',
                         }}
                       >
-                        👑 Activate Gold Tier Key
+                        👑 Activate Gold or Lifetime Key
                       </button>
                     )}
                   </div>
                 )}
-                {school.subscription_tier === 'gold' && (
+                {(school.subscription_tier === 'gold' || school.subscription_tier === 'platinum' || school.subscription_tier === 'lifetime') && (
                   <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
                     ✨ Dedicated Public Showcase &amp; Offerings Catalog active on <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>/s/{school.slug}</code>
                   </div>

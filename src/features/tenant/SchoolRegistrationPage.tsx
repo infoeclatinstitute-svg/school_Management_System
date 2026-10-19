@@ -284,12 +284,12 @@ export function SchoolRegistrationPage() {
   const [adminPassword, setAdminPassword] = useState(() => generateDynamicPassword('GC'))
   const [isPasswordManual, setIsPasswordManual] = useState(false)
 
-  // Step 5: Campuses & Subscription Tier Selection (Silver KES 2,500, Gold KES 3,000, Platinum KES 5,000)
+  // Step 5: Campuses & Subscription Tier Selection (Silver KES 2,500, Gold KES 3,000, Platinum KES 5,000, Lifetime KES 30,000 + KES 1,000/yr)
   const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTierType>('gold')
   const [campusCount, setCampusCount] = useState<number>(1)
   const [campusesList, setCampusesList] = useState<string[]>(['Main Campus'])
   const [newCampusInput, setNewCampusInput] = useState('')
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('monthly')
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually' | 'lifetime'>('monthly')
 
   // Validation error
   const [error, setError] = useState<string | null>(null)
@@ -426,11 +426,14 @@ export function SchoolRegistrationPage() {
     setStep(5)
   }
 
-  const currentTierRate = SUBSCRIPTION_TIER_RATES[subscriptionTier] || 3000
-  const computedSubscriptionRate =
-    billingCycle === 'monthly'
-      ? campusCount * currentTierRate
-      : campusCount * currentTierRate * 10
+  const isLifetimeSelected = subscriptionTier === 'lifetime' || billingCycle === 'lifetime'
+  const currentTierRate = isLifetimeSelected ? 30000 : (SUBSCRIPTION_TIER_RATES[subscriptionTier] || 3000)
+  const computedSubscriptionRate = isLifetimeSelected
+    ? campusCount * 30000
+    : billingCycle === 'monthly'
+    ? campusCount * currentTierRate
+    : campusCount * currentTierRate * 10
+  const computedYearlyMaintenance = isLifetimeSelected ? campusCount * 1000 : undefined
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -467,9 +470,10 @@ export function SchoolRegistrationPage() {
           name: c,
           is_main: i === 0,
         })),
-        subscription_tier: subscriptionTier,
+        subscription_tier: isLifetimeSelected ? 'lifetime' : subscriptionTier,
         subscription_monthly_rate: computedSubscriptionRate,
-        subscription_billing_cycle: billingCycle,
+        subscription_maintenance_fee_yearly: computedYearlyMaintenance,
+        subscription_billing_cycle: isLifetimeSelected ? 'lifetime' : billingCycle,
         departments_list: departmentsList,
         classes_list: classesList,
         features_enabled: featuresEnabled,
@@ -504,7 +508,9 @@ export function SchoolRegistrationPage() {
       `Head of Institution: ${registeredSchool.principal_name} (${registeredSchool.principal_title})`,
       `Username: ${registeredSchool.admin_username || `admin.${registeredSchool.slug}`}`,
       `Password: ${registeredSchool.admin_password || ''}`,
-      `Subscription Tier: ${(registeredSchool.subscription_tier || 'silver').toUpperCase()} (KES ${(registeredSchool.subscription_monthly_rate || 2500).toLocaleString()})`,
+      registeredSchool.subscription_tier === 'lifetime' || registeredSchool.subscription_billing_cycle === 'lifetime'
+        ? `Subscription Tier: LIFETIME PURCHASE (KES ${(registeredSchool.subscription_monthly_rate || 30000).toLocaleString()} One-Time + KES ${(registeredSchool.subscription_maintenance_fee_yearly || 1000).toLocaleString()}/year Maintenance)`
+        : `Subscription Tier: ${(registeredSchool.subscription_tier || 'silver').toUpperCase()} (KES ${(registeredSchool.subscription_monthly_rate || 2500).toLocaleString()})`,
       `====================================================`,
     ].join('\n')
 
@@ -2193,17 +2199,28 @@ export function SchoolRegistrationPage() {
                         5. Select Institutional Cloud Plan &amp; Deploy
                       </h3>
                       <p style={{ fontSize: '0.84rem', color: '#64748b', margin: 0 }}>
-                        Platform Rate: <strong>KES {currentTierRate.toLocaleString()} / campus / month</strong> ({SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name}). Activated via official Product Key.
+                        {isLifetimeSelected ? (
+                          <>
+                            Lifetime Rate: <strong>KES 30,000 One-Time Purchase / campus</strong> + <strong>Only KES 1,000 / year Maintenance Fee</strong>.
+                          </>
+                        ) : (
+                          <>
+                            Platform Rate: <strong>KES {currentTierRate.toLocaleString()} / campus / month</strong> ({SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name}). Activated via official Product Key.
+                          </>
+                        )}
                       </p>
                     </div>
 
-                    <div style={{ display: 'inline-flex', background: '#e2e8f0', padding: '3px', borderRadius: '10px' }}>
+                    <div style={{ display: 'inline-flex', background: '#e2e8f0', padding: '3px', borderRadius: '10px', flexWrap: 'wrap' }}>
                       <button
                         type="button"
-                        onClick={() => setBillingCycle('monthly')}
+                        onClick={() => {
+                          setBillingCycle('monthly')
+                          if (subscriptionTier === 'lifetime') setSubscriptionTier('gold')
+                        }}
                         style={{
-                          background: billingCycle === 'monthly' ? '#ffffff' : 'transparent',
-                          color: billingCycle === 'monthly' ? '#0f172a' : '#64748b',
+                          background: billingCycle === 'monthly' && !isLifetimeSelected ? '#ffffff' : 'transparent',
+                          color: billingCycle === 'monthly' && !isLifetimeSelected ? '#0f172a' : '#64748b',
                           border: 'none',
                           padding: '0.35rem 0.75rem',
                           borderRadius: '8px',
@@ -2216,10 +2233,13 @@ export function SchoolRegistrationPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setBillingCycle('annually')}
+                        onClick={() => {
+                          setBillingCycle('annually')
+                          if (subscriptionTier === 'lifetime') setSubscriptionTier('gold')
+                        }}
                         style={{
-                          background: billingCycle === 'annually' ? '#ffffff' : 'transparent',
-                          color: billingCycle === 'annually' ? '#0f172a' : '#64748b',
+                          background: billingCycle === 'annually' && !isLifetimeSelected ? '#ffffff' : 'transparent',
+                          color: billingCycle === 'annually' && !isLifetimeSelected ? '#0f172a' : '#64748b',
                           border: 'none',
                           padding: '0.35rem 0.75rem',
                           borderRadius: '8px',
@@ -2229,6 +2249,25 @@ export function SchoolRegistrationPage() {
                         }}
                       >
                         Annually (Save 17%)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBillingCycle('lifetime')
+                          setSubscriptionTier('lifetime')
+                        }}
+                        style={{
+                          background: isLifetimeSelected ? '#047857' : 'transparent',
+                          color: isLifetimeSelected ? '#ffffff' : '#047857',
+                          border: 'none',
+                          padding: '0.35rem 0.75rem',
+                          borderRadius: '8px',
+                          fontSize: '0.75rem',
+                          fontWeight: 900,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ♾️ Lifetime (KES 30,000 + 1k/yr)
                       </button>
                     </div>
                   </div>
@@ -2241,7 +2280,15 @@ export function SchoolRegistrationPage() {
                           🏢 Campuses &amp; Satellite Branches
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                          Each registered campus is billed independently at <strong>KES {currentTierRate.toLocaleString()} / month</strong>.
+                          {isLifetimeSelected ? (
+                            <>
+                              Each registered campus is a one-time <strong>KES 30,000</strong> purchase + <strong>KES 1,000 / year</strong> maintenance fee.
+                            </>
+                          ) : (
+                            <>
+                              Each registered campus is billed independently at <strong>KES {currentTierRate.toLocaleString()} / month</strong>.
+                            </>
+                          )}
                         </div>
                       </div>
                       <span style={{ background: '#eff6ff', color: '#1d4ed8', fontWeight: 800, fontSize: '0.8rem', padding: '4px 10px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
@@ -2369,16 +2416,31 @@ export function SchoolRegistrationPage() {
                       Institutional Subscription Tier *
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
-                      {(['silver', 'gold', 'platinum'] as SubscriptionTierType[]).map((tierKey) => {
+                      {(['silver', 'gold', 'platinum', 'lifetime'] as SubscriptionTierType[]).map((tierKey) => {
                         const tierInfo = SUBSCRIPTION_TIER_DETAILS[tierKey]
                         const isSelected = subscriptionTier === tierKey
                         return (
                           <div
                             key={tierKey}
-                            onClick={() => setSubscriptionTier(tierKey)}
+                            onClick={() => {
+                              setSubscriptionTier(tierKey)
+                              if (tierKey === 'lifetime') {
+                                setBillingCycle('lifetime')
+                              } else if (billingCycle === 'lifetime') {
+                                setBillingCycle('monthly')
+                              }
+                            }}
                             style={{
-                              border: isSelected ? '2px solid #1d4ed8' : '1px solid #cbd5e1',
-                              background: isSelected ? '#eff6ff' : '#ffffff',
+                              border: isSelected
+                                ? tierKey === 'lifetime'
+                                  ? '2px solid #047857'
+                                  : '2px solid #1d4ed8'
+                                : '1px solid #cbd5e1',
+                              background: isSelected
+                                ? tierKey === 'lifetime'
+                                  ? '#ecfdf5'
+                                  : '#eff6ff'
+                                : '#ffffff',
                               borderRadius: '14px',
                               padding: '1rem',
                               cursor: 'pointer',
@@ -2391,7 +2453,7 @@ export function SchoolRegistrationPage() {
                           >
                             <div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isSelected ? '#1d4ed8' : '#475569' }}>
+                                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: isSelected ? (tierKey === 'lifetime' ? '#047857' : '#1d4ed8') : '#475569' }}>
                                   {tierInfo.badge}
                                 </span>
                                 {tierKey === 'gold' && (
@@ -2399,10 +2461,23 @@ export function SchoolRegistrationPage() {
                                     RECOMMENDED
                                   </span>
                                 )}
+                                {tierKey === 'lifetime' && (
+                                  <span style={{ fontSize: '0.65rem', background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>
+                                    BEST VALUE
+                                  </span>
+                                )}
                               </div>
                               <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#0f172a', marginBottom: '0.2rem' }}>
-                                {currency} {tierInfo.rateKes.toLocaleString()} <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>/ mo</span>
+                                {currency} {tierInfo.rateKes.toLocaleString()}{' '}
+                                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                                  {tierKey === 'lifetime' ? 'One-Time' : '/ mo'}
+                                </span>
                               </div>
+                              {tierKey === 'lifetime' && (
+                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#047857', marginBottom: '0.3rem' }}>
+                                  + Only {currency} 1,000 / year Maintenance Fee
+                                </div>
+                              )}
                               <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.6rem' }}>
                                 {tierInfo.tagline}
                               </div>
@@ -2436,33 +2511,61 @@ export function SchoolRegistrationPage() {
                           <span>🇰🇪 OFFICIAL INSTITUTIONAL PRICING</span>
                         </div>
                         <h4 style={{ margin: '0 0 0.25rem', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
-                          {currency} {currentTierRate.toLocaleString()} <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>/ month per campus ({SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name})</span>
+                          {isLifetimeSelected ? (
+                            <>
+                              {currency} 30,000{' '}
+                              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#047857' }}>
+                                One-Time Lifetime Purchase per campus + Only {currency} 1,000 / year Maintenance Fee
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              {currency} {currentTierRate.toLocaleString()}{' '}
+                              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>
+                                / month per campus ({SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name})
+                              </span>
+                            </>
+                          )}
                         </h4>
                         <p style={{ margin: 0, fontSize: '0.82rem', color: '#475569', lineHeight: 1.45 }}>
-                          Multi-campus institutions pay separately per branch: <strong>{campusesList.length} {campusesList.length === 1 ? 'campus' : 'campuses'} &times; {currency} {currentTierRate.toLocaleString()}/mo</strong>.
+                          {isLifetimeSelected ? (
+                            <>
+                              Own your digital campus forever: <strong>{campusesList.length} {campusesList.length === 1 ? 'campus' : 'campuses'} &times; {currency} 30,000 one-time</strong>, with an annual maintenance fee of only <strong>{currency} {(campusesList.length * 1000).toLocaleString()} / year</strong>.
+                            </>
+                          ) : (
+                            <>
+                              Multi-campus institutions pay separately per branch: <strong>{campusesList.length} {campusesList.length === 1 ? 'campus' : 'campuses'} &times; {currency} {currentTierRate.toLocaleString()}/mo</strong>.
+                            </>
+                          )}
                         </p>
                       </div>
 
                       <div style={{ background: '#ffffff', borderRadius: '14px', padding: '0.85rem 1.25rem', textAlign: 'right', border: '1px solid #bfdbfe', boxShadow: '0 4px 12px rgba(30, 58, 138, 0.06)' }}>
                         <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-                          Total {billingCycle === 'monthly' ? 'Monthly' : 'Annual'} Subscription
+                          {isLifetimeSelected
+                            ? 'Total One-Time Lifetime Purchase'
+                            : `Total ${billingCycle === 'monthly' ? 'Monthly' : 'Annual'} Subscription`}
                         </div>
                         <div style={{ fontSize: '1.65rem', fontWeight: 900, color: '#1e3a8a' }}>
                           {currency} {computedSubscriptionRate.toLocaleString()}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700 }}>
-                          {billingCycle === 'monthly' ? `${currency} ${currentTierRate.toLocaleString()} × ${campusesList.length} campus${campusesList.length > 1 ? 'es' : ''}` : `Save 2 Months Free (10 mo rate)`}
+                          {isLifetimeSelected
+                            ? `+ Only ${currency} ${(campusesList.length * 1000).toLocaleString()} / year maintenance fee`
+                            : billingCycle === 'monthly'
+                            ? `${currency} ${currentTierRate.toLocaleString()} × ${campusesList.length} campus${campusesList.length > 1 ? 'es' : ''}`
+                            : `Save 2 Months Free (10 mo rate)`}
                         </div>
                       </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem', fontSize: '0.78rem', color: '#334155', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem' }}>
                       <div>✅ Full Access to all 4 Role Portals (Admin, Teacher, Student, Bursar)</div>
-                      <div>✅ {subscriptionTier === 'gold' || subscriptionTier === 'platinum' ? 'Dedicated Public Programs & Courses Showcase Page' : 'Core SIS & Academic Gradebooks'}</div>
+                      <div>✅ {subscriptionTier === 'gold' || subscriptionTier === 'platinum' || isLifetimeSelected ? 'Dedicated Public Programs & Courses Showcase Page' : 'Core SIS & Academic Gradebooks'}</div>
                       <div>✅ M-Pesa automated fee reconciliation &amp; digital receipts</div>
                       <div>✅ Official printable report cards &amp; QR transcripts with digital seal</div>
                       <div>✅ Product activation key unlocking via Master SaaS Billing Portal</div>
-                      <div>✅ Independent student directories &amp; gradebooks per campus</div>
+                      <div>✅ {isLifetimeSelected ? `Perpetual Lifetime Ownership (+ Only ${currency} 1,000/yr maintenance)` : 'Independent student directories & gradebooks per campus'}</div>
                     </div>
 
                     <div style={{ background: '#ffffff', borderRadius: '12px', padding: '0.75rem 1rem', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', fontSize: '0.82rem' }}>
@@ -2470,7 +2573,11 @@ export function SchoolRegistrationPage() {
                         <span style={{ fontSize: '1.2rem' }}>📲</span>
                         <div>
                           <div style={{ fontWeight: 800, color: '#0f172a' }}>Direct M-Pesa Subscription Payment Line</div>
-                          <div style={{ color: '#64748b', fontSize: '0.75rem' }}>Send {currency} {currentTierRate.toLocaleString()} per campus to receive instant Product Activation Key</div>
+                          <div style={{ color: '#64748b', fontSize: '0.75rem' }}>
+                            {isLifetimeSelected
+                              ? `Send ${currency} 30,000 per campus (Lifetime Purchase) to receive your Perpetual Product Key`
+                              : `Send ${currency} ${currentTierRate.toLocaleString()} per campus to receive instant Product Activation Key`}
+                          </div>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -2506,7 +2613,7 @@ export function SchoolRegistrationPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.4rem', color: '#475569' }}>
                       <div>• <strong>Institution:</strong> {name || '—'}</div>
                       <div>• <strong>Category:</strong> {activeCategoryObj.label}</div>
-                      <div>• <strong>Tier:</strong> {SUBSCRIPTION_TIER_DETAILS[subscriptionTier].name}</div>
+                      <div>• <strong>Tier:</strong> {SUBSCRIPTION_TIER_DETAILS[isLifetimeSelected ? 'lifetime' : subscriptionTier].name}</div>
                       <div>• <strong>Calendar:</strong> {academicSystem.toUpperCase()} ({gradingScale.replace('_', ' ')})</div>
                       <div>• <strong>Faculties &amp; Cohorts:</strong> {departmentsList.length} Depts / {classesList.length} Classes</div>
                       <div>• <strong>Executive Login:</strong> <code>{adminUsername}</code></div>

@@ -31,10 +31,11 @@ export function TenantPublicShowcase({
   onOpenLicense,
   currentSession: _currentSession,
 }: TenantPublicShowcaseProps) {
-  // Gold Tier Authorization
+  // Gold / Lifetime Tier Authorization
   const isGoldTier =
     school.subscription_tier === 'gold' ||
     school.subscription_tier === 'platinum' ||
+    school.subscription_tier === 'lifetime' ||
     school.subscription_tier === 'enterprise'
 
   const isPrincipalOrAdmin =

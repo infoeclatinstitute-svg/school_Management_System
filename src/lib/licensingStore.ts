@@ -282,21 +282,35 @@ class LicensingStore {
     notes?: string
   }): ProductKeyLicense {
     const campusCount = Math.max(1, params.campus_count || 1)
-    const tier: SubscriptionTierType = params.tier || 'gold'
-    const ratePerCampus = SUBSCRIPTION_TIER_RATES[tier] || (tier === 'gold' ? 3000 : 2500)
+    const isLifetime = params.tier === 'lifetime' || params.plan_duration === 'perpetual'
+    const tier: SubscriptionTierType = isLifetime ? 'lifetime' : (params.tier || 'gold')
+    const effectiveDuration: LicenseDurationType = isLifetime ? 'perpetual' : params.plan_duration
+    const ratePerCampus = isLifetime
+      ? 30000
+      : (SUBSCRIPTION_TIER_RATES[tier] || (tier === 'gold' ? 3000 : 2500))
 
     let months = 1
-    if (params.plan_duration === '3_months') months = 3
-    else if (params.plan_duration === '6_months') months = 6
-    else if (params.plan_duration === '1_year') months = 12
-    else if (params.plan_duration === 'perpetual') months = 120
+    if (effectiveDuration === '3_months') months = 3
+    else if (effectiveDuration === '6_months') months = 6
+    else if (effectiveDuration === '1_year') months = 12
+    else if (effectiveDuration === 'perpetual') months = 1200
 
-    // Dynamic rate based on chosen tier (e.g. Gold = KES 3,000, Silver = KES 2,500)
-    const totalKes = campusCount * ratePerCampus * months
+    // Lifetime is a one-time KES 30,000 purchase per campus (+ KES 1,000/yr maintenance)
+    const totalKes = isLifetime
+      ? campusCount * 30000
+      : campusCount * ratePerCampus * months
+    const maintenanceFeeYearlyKes = isLifetime ? campusCount * 1000 : undefined
 
     // Cryptographically secure alphanumeric token generator with tier badge prefix
     const randPart = () => this.secureRandomSegment(4)
-    const tierPrefix = tier === 'gold' ? 'GLD' : tier === 'platinum' ? 'PLT' : 'SLV'
+    const tierPrefix =
+      tier === 'lifetime'
+        ? 'LFT'
+        : tier === 'gold'
+        ? 'GLD'
+        : tier === 'platinum'
+        ? 'PLT'
+        : 'SLV'
     const key = `GC-${tierPrefix}-${randPart()}-${randPart()}-${randPart()}-${randPart()}`
 
     const now = new Date()
@@ -312,7 +326,8 @@ class LicensingStore {
       tier,
       rate_per_campus: ratePerCampus,
       total_amount_kes: totalKes,
-      plan_duration: params.plan_duration,
+      maintenance_fee_yearly_kes: maintenanceFeeYearlyKes,
+      plan_duration: effectiveDuration,
       duration_months: months,
       status: 'active',
       generated_at: now.toISOString(),
@@ -329,9 +344,13 @@ class LicensingStore {
     this.createInvoice({
       school_slug: params.school_slug,
       school_name: params.school_name,
-      billing_period: `${now.toLocaleString('default', { month: 'long' })} ${now.getFullYear()}`,
+      billing_period: isLifetime
+        ? `Lifetime Purchase + KES ${(campusCount * 1000).toLocaleString()}/yr Maintenance`
+        : `${now.toLocaleString('default', { month: 'long' })} ${now.getFullYear()}`,
       campus_count: campusCount,
       campuses: Array.from({ length: campusCount }, (_, i) => `Campus ${i + 1}`),
+      rate_per_campus_kes: ratePerCampus,
+      total_amount_kes: totalKes,
       status: 'paid',
       payment_method: 'Product Key Activation',
       transaction_ref: key,
@@ -395,13 +414,15 @@ class LicensingStore {
     }
 
     // Determine the active subscription tier
-    const resolvedTier: SubscriptionTierType = license.tier || (
-      (cleanKey.includes('-GLD-') || cleanKey.startsWith('GC-GLD-'))
+    const resolvedTier: SubscriptionTierType =
+      license.tier ||
+      (cleanKey.includes('-LFT-') || cleanKey.startsWith('GC-LFT-') || license.plan_duration === 'perpetual'
+        ? 'lifetime'
+        : cleanKey.includes('-GLD-') || cleanKey.startsWith('GC-GLD-')
         ? 'gold'
-        : (cleanKey.includes('-PLT-') || cleanKey.startsWith('GC-PLT-'))
+        : cleanKey.includes('-PLT-') || cleanKey.startsWith('GC-PLT-')
         ? 'platinum'
-        : 'silver'
-    )
+        : 'silver')
     license.tier = resolvedTier
 
     // Associate the license with the redeeming institution
@@ -417,15 +438,29 @@ class LicensingStore {
     this.saveData()
     await this.pushToCloud()
 
+    const isLifetime = resolvedTier === 'lifetime' || license.plan_duration === 'perpetual'
+
     // Update school subscription tier, status and license expiry date in tenantSchoolStore
     tenantSchoolStore.updateSchoolBranding(cleanSlug, {
       subscription_status: 'licensed',
       subscription_tier: resolvedTier,
+      subscription_billing_cycle: isLifetime ? 'lifetime' : undefined,
+      subscription_maintenance_fee_yearly: isLifetime ? 1000 * license.campus_count : undefined,
       active_license_key: license.key,
       license_valid_until: license.expires_at,
-      subscription_monthly_rate: (license.duration_months > 0 ? Math.round(license.total_amount_kes / license.duration_months) : 0) || (SUBSCRIPTION_TIER_RATES[resolvedTier] * license.campus_count),
+      subscription_monthly_rate: isLifetime
+        ? 30000 * license.campus_count
+        : (license.duration_months > 0 ? Math.round(license.total_amount_kes / license.duration_months) : 0) || (SUBSCRIPTION_TIER_RATES[resolvedTier] * license.campus_count),
       campus_count: license.campus_count,
     })
+
+    if (isLifetime) {
+      return {
+        success: true,
+        message: `Successfully activated ♾️ LIFETIME PURCHASE (KES ${(30000 * license.campus_count).toLocaleString()} One-Time + KES ${(1000 * license.campus_count).toLocaleString()}/year maintenance fee) for ${license.campus_count} campus(es)! All Gold & Platinum features unlocked.`,
+        license,
+      }
+    }
 
     const tierBadge = resolvedTier === 'gold'
       ? '🥇 GOLD TIER (Dedicated Public Showcase Unlocked)'
@@ -457,13 +492,16 @@ class LicensingStore {
     billing_period: string
     campus_count: number
     campuses?: string[]
+    rate_per_campus_kes?: number
+    total_amount_kes?: number
     status?: 'paid' | 'pending' | 'overdue'
     payment_method?: SaasCampusInvoice['payment_method']
     transaction_ref?: string
     paid_at?: string
   }): SaasCampusInvoice {
     const campusCount = Math.max(1, params.campus_count || 1)
-    const total = campusCount * DEFAULT_CAMPUS_RATE_KES
+    const rate = params.rate_per_campus_kes || DEFAULT_CAMPUS_RATE_KES
+    const total = params.total_amount_kes || campusCount * rate
 
     const count = this.invoices.length + 1
     const invoiceNum = `INV-GC-${new Date().getFullYear()}-${String(count).padStart(4, '0')}`
@@ -479,7 +517,7 @@ class LicensingStore {
       billing_period: params.billing_period,
       campus_count: campusCount,
       campuses: params.campuses || ['Main Campus'],
-      rate_per_campus_kes: DEFAULT_CAMPUS_RATE_KES,
+      rate_per_campus_kes: rate,
       total_amount_kes: total,
       status: params.status || 'pending',
       payment_method: params.payment_method,
