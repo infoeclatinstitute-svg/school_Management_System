@@ -152,144 +152,10 @@ export function TenantPublicShowcase({
     ]
   }, [school.campus_facilities])
 
-  // Gold Tier Gating: Only Gold Tier (or preview by Principal) activates the dedicated public showcase
+  // Dedicated Public Showcase: Only renders when the institution has unlocked it, or during an active Executive Preview
+  // Never expose internal SaaS tier sales pitches, upgrade nags, or pricing to public visitors, students, or parents
   if (!isGoldTier && !previewMode) {
-    return (
-      <div
-        id="about"
-        style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #fffdf5 100%)',
-          borderRadius: '24px',
-          border: '2px solid #fde047',
-          padding: 'clamp(1.5rem, 3.5vw, 2.5rem)',
-          boxShadow: '0 12px 32px rgba(245, 158, 11, 0.08)',
-          marginBottom: '2.5rem',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #f59e0b, #fbbf24)' }} />
-
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', marginBottom: '1.25rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 900, color: '#b45309', background: '#fef3c7', padding: '3px 10px', borderRadius: '6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                👑 Gold Tier Feature
-              </span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '3px 10px', borderRadius: '6px' }}>
-                KES 3,000 / Campus / Month
-              </span>
-            </div>
-            <h2 style={{ fontSize: 'clamp(1.35rem, 2.3vw, 1.75rem)', fontWeight: 900, color: '#0f172a', margin: '0 0 0.4rem', letterSpacing: '-0.01em' }}>
-              Dedicated Public Showcase &amp; Academic Programs Catalog
-            </h2>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', lineHeight: 1.55, maxWidth: '720px' }}>
-              Publish {school.name}’s interactive academic programs catalog, institutional story, mission, vision, principal welcome address, and campus facilities directly to prospective students and guardians on this landing page.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            {isPrincipalOrAdmin && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode(true)}
-                  style={{
-                    background: '#f8fafc',
-                    color: '#334155',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '12px',
-                    padding: '0.75rem 1.15rem',
-                    fontWeight: 800,
-                    fontSize: '0.84rem',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <span>👁️ Preview Showcase</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onOpenLicense) onOpenLicense()
-                    else onOpenLogin()
-                  }}
-                  style={{
-                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '12px',
-                    padding: '0.75rem 1.4rem',
-                    fontWeight: 900,
-                    fontSize: '0.86rem',
-                    cursor: 'pointer',
-                    boxShadow: '0 6px 18px rgba(217, 119, 6, 0.28)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <span>👑 Activate Gold Tier Key (KES 3,000/mo) ➔</span>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* 4 Feature Highlights Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '1rem', marginTop: '1.25rem', borderTop: '1px solid #fef08a', paddingTop: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <span style={{ fontSize: '1.4rem' }}>🏛️</span>
-            <div>
-              <strong style={{ fontSize: '0.84rem', color: '#0f172a', display: 'block' }}>About Us, Mission &amp; Vision</strong>
-              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Custom narrative, founding history, and institutional pillars published publicly.</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <span style={{ fontSize: '1.4rem' }}>📚</span>
-            <div>
-              <strong style={{ fontSize: '0.84rem', color: '#0f172a', display: 'block' }}>Interactive Programs Catalog</strong>
-              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Searchable courses, qualification filters, durations, tuition and requirements.</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <span style={{ fontSize: '1.4rem' }}>🎓</span>
-            <div>
-              <strong style={{ fontSize: '0.84rem', color: '#0f172a', display: 'block' }}>Direct "Apply for Course"</strong>
-              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>One-click admission links routing applicants directly into your SIS register.</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <span style={{ fontSize: '1.4rem' }}>🔬</span>
-            <div>
-              <strong style={{ fontSize: '0.84rem', color: '#0f172a', display: 'block' }}>Campus Facilities &amp; Amenities</strong>
-              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Showcase IT suites, libraries, laboratories, athletics, and accommodation.</span>
-            </div>
-          </div>
-        </div>
-
-        {!isPrincipalOrAdmin && (
-          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-              Enrolled scholars, faculty, and administrative staff can authenticate into their designated portal desks below:
-            </span>
-            <a
-              href="#portals"
-              onClick={(e) => {
-                e.preventDefault()
-                const el = document.getElementById('portals')
-                if (el) el.scrollIntoView({ behavior: 'smooth' })
-              }}
-              style={{ fontSize: '0.82rem', fontWeight: 800, color: primaryColor, textDecoration: 'none' }}
-            >
-              Access School Portals &amp; Desks ↓
-            </a>
-          </div>
-        )}
-      </div>
-    )
+    return null
   }
 
   return (
@@ -301,24 +167,14 @@ export function TenantPublicShowcase({
             <span style={{ fontSize: '1.2rem' }}>👁️</span>
             <div>
               <div style={{ fontSize: '0.86rem', fontWeight: 900, color: '#1e3a8a' }}>
-                Executive Preview Mode (Gold Tier Required for Public View)
+                Executive Preview Mode
               </div>
               <div style={{ fontSize: '0.76rem', color: '#3b82f6' }}>
-                This is how your dedicated public showcase appears once the Gold Tier license (KES 3,000/mo) is activated.
+                Previewing how your public showcase, programs catalog, and campus facilities appear to prospective students.
               </div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => {
-                if (onOpenLicense) onOpenLicense()
-                else onOpenLogin()
-              }}
-              style={{ background: '#d97706', color: '#ffffff', border: 'none', padding: '0.45rem 0.9rem', borderRadius: '8px', fontSize: '0.76rem', fontWeight: 800, cursor: 'pointer' }}
-            >
-              👑 Activate Gold License Key
-            </button>
             <button
               type="button"
               onClick={() => setPreviewMode(false)}
@@ -347,8 +203,8 @@ export function TenantPublicShowcase({
           boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
         }}
       >
-        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#b45309', background: '#fef3c7', border: '1px solid #fde047', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap', marginRight: '0.25rem' }}>
-          👑 Gold Campus Showcase
+        <span style={{ fontSize: '0.7rem', fontWeight: 900, color: '#1e40af', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px', whiteSpace: 'nowrap', marginRight: '0.25rem' }}>
+          🏛️ Campus Showcase
         </span>
         <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap', marginRight: '0.25rem' }}>
           Explore Campus:
