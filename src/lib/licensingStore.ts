@@ -167,12 +167,13 @@ class LicensingStore {
   // -------------------------------------------------------------
   public verifyMasterAuth(passcode: string): boolean {
     const clean = passcode.trim()
-    const valid = clean === this.masterPasscode || clean === 'admin2026' || clean === 'GlobalCollege@2026'
+    const customPasscode = typeof window !== 'undefined' ? localStorage.getItem('gc_master_custom_passcode') : null
+    const valid = clean === this.masterPasscode || (customPasscode && clean === customPasscode)
     if (valid && typeof window !== 'undefined') {
       sessionStorage.setItem(MASTER_AUTH_STORAGE_KEY, 'authorized_' + Date.now())
       localStorage.setItem(MASTER_AUTH_STORAGE_KEY, 'authorized_' + Date.now())
     }
-    return valid
+    return Boolean(valid)
   }
 
   public isMasterAuthenticated(): boolean {
@@ -323,39 +324,9 @@ class LicensingStore {
     }
 
     if (!license) {
-      // Check if format matches valid Global College product key (including Gold, Silver, Platinum tier prefixes)
-      const keyPattern = /^GC-(?:LIC|GLD|SLV|PLT|STD)(?:-[A-Z0-9]{3,4}){3,5}$/i
-      if (keyPattern.test(cleanKey)) {
-        const targetSchool = tenantSchoolStore.getSchoolBySlug(cleanSlug)
-        const campusCount = Math.max(1, targetSchool?.campus_count || (targetSchool?.campuses_list ? targetSchool.campuses_list.length : 1) || 1)
-        const fallbackTier: SubscriptionTierType = (cleanKey.includes('-GLD-') || cleanKey.startsWith('GC-GLD-'))
-          ? 'gold'
-          : (cleanKey.includes('-PLT-') || cleanKey.startsWith('GC-PLT-'))
-          ? 'platinum'
-          : 'silver'
-        const fallbackRate = SUBSCRIPTION_TIER_RATES[fallbackTier] || (fallbackTier === 'gold' ? 3000 : 2500)
-        const now = new Date()
-        const exp = new Date(now)
-        exp.setMonth(exp.getMonth() + 1)
-        license = {
-          id: `lic_${Date.now()}_sync`,
-          key: cleanKey,
-          school_slug: cleanSlug,
-          school_name: targetSchool?.name || cleanSlug,
-          campus_count: campusCount,
-          tier: fallbackTier,
-          rate_per_campus: fallbackRate,
-          total_amount_kes: campusCount * fallbackRate,
-          plan_duration: '1_month',
-          duration_months: 1,
-          status: 'active',
-          generated_at: now.toISOString(),
-          expires_at: exp.toISOString(),
-          issued_by: 'Platform Owner Directorate',
-        }
-        this.licenses.unshift(license)
-      } else {
-        return { success: false, message: 'Invalid product key. Please check spelling or contact platform administrator.' }
+      return {
+        success: false,
+        message: 'Invalid product key. This license key does not exist or has not been issued by the platform administrator.',
       }
     }
 
