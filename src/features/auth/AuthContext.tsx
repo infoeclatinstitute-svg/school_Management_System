@@ -486,15 +486,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const registeredStudents = schoolStore.getStudents()
     const student = registeredStudents.find((s) => {
       const sAdm = s.admission_number.toLowerCase().replace(/[^a-z0-9]/g, '')
-      const sName = s.full_name.toLowerCase().replace(/[^a-z0-9]/g, '')
       const sId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '')
       return (
         sAdm === cleanAlpha ||
         s.admission_number.toLowerCase() === rawInput.toLowerCase() ||
-        sName === cleanAlpha ||
-        s.full_name.toLowerCase() === rawInput.toLowerCase() ||
-        sId === cleanAlpha ||
-        (cleanAlpha.length >= 3 && (sAdm.includes(cleanAlpha) || sName.includes(cleanAlpha)))
+        sId === cleanAlpha
       )
     })
 
@@ -538,26 +534,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null, profile: studentProfile }
     }
 
-    // 4b. Check registered tenant school students (e.g. EG, Prime)
+    // 4b. Check registered tenant school students
     const tenantStudents = tenantSchoolStore.getAllStudents()
     const tStudent = tenantStudents.find((s) => {
       const sAdm = s.admission_number.toLowerCase().replace(/[^a-z0-9]/g, '')
-      const sName = s.full_name.toLowerCase().replace(/[^a-z0-9]/g, '')
       const sId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '')
       const sUser = (s.username || '').toLowerCase().replace(/[^a-z0-9]/g, '')
       return (
         sAdm === cleanAlpha ||
         s.admission_number.toLowerCase() === rawInput.toLowerCase() ||
         sUser === cleanAlpha ||
-        sName === cleanAlpha ||
-        sId === cleanAlpha ||
-        (cleanAlpha.length >= 3 && (sAdm.includes(cleanAlpha) || sName.includes(cleanAlpha)))
+        sId === cleanAlpha
       )
     })
 
     if (tStudent) {
-      const expectedPass = tStudent.temp_password || 'Student@2026#!'
-      if (cleanPass !== expectedPass && cleanPass !== 'Student@2026#!' && cleanPass !== `${tStudent.school_slug.toUpperCase()}@2026`) {
+      const expectedPass = (tStudent.temp_password || '').trim()
+      if (!expectedPass) {
+        return { error: 'Account password not configured. Please contact your institution administrator.' }
+      }
+      const isValidStudentPass = await verifyPassword(cleanPass, expectedPass)
+      if (!isValidStudentPass) {
         return { error: 'Incorrect password for this student account.' }
       }
       const renewedExpiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
@@ -582,31 +579,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const registeredTeachers = schoolStore.getTeachers()
     const teacher = registeredTeachers.find((t) => {
       const tStaffId = (t.staff_id || t.id).toLowerCase().replace(/[^a-z0-9]/g, '')
-      const tName = t.name.toLowerCase().replace(/[^a-z0-9]/g, '')
       const tEmail = (t.email || '').toLowerCase().trim()
       return (
         tStaffId === cleanAlpha ||
         (t.staff_id && t.staff_id.toLowerCase() === rawInput.toLowerCase()) ||
         t.id.toLowerCase() === rawInput.toLowerCase() ||
-        tName === cleanAlpha ||
-        t.name.toLowerCase() === rawInput.toLowerCase() ||
         (tEmail && tEmail === rawInput.toLowerCase())
       )
     })
 
     if (teacher) {
-      if (teacher.portal_password && teacher.portal_password.trim() !== '') {
-        const isPasswordValid = await verifyPassword(password.trim(), teacher.portal_password.trim())
-        if (!isPasswordValid) {
-          return { error: 'Incorrect password for this faculty teacher account.' }
-        }
+      if (!teacher.portal_password || teacher.portal_password.trim() === '') {
+        return { error: 'Account password not configured. Please contact the Administrator.' }
+      }
+      const isPasswordValid = await verifyPassword(password.trim(), teacher.portal_password.trim())
+      if (!isPasswordValid) {
+        return { error: 'Incorrect password for this faculty teacher account.' }
+      }
 
-        // Proactively upgrade legacy unhashed or legacy SHA-256 password to PBKDF2
-        if (isLegacyPasswordHash(teacher.portal_password)) {
-          hashPassword(password.trim()).then((upgradedHash) => {
-            schoolStore.updateTeacher({ ...teacher, portal_password: upgradedHash })
-          }).catch(() => {})
-        }
+      // Proactively upgrade legacy unhashed or legacy SHA-256 password to PBKDF2
+      if (isLegacyPasswordHash(teacher.portal_password)) {
+        hashPassword(password.trim()).then((upgradedHash) => {
+          schoolStore.updateTeacher({ ...teacher, portal_password: upgradedHash })
+        }).catch(() => {})
       }
       const teacherProfile: Profile = {
         id: teacher.id,
@@ -629,19 +624,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const tStaff = tenantStaff.find((s) => {
       const sId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '')
       const sUser = (s.username || '').toLowerCase().replace(/[^a-z0-9]/g, '')
-      const sName = s.full_name.toLowerCase().replace(/[^a-z0-9]/g, '')
       const sEmail = (s.email || '').toLowerCase().trim()
       return (
         sId === cleanAlpha ||
         sUser === cleanAlpha ||
-        sName === cleanAlpha ||
-        sEmail === rawInput.toLowerCase()
+        (sEmail !== '' && sEmail === rawInput.toLowerCase())
       )
     })
 
     if (tStaff) {
-      const expectedPass = tStaff.temp_password || 'Global@2026#!'
-      if (cleanPass !== expectedPass && cleanPass !== `${tStaff.school_slug.toUpperCase()}@2026` && cleanPass !== 'Global@2026#!') {
+      const expectedPass = (tStaff.temp_password || '').trim()
+      if (!expectedPass) {
+        return { error: 'Staff password not configured. Please contact your institution administrator.' }
+      }
+      const isValidStaffPass = await verifyPassword(cleanPass, expectedPass)
+      if (!isValidStaffPass) {
         return { error: `Incorrect password for ${tStaff.full_name}.` }
       }
       const staffRole: Role = tStaff.role === 'principal' ? 'admin' : (tStaff.role as Role)

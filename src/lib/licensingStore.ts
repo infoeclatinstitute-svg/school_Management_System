@@ -165,28 +165,74 @@ class LicensingStore {
   // -------------------------------------------------------------
   // Master Super-Admin Authentication
   // -------------------------------------------------------------
+  private masterLockoutUntil = 0
+  private masterFailedAttempts = 0
+
   public verifyMasterAuth(passcode: string): boolean {
-    const clean = passcode.trim()
-    const customPasscode = typeof window !== 'undefined' ? localStorage.getItem('gc_master_custom_passcode') : null
-    const valid = clean === this.masterPasscode || (customPasscode && clean === customPasscode)
-    if (valid && typeof window !== 'undefined') {
-      sessionStorage.setItem(MASTER_AUTH_STORAGE_KEY, 'authorized_' + Date.now())
-      localStorage.setItem(MASTER_AUTH_STORAGE_KEY, 'authorized_' + Date.now())
+    if (Date.now() < this.masterLockoutUntil) {
+      return false
     }
-    return Boolean(valid)
+    const clean = passcode.trim()
+    const valid = clean === this.masterPasscode
+    if (valid) {
+      this.masterFailedAttempts = 0
+      this.masterLockoutUntil = 0
+      if (typeof window !== 'undefined') {
+        const tokenPayload = JSON.stringify({
+          iat: Date.now(),
+          exp: Date.now() + 8 * 60 * 60 * 1000, // 8-hour session TTL
+          nonce: this.secureRandomSegment(8),
+        })
+        sessionStorage.setItem(MASTER_AUTH_STORAGE_KEY, tokenPayload)
+        localStorage.removeItem(MASTER_AUTH_STORAGE_KEY)
+      }
+      return true
+    } else {
+      this.masterFailedAttempts += 1
+      if (this.masterFailedAttempts >= 5) {
+        this.masterLockoutUntil = Date.now() + 60_000
+      }
+      return false
+    }
   }
 
   public isMasterAuthenticated(): boolean {
     if (typeof window === 'undefined') return false
-    return Boolean(
-      sessionStorage.getItem(MASTER_AUTH_STORAGE_KEY) || localStorage.getItem(MASTER_AUTH_STORAGE_KEY)
-    )
+    try {
+      const raw = sessionStorage.getItem(MASTER_AUTH_STORAGE_KEY)
+      if (!raw) return false
+      if (raw.startsWith('{')) {
+        const parsed = JSON.parse(raw) as { exp?: number }
+        if (!parsed.exp || Date.now() > parsed.exp) {
+          sessionStorage.removeItem(MASTER_AUTH_STORAGE_KEY)
+          return false
+        }
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
   }
 
   public logoutMaster(): void {
     if (typeof window === 'undefined') return
     sessionStorage.removeItem(MASTER_AUTH_STORAGE_KEY)
     localStorage.removeItem(MASTER_AUTH_STORAGE_KEY)
+  }
+
+  private secureRandomSegment(length = 4): string {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const bytes = new Uint8Array(length)
+      crypto.getRandomValues(bytes)
+      return Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('')
+    }
+    let out = ''
+    for (let i = 0; i < length; i++) {
+      out += alphabet[Math.floor(Math.random() * alphabet.length)]
+    }
+    return out
   }
 
   public clearAllLicensingData(): void {
@@ -248,8 +294,8 @@ class LicensingStore {
     // Dynamic rate based on chosen tier (e.g. Gold = KES 3,000, Silver = KES 2,500)
     const totalKes = campusCount * ratePerCampus * months
 
-    // Cryptographic-like alphanumeric token generator with tier badge prefix
-    const randPart = () => Math.random().toString(36).substring(2, 6).toUpperCase()
+    // Cryptographically secure alphanumeric token generator with tier badge prefix
+    const randPart = () => this.secureRandomSegment(4)
     const tierPrefix = tier === 'gold' ? 'GLD' : tier === 'platinum' ? 'PLT' : 'SLV'
     const key = `GC-${tierPrefix}-${randPart()}-${randPart()}-${randPart()}-${randPart()}`
 
@@ -258,7 +304,7 @@ class LicensingStore {
     expiresDate.setMonth(expiresDate.getMonth() + months)
 
     const newLicense: ProductKeyLicense = {
-      id: `lic_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      id: `lic_${Date.now()}_${this.secureRandomSegment(4)}`,
       key,
       school_slug: params.school_slug.trim().toLowerCase(),
       school_name: params.school_name.trim(),
@@ -334,8 +380,18 @@ class LicensingStore {
       return { success: false, message: 'This product key has been revoked.' }
     }
 
-    if (license.status === 'expired') {
+    if (license.status === 'expired' || (license.expires_at && new Date(license.expires_at).getTime() < Date.now())) {
+      license.status = 'expired'
+      this.saveData()
       return { success: false, message: 'This product key has already expired.' }
+    }
+
+    // Prevent cross-school license key hijacking
+    if (license.school_slug && license.school_slug.toLowerCase().trim() !== cleanSlug) {
+      return {
+        success: false,
+        message: 'This product key is bound to another institution and cannot be redeemed on this portal.',
+      }
     }
 
     // Determine the active subscription tier

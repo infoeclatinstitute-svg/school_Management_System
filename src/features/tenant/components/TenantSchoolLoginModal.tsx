@@ -30,9 +30,53 @@ export function TenantSchoolLoginModal({
   const [loginError, setLoginError] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
 
+  const RATE_LIMIT_KEY = `gc_login_attempts_${school.slug}`
+  const MAX_FAILED_ATTEMPTS = 5
+  const LOCKOUT_DURATION_MS = 60_000
+
+  const checkRateLimit = (): { locked: boolean; remainingSec: number } => {
+    try {
+      const raw = sessionStorage.getItem(RATE_LIMIT_KEY)
+      if (!raw) return { locked: false, remainingSec: 0 }
+      const state = JSON.parse(raw) as { count: number; lockUntil?: number }
+      if (state.lockUntil && Date.now() < state.lockUntil) {
+        return {
+          locked: true,
+          remainingSec: Math.ceil((state.lockUntil - Date.now()) / 1000),
+        }
+      }
+      if (state.lockUntil && Date.now() >= state.lockUntil) {
+        sessionStorage.removeItem(RATE_LIMIT_KEY)
+      }
+    } catch {}
+    return { locked: false, remainingSec: 0 }
+  }
+
+  const recordFailedAttempt = () => {
+    try {
+      const raw = sessionStorage.getItem(RATE_LIMIT_KEY)
+      const prev = raw ? (JSON.parse(raw) as { count: number; lockUntil?: number }) : { count: 0 }
+      const nextCount = (prev.count || 0) + 1
+      const lockUntil = nextCount >= MAX_FAILED_ATTEMPTS ? Date.now() + LOCKOUT_DURATION_MS : undefined
+      sessionStorage.setItem(RATE_LIMIT_KEY, JSON.stringify({ count: nextCount, lockUntil }))
+    } catch {}
+  }
+
+  const clearFailedAttempts = () => {
+    try {
+      sessionStorage.removeItem(RATE_LIMIT_KEY)
+    } catch {}
+  }
+
   const handleCredentialSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoginError(null)
+
+    const limitStatus = checkRateLimit()
+    if (limitStatus.locked) {
+      setLoginError(`Too many failed sign-in attempts. Please wait ${limitStatus.remainingSec}s before trying again.`)
+      return
+    }
 
     const cleanUser = usernameInput.trim().toLowerCase()
     const cleanPass = passwordInput.trim()
@@ -52,17 +96,22 @@ export function TenantSchoolLoginModal({
     // 1. Check Principal / Executive Administrator
     const expectedAdminUser = (school.admin_username || `${school.slug}.admin`).toLowerCase()
     const expectedPrincipalEmail = (school.principal_email || '').toLowerCase()
-    const expectedAdminPass = school.admin_password || 'GC-ADMIN-2026'
+    const expectedAdminPass = school.admin_password || ''
 
     const isAdminUsernameMatch =
       cleanUser === expectedAdminUser ||
-      cleanUser === expectedPrincipalEmail ||
-      cleanUser === 'admin' ||
+      (expectedPrincipalEmail !== '' && cleanUser === expectedPrincipalEmail) ||
       cleanUser === `${school.slug}.admin`
 
     if (isAdminUsernameMatch) {
-      const isValidAdmin = (await verifyPassword(cleanPass, expectedAdminPass)) || cleanPass === 'GC-ADMIN-2026'
+      if (!expectedAdminPass) {
+        setIsVerifying(false)
+        setLoginError('Administrator credentials have not been configured for this institution.')
+        return
+      }
+      const isValidAdmin = await verifyPassword(cleanPass, expectedAdminPass)
       if (isValidAdmin) {
+        clearFailedAttempts()
         const adminUser: TenantSessionUser = {
           id: 'principal_session',
           school_slug: school.slug,
@@ -77,6 +126,7 @@ export function TenantSchoolLoginModal({
         onLoginSuccess(adminUser)
         return
       } else {
+        recordFailedAttempt()
         setIsVerifying(false)
         setLoginError('Incorrect password for Executive Administrator account.')
         return
@@ -87,14 +137,20 @@ export function TenantSchoolLoginModal({
     const matchedStaff = staffList.find(
       (s) =>
         s.username.toLowerCase() === cleanUser ||
-        s.email.toLowerCase() === cleanUser ||
+        (s.email && s.email.toLowerCase() === cleanUser) ||
         s.id.toLowerCase() === cleanUser
     )
 
     if (matchedStaff) {
-      const expectedStaffPass = matchedStaff.temp_password || `${school.slug.toUpperCase()}@2026`
-      const isValidStaff = (await verifyPassword(cleanPass, expectedStaffPass)) || cleanPass === `${school.slug.toUpperCase()}@2026`
+      const expectedStaffPass = matchedStaff.temp_password || ''
+      if (!expectedStaffPass) {
+        setIsVerifying(false)
+        setLoginError('Staff password not configured. Please contact your Principal.')
+        return
+      }
+      const isValidStaff = await verifyPassword(cleanPass, expectedStaffPass)
       if (isValidStaff) {
+        clearFailedAttempts()
         const staffUser: TenantSessionUser = {
           id: matchedStaff.id,
           school_slug: school.slug,
@@ -110,6 +166,7 @@ export function TenantSchoolLoginModal({
         onLoginSuccess(staffUser)
         return
       } else {
+        recordFailedAttempt()
         setIsVerifying(false)
         setLoginError('Incorrect password for Staff account. Please check with your Principal.')
         return
@@ -125,9 +182,15 @@ export function TenantSchoolLoginModal({
     )
 
     if (matchedStudent) {
-      const expectedStudentPass = matchedStudent.temp_password || `${school.slug.toUpperCase()}@2026`
-      const isValidStudent = (await verifyPassword(cleanPass, expectedStudentPass)) || cleanPass === `${school.slug.toUpperCase()}@2026`
+      const expectedStudentPass = matchedStudent.temp_password || ''
+      if (!expectedStudentPass) {
+        setIsVerifying(false)
+        setLoginError('Student password not configured. Please contact your institution administrator.')
+        return
+      }
+      const isValidStudent = await verifyPassword(cleanPass, expectedStudentPass)
       if (isValidStudent) {
+        clearFailedAttempts()
         const studentUser: TenantSessionUser = {
           id: matchedStudent.id,
           school_slug: school.slug,
@@ -143,12 +206,14 @@ export function TenantSchoolLoginModal({
         onLoginSuccess(studentUser)
         return
       } else {
+        recordFailedAttempt()
         setIsVerifying(false)
         setLoginError('Incorrect password for Student account. Please verify your credentials.')
         return
       }
     }
 
+    recordFailedAttempt()
     setIsVerifying(false)
     setLoginError('Account not found. Please ensure your admission number or staff username is correct.')
   }

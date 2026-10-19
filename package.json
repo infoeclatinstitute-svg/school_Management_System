@@ -83,5 +83,11 @@
     "oxlint": "^1.71.0",
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
+  },
+  "overrides": {
+    "uuid": "^11.1.1",
+    "@electron/get": "^5.1.0",
+    "global-agent": "^4.1.3",
+    "roarr": "^7.21.7"
   }
 }
