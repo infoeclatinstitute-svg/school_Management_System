@@ -882,9 +882,6 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
               <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {school.name}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#cbd5e1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '1px' }}>
-                {school.curriculum_type} • {school.city}
-              </div>
             </div>
           </div>
         </div>
@@ -1421,25 +1418,6 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                 }}
               >
                 {school.name}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '1px' }}>
-                <span
-                  style={{
-                    fontSize: '0.66rem',
-                    fontWeight: 800,
-                    color: primaryColor,
-                    background: `${primaryColor}14`,
-                    padding: '1px 6px',
-                    borderRadius: '4px',
-                    textTransform: 'uppercase',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {school.curriculum_type}
-                </span>
-                <span style={{ fontSize: '0.66rem', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {school.city}
-                </span>
               </div>
             </div>
           </Link>

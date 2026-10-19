@@ -214,9 +214,6 @@ export function TenantSchoolLoginModal({
               )}
             </div>
             <div>
-              <span style={{ fontSize: '0.72rem', fontWeight: 800, color: accentColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                {school.curriculum_type}
-              </span>
               <h2 style={{ margin: '2px 0 0', fontSize: '1.35rem', fontWeight: 900, color: '#ffffff' }}>
                 {school.name}
               </h2>

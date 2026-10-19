@@ -101,6 +101,27 @@ class TenantSchoolStore {
     safeTenantStorePersist(DELETED_SCHOOLS_KEY, Array.from(this.deletedSchoolSlugs))
   }
 
+  private sanitizeSchoolRecord(s: PartnerSchoolTenant): PartnerSchoolTenant {
+    if (!s) return s
+    let changed = false
+    const clean = { ...s }
+    if (
+      typeof clean.curriculum_type === 'string' &&
+      /^tvet\s*\/\s*diploma\s*&\s*certificate\s*modular\s*framework$/i.test(clean.curriculum_type.trim())
+    ) {
+      clean.curriculum_type = ''
+      changed = true
+    }
+    if (
+      typeof clean.principal_title === 'string' &&
+      /^college\s+principal\s*\/\s*provost$/i.test(clean.principal_title.trim())
+    ) {
+      clean.principal_title = 'Principal'
+      changed = true
+    }
+    return changed ? clean : s
+  }
+
   public async syncWithCloud(): Promise<void> {
     try {
       const { data, error } = await supabase
@@ -161,7 +182,9 @@ class TenantSchoolStore {
       if (Array.isArray(cloudState.schools)) {
         const map = new Map<string, PartnerSchoolTenant>()
         // 1. Put cloud schools in map (excluding tombstones)
-        cloudState.schools.forEach((s) => {
+        cloudState.schools.forEach((rawS) => {
+          const s = this.sanitizeSchoolRecord(rawS)
+          if (s !== rawS) hadLocalChanges = true
           const sSlug = (s.slug || '').toLowerCase().trim()
           if (!sSlug) return
           if (!this.deletedSchoolSlugs.has(sSlug)) {
@@ -172,7 +195,8 @@ class TenantSchoolStore {
           }
         })
         // 2. Merge local schools (excluding tombstones)
-        this.schools.forEach((s) => {
+        this.schools.forEach((rawS) => {
+          const s = this.sanitizeSchoolRecord(rawS)
           const cleanSlug = s.slug.toLowerCase().trim()
           if (this.deletedSchoolSlugs.has(cleanSlug)) {
             hadLocalChanges = true
@@ -214,7 +238,7 @@ class TenantSchoolStore {
               ? (localTime >= cloudTime ? (s.admin_password || cloudSchool.admin_password) : (cloudSchool.admin_password || s.admin_password))
               : (s.admin_password || cloudSchool.admin_password)
 
-            map.set(cleanSlug, {
+            map.set(cleanSlug, this.sanitizeSchoolRecord({
               ...cloudSchool,
               ...s,
               campuses_list: mergedCampuses.length > 0 ? mergedCampuses : (cloudSchool.campuses_list || s.campuses_list),
@@ -224,7 +248,7 @@ class TenantSchoolStore {
               active_license_key: s.active_license_key || cloudSchool.active_license_key,
               license_valid_until: s.license_valid_until || cloudSchool.license_valid_until,
               updated_at: s.updated_at || cloudSchool.updated_at,
-            })
+            }))
           }
         })
         this.schools = Array.from(map.values()).filter((s) => !this.deletedSchoolSlugs.has(s.slug.toLowerCase().trim()))
@@ -523,10 +547,10 @@ class TenantSchoolStore {
         const parsed = JSON.parse(stored)
         if (Array.isArray(parsed) && parsed.length > 0) {
           const existingSlugs = new Set(parsed.map((s: PartnerSchoolTenant) => s.slug.toLowerCase()))
-          const merged = [...parsed]
+          const merged = parsed.map((s: PartnerSchoolTenant) => this.sanitizeSchoolRecord(s))
           INITIAL_PARTNER_SCHOOLS.forEach((initSchool) => {
             if (!existingSlugs.has(initSchool.slug.toLowerCase())) {
-              merged.push(initSchool)
+              merged.push(this.sanitizeSchoolRecord(initSchool))
             }
           })
           this.schools = merged
@@ -616,7 +640,7 @@ class TenantSchoolStore {
         str.toLowerCase().replace(/l/g, '1').replace(/i/g, '1').replace(/[^a-z0-9]/g, '')
       const targetNorm = normalize(cleanSlug)
 
-      const found = cloudState.schools.find((s) => {
+      const rawFound = cloudState.schools.find((s) => {
         const sSlug = (s.slug || '').toLowerCase().trim()
         const sNorm = normalize(sSlug)
         const nameNorm = normalize(s.name || '')
@@ -629,7 +653,8 @@ class TenantSchoolStore {
         )
       })
 
-      if (found) {
+      if (rawFound) {
+        const found = this.sanitizeSchoolRecord(rawFound)
         const foundSlug = found.slug.toLowerCase().trim()
         // Clear any stale local tombstone
         this.deletedSchoolSlugs.delete(foundSlug)

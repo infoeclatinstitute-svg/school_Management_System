@@ -51,7 +51,7 @@ const INSTITUTION_CATEGORIES: {
     desc: 'Technical colleges, vocational institutes, medical training colleges, and business polytechnics.',
     defaultCalendar: 'semester',
     defaultGrading: 'tvet_competency',
-    defaultTitle: 'College Principal / Provost',
+    defaultTitle: 'Principal',
     defaultCurriculum: 'Diploma & Certificate Modular Framework',
     suggestedDepts: [
       'School of Computing & Informatics',
@@ -231,9 +231,7 @@ export function SchoolRegistrationPage() {
   const [motto, setMotto] = useState('')
   const [registrationNumber, setRegistrationNumber] = useState('')
   const [currency, setCurrency] = useState('KES')
-  const [curriculumType, setCurriculumType] = useState<string>(
-    INSTITUTION_CATEGORIES[0].defaultCurriculum
-  )
+  const [curriculumType, setCurriculumType] = useState<string>('')
   const [country, setCountry] = useState('')
   const [city, setCity] = useState('')
   const [address, setAddress] = useState('')
@@ -277,7 +275,7 @@ export function SchoolRegistrationPage() {
   const [accentColor, setAccentColor] = useState('#0284c7')
   const [logoUrl, setLogoUrl] = useState('')
   const [principalName, setPrincipalName] = useState('')
-  const [principalTitle, setPrincipalTitle] = useState('College Principal / Provost')
+  const [principalTitle, setPrincipalTitle] = useState('Principal')
   const [principalEmail, setPrincipalEmail] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [contactPhone, setContactPhone] = useState('')
@@ -303,7 +301,6 @@ export function SchoolRegistrationPage() {
       setAcademicSystem(found.defaultCalendar)
       setGradingScale(found.defaultGrading)
       setPrincipalTitle(found.defaultTitle)
-      setCurriculumType(found.defaultCurriculum)
 
       // Only overwrite suggested departments if current list is empty or matches another default category template
       const isTemplateDepts = departmentsList.length === 0 || INSTITUTION_CATEGORIES.some(
