@@ -1501,6 +1501,8 @@ export function SchoolRegistrationPage() {
                     </label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.65rem' }}>
                       {[
+                        { id: 'cbc_rubric', title: 'CBC 4-Level Formative Rubric', desc: 'EE (Exceeding 80%+), ME (Meeting 60%+), AE (Approaching 40%+), BE (Below).' },
+                        { id: 'knec_12point', title: 'KNEC 12-Point Secondary Scale', desc: '12-Point Mean Grade (A, A-, B+, B, B-, C+, C, C-, D+, D, D-, E).' },
                         { id: 'letter_gpa', title: 'GPA & Letter Grade (A–F / 4.0)', desc: 'University & College standard cumulative GPA & Distinction/Credit.' },
                         { id: 'tvet_competency', title: 'TVET / CBET Competency', desc: 'Mastery (80%+), Proficient (65%+), Competent (50%+), NYC.' },
                         { id: 'standard_percentage', title: 'Standard Marks & Mean Grade', desc: 'CAT 1 (20%) + CAT 2 (20%) + Exam (60%) = 100% Report Card.' },

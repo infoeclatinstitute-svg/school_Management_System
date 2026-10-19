@@ -215,8 +215,17 @@ export function StudentAdmissionLetterModal({
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Class / Form Cohort</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>{student.grade_class}</div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Class / Form Cohort(s)</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>
+                {student.enrolled_classes && student.enrolled_classes.length > 0
+                  ? student.enrolled_classes.join(' • ')
+                  : student.grade_class}
+              </div>
+              {student.enrolled_programs && student.enrolled_programs.length > 0 && (
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#3730a3', marginTop: '2px' }}>
+                  🎓 {student.enrolled_programs.join(' • ')}
+                </div>
+              )}
             </div>
             <div>
               <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Guardian Name &amp; Contact</div>
@@ -238,13 +247,24 @@ export function StudentAdmissionLetterModal({
             </div>
           </div>
 
+          {student.enrolled_subjects && student.enrolled_subjects.length > 0 && (
+            <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px' }}>
+                📚 Registered Academic Subjects / Units ({student.enrolled_subjects.length})
+              </div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>
+                {student.enrolled_subjects.join('  •  ')}
+              </div>
+            </div>
+          )}
+
           {/* Formal Body Paragraphs */}
           <div style={{ fontSize: '0.88rem', lineHeight: 1.65, color: '#334155', marginBottom: '1.5rem' }}>
             <p>
               Dear <strong>{student.full_name}</strong> and Guardian <strong>{student.guardian_name}</strong>,
             </p>
             <p>
-              On behalf of the Governing Academic Board of <strong>{school.name}</strong>, we are pleased to inform you that you have been formally admitted to undertake your studies in <strong>{student.grade_class}</strong> effective from your enrollment date of <strong>{student.admission_date || new Date().toISOString().split('T')[0]}</strong> commencing with <strong>{school.active_period_name}</strong>.
+              On behalf of the Governing Academic Board of <strong>{school.name}</strong>, we are pleased to inform you that you have been formally admitted to undertake your studies in <strong>{student.enrolled_classes && student.enrolled_classes.length > 0 ? student.enrolled_classes.join(', ') : student.grade_class}</strong>{student.enrolled_programs && student.enrolled_programs.length > 0 ? ` (${student.enrolled_programs.join(', ')})` : ''} effective from your enrollment date of <strong>{student.admission_date || new Date().toISOString().split('T')[0]}</strong> commencing with <strong>{school.active_period_name}</strong>.
             </p>
             <p>
               Your admission has been confirmed under our accredited <strong>{school.curriculum_type}</strong> framework. Tuition billing has been scheduled under the <strong>{(student.fee_payment_plan || 'termly').toUpperCase()}</strong> plan (Total: {school.currency || 'KES'} {(student.fee_total || 0).toLocaleString()}{student.fee_installments_count && student.fee_installments_count > 1 ? `, payable in ${student.fee_installments_count} installments of ${school.currency || 'KES'} ${Math.round((student.fee_total || 0) / student.fee_installments_count).toLocaleString()}` : ''}). You are required to observe all institutional regulations, maintain a continuous attendance threshold of not less than 85%, and participate diligently in all scheduled coursework, continuous assessment tests (CATs), and examination series.

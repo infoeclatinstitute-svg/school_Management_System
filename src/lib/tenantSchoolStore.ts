@@ -1709,6 +1709,11 @@ class TenantSchoolStore {
     const newStudent: TenantStudentMember = {
       ...input,
       id: `std_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      enrolled_classes: input.enrolled_classes && input.enrolled_classes.length > 0
+        ? input.enrolled_classes
+        : (input.grade_class ? [input.grade_class] : []),
+      enrolled_programs: input.enrolled_programs || [],
+      enrolled_subjects: input.enrolled_subjects || [],
       gender: input.gender || 'Not Specified',
       age: typeof input.age === 'number' && !isNaN(input.age) ? input.age : undefined,
       fee_due_date: input.fee_due_date || undefined,
@@ -1970,13 +1975,41 @@ class TenantSchoolStore {
       ? Math.min(100, Math.max(0, Math.round(rawTotal)))
       : Math.min(100, Math.max(0, Math.round((rawTotal / possibleMax) * 100)))
 
+    const schoolObj = this.getSchoolBySlug(input.school_slug)
+    const scale = schoolObj?.grading_scale || 'letter_gpa'
+
     let gradeLetter = 'F'
-    if (total >= 90) gradeLetter = 'A*'
-    else if (total >= 80) gradeLetter = 'A'
-    else if (total >= 70) gradeLetter = 'B'
-    else if (total >= 60) gradeLetter = 'C'
-    else if (total >= 50) gradeLetter = 'D'
-    else if (total >= 40) gradeLetter = 'E'
+    if (scale === 'cbc_rubric') {
+      if (total >= 80) gradeLetter = 'EE'
+      else if (total >= 60) gradeLetter = 'ME'
+      else if (total >= 40) gradeLetter = 'AE'
+      else gradeLetter = 'BE'
+    } else if (scale === 'knec_12point') {
+      if (total >= 80) gradeLetter = 'A'
+      else if (total >= 75) gradeLetter = 'A-'
+      else if (total >= 70) gradeLetter = 'B+'
+      else if (total >= 65) gradeLetter = 'B'
+      else if (total >= 60) gradeLetter = 'B-'
+      else if (total >= 55) gradeLetter = 'C+'
+      else if (total >= 50) gradeLetter = 'C'
+      else if (total >= 45) gradeLetter = 'C-'
+      else if (total >= 40) gradeLetter = 'D+'
+      else if (total >= 35) gradeLetter = 'D'
+      else if (total >= 30) gradeLetter = 'D-'
+      else gradeLetter = 'E'
+    } else if (scale === 'tvet_competency') {
+      if (total >= 80) gradeLetter = 'Mastery'
+      else if (total >= 65) gradeLetter = 'Proficient'
+      else if (total >= 50) gradeLetter = 'Competent'
+      else gradeLetter = 'NYC'
+    } else {
+      if (total >= 90) gradeLetter = 'A*'
+      else if (total >= 80) gradeLetter = 'A'
+      else if (total >= 70) gradeLetter = 'B'
+      else if (total >= 60) gradeLetter = 'C'
+      else if (total >= 50) gradeLetter = 'D'
+      else if (total >= 40) gradeLetter = 'E'
+    }
 
     const existingIndex = this.grades.findIndex(
       (g) =>

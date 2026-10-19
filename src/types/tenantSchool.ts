@@ -28,7 +28,12 @@ export type SchoolCurriculumType =
 
 export type InstitutionCategory = 'school' | 'college' | 'university' | 'academy'
 
-export type InstitutionGradingScale = 'letter_gpa' | 'tvet_competency' | 'standard_percentage'
+export type InstitutionGradingScale =
+  | 'letter_gpa'
+  | 'tvet_competency'
+  | 'standard_percentage'
+  | 'cbc_rubric'
+  | 'knec_12point'
 
 export interface InstitutionCampus {
   id: string
@@ -204,7 +209,10 @@ export interface TenantStudentMember {
   school_slug: string
   admission_number: string // e.g. "HC-2026-0042"
   full_name: string
-  grade_class: string     // e.g. "Diploma Year 1", "Form 3 Alpha"
+  grade_class: string     // Primary class/cohort e.g. "Diploma Year 1", "Form 3 Alpha"
+  enrolled_classes?: string[] // Dynamic list of classes/cohorts student attends
+  enrolled_programs?: string[] // Dynamic list of academic programs/courses student is taking
+  enrolled_subjects?: string[] // Dynamic list of registered subjects/units/modules
   guardian_name: string
   guardian_phone: string
   guardian_email: string

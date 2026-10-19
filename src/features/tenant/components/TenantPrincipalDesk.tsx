@@ -115,6 +115,9 @@ export function TenantPrincipalDesk({
       if (s.grade_class && s.grade_class.trim()) {
         set.add(s.grade_class.trim())
       }
+      if (s.enrolled_classes) {
+        s.enrolled_classes.forEach((c) => c && set.add(c.trim()))
+      }
     })
     return Array.from(set).filter(Boolean)
   }, [school.classes_list, schoolPrograms, studentList])
@@ -155,8 +158,13 @@ export function TenantPrincipalDesk({
         sList.forEach((s) => s.trim() && subs.add(s.trim()))
       }
     })
+    studentList.forEach((s) => {
+      if (s.enrolled_subjects) {
+        s.enrolled_subjects.forEach((sub) => sub && subs.add(sub.trim()))
+      }
+    })
     return Array.from(subs).filter(Boolean)
-  }, [school.subjects_list, school.slug, staffList])
+  }, [school.subjects_list, school.slug, staffList, studentList])
 
   // Dynamic Teachers List for Timetable
   const teachersList = useMemo(() => {
@@ -298,6 +306,11 @@ export function TenantPrincipalDesk({
     full_name: '',
     grade_class: '',
     custom_class: '',
+    enrolled_classes: [] as string[],
+    enrolled_programs: [] as string[],
+    enrolled_subjects: [] as string[],
+    custom_program: '',
+    custom_subject: '',
     guardian_name: '',
     guardian_phone: '',
     guardian_email: '',
@@ -461,10 +474,16 @@ export function TenantPrincipalDesk({
   const handleConvertAndAdmitApplicant = (app: TenantAdmissionApplication) => {
     if (!requireActivation('Admitting online applicant')) return
     setEditingStudentMember(null)
+    const initClass = app.program_title || availableClasses[0] || ''
     setStudentForm({
       full_name: app.full_name,
-      grade_class: app.program_title || availableClasses[0] || '',
+      grade_class: initClass,
       custom_class: '',
+      enrolled_classes: initClass ? [initClass] : [],
+      enrolled_programs: app.program_title ? [app.program_title] : [],
+      enrolled_subjects: availableSubjects.slice(0, 8),
+      custom_program: '',
+      custom_subject: '',
       guardian_name: app.guardian_name || '',
       guardian_phone: app.guardian_phone || app.phone,
       guardian_email: app.email,
@@ -681,10 +700,17 @@ export function TenantPrincipalDesk({
     if (!requireActivation('Student admission enrollment')) return
     setEditingStudentMember(null)
     setStudentAuditOverrideConfirmed(false)
+    const initialClass = availableClasses[0] || ''
+    const initialProgram = schoolPrograms[0] ? schoolPrograms[0].title : ''
     setStudentForm({
       full_name: '',
-      grade_class: availableClasses[0] || '',
+      grade_class: initialClass,
       custom_class: '',
+      enrolled_classes: initialClass ? [initialClass] : [],
+      enrolled_programs: initialProgram ? [initialProgram] : [],
+      enrolled_subjects: availableSubjects.slice(0, 8),
+      custom_program: '',
+      custom_subject: '',
       guardian_name: '',
       guardian_phone: '',
       guardian_email: '',
@@ -703,10 +729,20 @@ export function TenantPrincipalDesk({
   const handleOpenEditStudent = (student: TenantStudentMember) => {
     setEditingStudentMember(student)
     setStudentAuditOverrideConfirmed(false)
+    const currentClasses = Array.from(new Set([
+      student.grade_class,
+      ...(student.enrolled_classes || [])
+    ])).filter(Boolean)
+
     setStudentForm({
       full_name: student.full_name,
-      grade_class: student.grade_class,
+      grade_class: student.grade_class || currentClasses[0] || '',
       custom_class: '',
+      enrolled_classes: currentClasses.length > 0 ? currentClasses : (student.grade_class ? [student.grade_class] : []),
+      enrolled_programs: student.enrolled_programs || [],
+      enrolled_subjects: student.enrolled_subjects || [],
+      custom_program: '',
+      custom_subject: '',
       guardian_name: student.guardian_name || '',
       guardian_phone: student.guardian_phone || '',
       guardian_email: student.guardian_email || '',
@@ -726,20 +762,36 @@ export function TenantPrincipalDesk({
     e.preventDefault()
     if (!studentForm.full_name.trim()) return
 
-    const finalClass =
+    const primaryClass =
       studentForm.grade_class === '__new__'
         ? studentForm.custom_class.trim()
-        : studentForm.grade_class.trim() || studentForm.custom_class.trim() || availableClasses[0] || ''
+        : studentForm.grade_class.trim() || studentForm.custom_class.trim() || (studentForm.enrolled_classes && studentForm.enrolled_classes[0]) || availableClasses[0] || ''
 
-    if (!finalClass) {
-      alert('Please select or specify a class/cohort for this student.')
+    if (!primaryClass && (!studentForm.enrolled_classes || studentForm.enrolled_classes.length === 0)) {
+      alert('Please select or specify at least one class/cohort for this student.')
       return
     }
 
-    // If new class created, also persist to classes_list
-    if ((studentForm.grade_class === '__new__' || !availableClasses.includes(finalClass)) && finalClass) {
-      const updatedClasses = Array.from(new Set([...availableClasses, finalClass]))
+    const finalClass = primaryClass || studentForm.enrolled_classes[0] || 'General'
+
+    const enrolledClasses = Array.from(new Set([
+      finalClass,
+      ...(studentForm.enrolled_classes || [])
+    ])).filter(Boolean)
+
+    const enrolledPrograms = Array.from(new Set(studentForm.enrolled_programs || [])).filter(Boolean)
+    const enrolledSubjects = Array.from(new Set(studentForm.enrolled_subjects || [])).filter(Boolean)
+
+    // If new classes or subjects created, persist to school branding lists
+    const newClasses = enrolledClasses.filter((c) => !availableClasses.includes(c))
+    if (newClasses.length > 0) {
+      const updatedClasses = Array.from(new Set([...availableClasses, ...newClasses]))
       tenantSchoolStore.updateSchoolBranding(school.slug, { classes_list: updatedClasses })
+    }
+    const newSubjects = enrolledSubjects.filter((s) => !availableSubjects.includes(s))
+    if (newSubjects.length > 0) {
+      const updatedSubjects = Array.from(new Set([...availableSubjects, ...newSubjects]))
+      tenantSchoolStore.updateSchoolBranding(school.slug, { subjects_list: updatedSubjects })
     }
 
     const installmentsCount = studentForm.fee_installments_count || (studentForm.fee_payment_plan === 'monthly' ? 3 : studentForm.fee_payment_plan === 'weekly' ? 10 : 1)
@@ -763,6 +815,9 @@ export function TenantPrincipalDesk({
         {
           full_name: studentForm.full_name.trim(),
           grade_class: finalClass,
+          enrolled_classes: enrolledClasses,
+          enrolled_programs: enrolledPrograms,
+          enrolled_subjects: enrolledSubjects,
           guardian_name: studentForm.guardian_name.trim(),
           guardian_phone: studentForm.guardian_phone.trim(),
           guardian_email: studentForm.guardian_email.trim(),
@@ -793,6 +848,9 @@ export function TenantPrincipalDesk({
         admission_number: admNo,
         full_name: studentForm.full_name.trim(),
         grade_class: finalClass,
+        enrolled_classes: enrolledClasses,
+        enrolled_programs: enrolledPrograms,
+        enrolled_subjects: enrolledSubjects,
         guardian_name: studentForm.guardian_name.trim() || 'Guardian',
         guardian_phone: studentForm.guardian_phone.trim(),
         guardian_email:
@@ -881,10 +939,50 @@ export function TenantPrincipalDesk({
     if (!requireActivation('Saving timetable period')) return
     if (!timetableForm.subject_name.trim()) return
 
+    // Real-time Conflict Detection across all classes in the institution
+    const allSchoolPeriods = tenantSchoolStore.getTimetableBySchool(school.slug)
+    const periodNum = Number(timetableForm.period_number)
+    const teacherClean = timetableForm.teacher_name.trim().toLowerCase()
+    const roomClean = timetableForm.room.trim().toLowerCase()
+
+    const teacherClash = teacherClean
+      ? allSchoolPeriods.find(
+          (p) =>
+            p.id !== editingPeriod?.id &&
+            p.day_of_week.toLowerCase() === timetableForm.day_of_week.toLowerCase() &&
+            Number(p.period_number) === periodNum &&
+            p.teacher_name.trim().toLowerCase() === teacherClean
+        )
+      : undefined
+
+    if (teacherClash) {
+      const proceed = window.confirm(
+        `⚠️ TIMETABLE TEACHER CLASH DETECTED:\n\nInstructor "${timetableForm.teacher_name.trim()}" is already scheduled for "${teacherClash.subject_name}" in "${teacherClash.class_name}" on ${timetableForm.day_of_week} (Period ${periodNum}).\n\nDo you want to override and save anyway?`
+      )
+      if (!proceed) return
+    }
+
+    const roomClash = roomClean
+      ? allSchoolPeriods.find(
+          (p) =>
+            p.id !== editingPeriod?.id &&
+            p.day_of_week.toLowerCase() === timetableForm.day_of_week.toLowerCase() &&
+            Number(p.period_number) === periodNum &&
+            p.room.trim().toLowerCase() === roomClean
+        )
+      : undefined
+
+    if (roomClash) {
+      const proceed = window.confirm(
+        `⚠️ TIMETABLE ROOM CLASH DETECTED:\n\nRoom "${timetableForm.room.trim()}" is already occupied by "${roomClash.class_name}" (${roomClash.subject_name}) on ${timetableForm.day_of_week} (Period ${periodNum}).\n\nDo you want to override and save anyway?`
+      )
+      if (!proceed) return
+    }
+
     if (editingPeriod) {
       tenantSchoolStore.updateTimetableEntry(editingPeriod.id, {
         day_of_week: timetableForm.day_of_week,
-        period_number: Number(timetableForm.period_number),
+        period_number: periodNum,
         start_time: timetableForm.start_time,
         end_time: timetableForm.end_time,
         subject_name: timetableForm.subject_name.trim(),
@@ -896,7 +994,7 @@ export function TenantPrincipalDesk({
         school_slug: school.slug,
         class_name: selectedTimetableClass,
         day_of_week: timetableForm.day_of_week,
-        period_number: Number(timetableForm.period_number),
+        period_number: periodNum,
         start_time: timetableForm.start_time,
         end_time: timetableForm.end_time,
         subject_name: timetableForm.subject_name.trim(),
@@ -907,6 +1005,101 @@ export function TenantPrincipalDesk({
     setShowAddTimetableModal(false)
     setEditingPeriod(null)
     onReloadData()
+  }
+
+  const handleAutoSolveTimetable = () => {
+    if (!requireActivation('Auto-Solving conflict-free timetable')) return
+    if (!selectedTimetableClass) {
+      alert('Please select or create a class cohort first.')
+      return
+    }
+    if (availableSubjects.length === 0) {
+      alert('Please add your institution subjects first via "📚 Manage Subjects" so the Auto-Solver can schedule them dynamically.')
+      setManageClassesActiveTab('subjects')
+      setShowManageClassesModal(true)
+      return
+    }
+
+    const allSchoolPeriods = tenantSchoolStore.getTimetableBySchool(school.slug)
+    const days: ('Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday')[] = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+    ]
+    const slots = [
+      { period: 1, start: '08:00', end: '09:30' },
+      { period: 2, start: '09:45', end: '11:15' },
+      { period: 3, start: '11:30', end: '13:00' },
+      { period: 4, start: '14:00', end: '15:30' },
+    ]
+
+    let scheduledCount = 0
+    let subIdx = 0
+
+    for (const day of days) {
+      for (const slot of slots) {
+        // Skip if this class already has a period in this slot
+        const alreadyHasSlot = allSchoolPeriods.some(
+          (p) =>
+            p.class_name.toLowerCase() === selectedTimetableClass.toLowerCase() &&
+            p.day_of_week.toLowerCase() === day.toLowerCase() &&
+            Number(p.period_number) === slot.period
+        )
+        if (alreadyHasSlot) continue
+
+        const subject = availableSubjects[subIdx % availableSubjects.length]
+        subIdx++
+
+        // Find a conflict-free teacher for this subject & slot
+        const busyTeachers = new Set(
+          tenantSchoolStore
+            .getTimetableBySchool(school.slug)
+            .filter(
+              (p) =>
+                p.day_of_week.toLowerCase() === day.toLowerCase() &&
+                Number(p.period_number) === slot.period
+            )
+            .map((p) => p.teacher_name.trim().toLowerCase())
+        )
+
+        const subjectTeachers = teachersList.filter(
+          (t) =>
+            Array.isArray(t.assigned_subjects) &&
+            t.assigned_subjects.some((s) => s.toLowerCase() === subject.toLowerCase()) &&
+            !busyTeachers.has(t.full_name.trim().toLowerCase())
+        )
+        const anyFreeTeacher = teachersList.find(
+          (t) => !busyTeachers.has(t.full_name.trim().toLowerCase())
+        )
+        const chosenTeacher =
+          subjectTeachers[0]?.full_name ||
+          anyFreeTeacher?.full_name ||
+          teachersList[0]?.full_name ||
+          'Assigned Faculty'
+
+        tenantSchoolStore.addTimetableEntry({
+          school_slug: school.slug,
+          class_name: selectedTimetableClass,
+          day_of_week: day,
+          period_number: slot.period,
+          start_time: slot.start,
+          end_time: slot.end,
+          subject_name: subject,
+          teacher_name: chosenTeacher,
+          room: `${selectedTimetableClass} Hall`,
+        })
+        scheduledCount++
+      }
+    }
+
+    onReloadData()
+    alert(
+      scheduledCount > 0
+        ? `✓ Auto-Solver Complete: Generated ${scheduledCount} conflict-free period(s) for ${selectedTimetableClass} across your configured subjects and faculty!`
+        : `All standard slots for ${selectedTimetableClass} are already scheduled.`
+    )
   }
 
   const handleDeletePeriod = (id: string) => {
@@ -1185,7 +1378,11 @@ export function TenantPrincipalDesk({
         s.admission_number.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
         (s.guardian_name && s.guardian_name.toLowerCase().includes(studentSearchQuery.toLowerCase()))
 
-      const matchesClass = studentClassFilter === 'all' || s.grade_class === studentClassFilter
+      const matchesClass =
+        studentClassFilter === 'all' ||
+        s.grade_class === studentClassFilter ||
+        (s.enrolled_classes && s.enrolled_classes.includes(studentClassFilter)) ||
+        (s.enrolled_programs && s.enrolled_programs.includes(studentClassFilter))
 
       let matchesFee = true
       if (studentFeeFilter === 'cleared') matchesFee = (s.fee_balance || 0) <= 0
@@ -2816,7 +3013,42 @@ export function TenantPrincipalDesk({
                       <td style={{ padding: '0.75rem', color: '#334155', fontWeight: 700, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                         📅 {s.admission_date || 'N/A'}
                       </td>
-                      <td style={{ padding: '0.75rem', color: '#475569', fontWeight: 600 }}>{s.grade_class}</td>
+                      <td style={{ padding: '0.75rem', color: '#475569', fontWeight: 600 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 800, color: '#0f172a' }}>{s.grade_class}</span>
+                            {s.enrolled_classes && s.enrolled_classes.length > 1 && (
+                              <span
+                                title={`Enrolled Classes:\n• ${s.enrolled_classes.join('\n• ')}`}
+                                style={{ background: '#dbeafe', color: '#1e40af', fontSize: '0.66rem', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', cursor: 'help' }}
+                              >
+                                +{s.enrolled_classes.length - 1} class{s.enrolled_classes.length > 2 ? 'es' : ''}
+                              </span>
+                            )}
+                          </div>
+                          {s.enrolled_programs && s.enrolled_programs.length > 0 && (
+                            <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                              {s.enrolled_programs.map((p) => (
+                                <span
+                                  key={p}
+                                  title={`Academic Program: ${p}`}
+                                  style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px' }}
+                                >
+                                  🎓 {p}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {s.enrolled_subjects && s.enrolled_subjects.length > 0 && (
+                            <div
+                              title={`Registered Subjects / Units:\n• ${s.enrolled_subjects.join('\n• ')}`}
+                              style={{ fontSize: '0.68rem', color: '#047857', fontWeight: 700, cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                            >
+                              <span>📚</span> {s.enrolled_subjects.length} registered unit{s.enrolled_subjects.length === 1 ? '' : 's'}
+                            </div>
+                          )}
+                        </div>
+                      </td>
                       <td style={{ padding: '0.75rem', color: '#64748b' }}>
                         <div>{s.guardian_name}</div>
                         {s.guardian_phone && <div style={{ fontSize: '0.74rem' }}>{s.guardian_phone}</div>}
@@ -3443,6 +3675,26 @@ export function TenantPrincipalDesk({
               </button>
               <button
                 type="button"
+                onClick={handleAutoSolveTimetable}
+                style={{
+                  background: '#ecfdf5',
+                  color: '#047857',
+                  border: '1.5px solid #a7f3d0',
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+                title="Automatically generate a conflict-free timetable across configured subjects and faculty"
+              >
+                ⚡ Auto-Solve Schedule
+              </button>
+              <button
+                type="button"
                 onClick={handleOpenAddPeriod}
                 style={{
                   background: primaryColor,
@@ -3931,6 +4183,57 @@ export function TenantPrincipalDesk({
                     ✓ Currency updated to {currencySetting}!
                   </div>
                 )}
+              </div>
+
+              {/* Academic Grading & Rubric Scale Switcher */}
+              <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>
+                  Assessment &amp; Grading Scale
+                </div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', marginTop: '4px' }}>
+                  Scale:{' '}
+                  <strong style={{ color: primaryColor }}>
+                    {school.grading_scale === 'cbc_rubric'
+                      ? 'CBC 4-Level Rubric (EE/ME/AE/BE)'
+                      : school.grading_scale === 'knec_12point'
+                        ? 'KNEC 12-Point Secondary (A–E)'
+                        : school.grading_scale === 'tvet_competency'
+                          ? 'TVET Competency (Mastery/Competent)'
+                          : school.grading_scale === 'standard_percentage'
+                            ? 'Standard Percentage (A*–F)'
+                            : 'Collegiate GPA & Letter (A–F / 4.0)'}
+                  </strong>
+                </div>
+                <p style={{ margin: '4px 0 10px', fontSize: '0.78rem', color: '#64748b' }}>
+                  Dynamically configures how CATs, Final Exams, and Student Report Cards compute grades.
+                </p>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select
+                    value={school.grading_scale || 'letter_gpa'}
+                    onChange={(e) => {
+                      if (!requireActivation('Updating institutional grading scale')) return
+                      tenantSchoolStore.updateSchoolBranding(school.slug, {
+                        grading_scale: e.target.value as any,
+                      })
+                      onReloadData()
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '0.45rem 0.65rem',
+                      borderRadius: '8px',
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      background: '#ffffff',
+                    }}
+                  >
+                    <option value="cbc_rubric">CBC 4-Level Formative Rubric (EE, ME, AE, BE)</option>
+                    <option value="knec_12point">KNEC 12-Point Secondary Scale (A, A-, B+... E)</option>
+                    <option value="tvet_competency">TVET / CBET Competency (Mastery, Proficient, Competent, NYC)</option>
+                    <option value="letter_gpa">Collegiate GPA &amp; Letter Scale (A–F / 4.0)</option>
+                    <option value="standard_percentage">Standard Percentage &amp; Mean Grade (A*–F)</option>
+                  </select>
+                </div>
               </div>
 
               {/* Custom Domain & DNS Card */}
@@ -4887,11 +5190,19 @@ export function TenantPrincipalDesk({
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px' }}>
-                    Class / Form Cohort *
+                    Primary Class / Form Cohort *
                   </label>
                   <select
                     value={studentForm.grade_class}
-                    onChange={(e) => setStudentForm({ ...studentForm, grade_class: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setStudentForm((prev) => {
+                        const updatedClasses = val && val !== '__new__'
+                          ? Array.from(new Set([val, ...prev.enrolled_classes]))
+                          : prev.enrolled_classes
+                        return { ...prev, grade_class: val, enrolled_classes: updatedClasses }
+                      })
+                    }}
                     style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', boxSizing: 'border-box' }}
                   >
                     {availableClasses.length === 0 && (
@@ -4914,6 +5225,331 @@ export function TenantPrincipalDesk({
                       style={{ width: '100%', marginTop: '6px', padding: '0.55rem', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '0.82rem', boxSizing: 'border-box' }}
                     />
                   )}
+                </div>
+              </div>
+
+              {/* DYNAMIC MULTI-PROGRAM, MULTI-CLASS & MULTI-SUBJECT ENROLLMENT BOX */}
+              <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 900, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    🎯 Dynamic Academic Enrollments (Multi-Program, Multi-Class &amp; Subjects)
+                  </div>
+                  <span style={{ fontSize: '0.68rem', fontWeight: 800, background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '6px' }}>
+                    Fully Dynamic
+                  </span>
+                </div>
+
+                {/* 1. Multiple Academic Programs */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#334155' }}>
+                      🎓 Enrolled Program(s) / Qualifications
+                    </label>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                      {studentForm.enrolled_programs.length} program(s) selected
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px', minHeight: '28px' }}>
+                    {studentForm.enrolled_programs.length === 0 ? (
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>No additional programs enrolled yet.</span>
+                    ) : (
+                      studentForm.enrolled_programs.map((prog) => (
+                        <span
+                          key={prog}
+                          style={{
+                            background: '#e0e7ff',
+                            color: '#3730a3',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                          }}
+                        >
+                          🎓 {prog}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setStudentForm((prev) => ({
+                                ...prev,
+                                enrolled_programs: prev.enrolled_programs.filter((p) => p !== prog),
+                              }))
+                            }
+                            style={{ background: 'none', border: 'none', color: '#4338ca', cursor: 'pointer', padding: 0, fontWeight: 900, fontSize: '0.85rem' }}
+                            title="Remove Program"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val && !studentForm.enrolled_programs.includes(val)) {
+                          setStudentForm((prev) => ({
+                            ...prev,
+                            enrolled_programs: [...prev.enrolled_programs, val],
+                          }))
+                        }
+                      }}
+                      style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: '#ffffff' }}
+                    >
+                      <option value="">+ Add Program from Catalog...</option>
+                      {schoolPrograms.map((p) => (
+                        <option key={p.id || p.title} value={p.title} disabled={studentForm.enrolled_programs.includes(p.title)}>
+                          {p.title} ({p.level || 'Program'})
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Or type custom program..."
+                      value={studentForm.custom_program}
+                      onChange={(e) => setStudentForm({ ...studentForm, custom_program: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          const val = studentForm.custom_program.trim()
+                          if (val && !studentForm.enrolled_programs.includes(val)) {
+                            setStudentForm((prev) => ({
+                              ...prev,
+                              enrolled_programs: [...prev.enrolled_programs, val],
+                              custom_program: '',
+                            }))
+                          }
+                        }
+                      }}
+                      style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = studentForm.custom_program.trim()
+                        if (val && !studentForm.enrolled_programs.includes(val)) {
+                          setStudentForm((prev) => ({
+                            ...prev,
+                            enrolled_programs: [...prev.enrolled_programs, val],
+                            custom_program: '',
+                          }))
+                        }
+                      }}
+                      style={{ background: '#4338ca', color: '#ffffff', border: 'none', borderRadius: '6px', padding: '0.45rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Multiple Enrolled Classes / Streams */}
+                <div style={{ marginBottom: '1rem', borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#334155' }}>
+                      🏛️ Enrolled Class / Cohort(s) &amp; Streams
+                    </label>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                      {studentForm.enrolled_classes.length} class cohort(s)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px', minHeight: '28px' }}>
+                    {studentForm.enrolled_classes.map((cls) => (
+                      <span
+                        key={cls}
+                        style={{
+                          background: cls === studentForm.grade_class ? '#dbeafe' : '#f1f5f9',
+                          color: cls === studentForm.grade_class ? '#1e40af' : '#334155',
+                          border: cls === studentForm.grade_class ? '1px solid #93c5fd' : '1px solid #cbd5e1',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        🏛️ {cls} {cls === studentForm.grade_class ? '(Primary)' : ''}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const remaining = studentForm.enrolled_classes.filter((c) => c !== cls)
+                            setStudentForm((prev) => ({
+                              ...prev,
+                              enrolled_classes: remaining,
+                              grade_class: prev.grade_class === cls ? (remaining[0] || '') : prev.grade_class,
+                            }))
+                          }}
+                          style={{ background: 'none', border: 'none', color: '#1e40af', cursor: 'pointer', padding: 0, fontWeight: 900, fontSize: '0.85rem' }}
+                          title="Remove Class Cohort"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val && !studentForm.enrolled_classes.includes(val)) {
+                          setStudentForm((prev) => ({
+                            ...prev,
+                            enrolled_classes: [...prev.enrolled_classes, val],
+                            grade_class: prev.grade_class || val,
+                          }))
+                        }
+                      }}
+                      style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: '#ffffff' }}
+                    >
+                      <option value="">+ Add Additional Class Cohort / Stream...</option>
+                      {availableClasses.map((cls) => (
+                        <option key={cls} value={cls} disabled={studentForm.enrolled_classes.includes(cls)}>
+                          {cls}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* 3. Multiple Enrolled Subjects / Units */}
+                <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 800, color: '#334155' }}>
+                      📚 Registered Subject(s) / Units / Modules
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStudentForm((prev) => ({
+                            ...prev,
+                            enrolled_subjects: Array.from(new Set([...prev.enrolled_subjects, ...availableSubjects])),
+                          }))
+                        }
+                        style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', padding: 0 }}
+                      >
+                        + Select All Available
+                      </button>
+                      <span style={{ color: '#cbd5e1' }}>|</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStudentForm((prev) => ({
+                            ...prev,
+                            enrolled_subjects: [],
+                          }))
+                        }
+                        style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                      >
+                        Clear
+                      </button>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                        ({studentForm.enrolled_subjects.length} units)
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px', minHeight: '32px', maxHeight: '110px', overflowY: 'auto', padding: '4px', background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    {studentForm.enrolled_subjects.length === 0 ? (
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic', padding: '4px' }}>No subjects registered yet. Add units below.</span>
+                    ) : (
+                      studentForm.enrolled_subjects.map((sub) => (
+                        <span
+                          key={sub}
+                          style={{
+                            background: '#f0fdf4',
+                            color: '#166534',
+                            border: '1px solid #bbf7d0',
+                            fontSize: '0.71rem',
+                            fontWeight: 700,
+                            padding: '2px 7px',
+                            borderRadius: '6px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          📖 {sub}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setStudentForm((prev) => ({
+                                ...prev,
+                                enrolled_subjects: prev.enrolled_subjects.filter((s) => s !== sub),
+                              }))
+                            }
+                            style={{ background: 'none', border: 'none', color: '#166534', cursor: 'pointer', padding: 0, fontWeight: 900, fontSize: '0.8rem' }}
+                            title="Remove Subject"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val && !studentForm.enrolled_subjects.includes(val)) {
+                          setStudentForm((prev) => ({
+                            ...prev,
+                            enrolled_subjects: [...prev.enrolled_subjects, val],
+                          }))
+                        }
+                      }}
+                      style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', background: '#ffffff' }}
+                    >
+                      <option value="">+ Add Subject from Curriculum...</option>
+                      {availableSubjects.map((s) => (
+                        <option key={s} value={s} disabled={studentForm.enrolled_subjects.includes(s)}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Or type custom subject / unit..."
+                      value={studentForm.custom_subject}
+                      onChange={(e) => setStudentForm({ ...studentForm, custom_subject: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          const val = studentForm.custom_subject.trim()
+                          if (val && !studentForm.enrolled_subjects.includes(val)) {
+                            setStudentForm((prev) => ({
+                              ...prev,
+                              enrolled_subjects: [...prev.enrolled_subjects, val],
+                              custom_subject: '',
+                            }))
+                          }
+                        }
+                      }}
+                      style={{ flex: 1, padding: '0.45rem', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const val = studentForm.custom_subject.trim()
+                        if (val && !studentForm.enrolled_subjects.includes(val)) {
+                          setStudentForm((prev) => ({
+                            ...prev,
+                            enrolled_subjects: [...prev.enrolled_subjects, val],
+                            custom_subject: '',
+                          }))
+                        }
+                      }}
+                      style={{ background: '#16a34a', color: '#ffffff', border: 'none', borderRadius: '6px', padding: '0.45rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </div>
 

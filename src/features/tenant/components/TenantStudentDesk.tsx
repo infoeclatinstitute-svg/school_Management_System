@@ -88,16 +88,25 @@ export function TenantStudentDesk({
     )
   }, [feePaymentsList, activeStudent.id, activeStudent.admission_number])
 
-  // Notes for student's class cohort
+  // Notes for student's class cohort(s)
   const classNotes = useMemo(() => {
-    return lessonNotesList.filter(
-      (n) => !n.class_name || n.class_name.toLowerCase() === activeStudent.grade_class.toLowerCase()
+    const studentClasses = Array.from(
+      new Set([activeStudent.grade_class, ...(activeStudent.enrolled_classes || [])])
     )
-  }, [lessonNotesList, activeStudent.grade_class])
+      .filter(Boolean)
+      .map((c) => c.toLowerCase())
 
-  // Subjects extracted from notes and grades
+    return lessonNotesList.filter(
+      (n) => !n.class_name || studentClasses.includes(n.class_name.toLowerCase())
+    )
+  }, [lessonNotesList, activeStudent.grade_class, activeStudent.enrolled_classes])
+
+  // Subjects extracted from registered units, notes and grades
   const availableSubjects = useMemo(() => {
     const subs = new Set<string>()
+    if (activeStudent.enrolled_subjects) {
+      activeStudent.enrolled_subjects.forEach((s) => s && subs.add(s))
+    }
     classNotes.forEach((n) => {
       if (n.subject_name) subs.add(n.subject_name)
     })
@@ -105,12 +114,24 @@ export function TenantStudentDesk({
       if (g.subject_name) subs.add(g.subject_name)
     })
     return Array.from(subs)
-  }, [classNotes, studentGrades])
+  }, [classNotes, studentGrades, activeStudent.enrolled_subjects])
 
-  // Timetable for student's class
+  // Timetable for student's class(es)
   const classTimetable = useMemo(() => {
-    return tenantSchoolStore.getTimetableBySchool(school.slug, activeStudent.grade_class)
-  }, [school.slug, activeStudent.grade_class])
+    const classes = Array.from(
+      new Set([activeStudent.grade_class, ...(activeStudent.enrolled_classes || [])])
+    ).filter(Boolean)
+    const allPeriods = classes.flatMap((cls) =>
+      tenantSchoolStore.getTimetableBySchool(school.slug, cls)
+    )
+    const seen = new Set<string>()
+    return allPeriods.filter((p) => {
+      const key = `${p.day_of_week}-${p.period_number}-${p.subject_name}-${p.class_name}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }, [school.slug, activeStudent.grade_class, activeStudent.enrolled_classes])
 
   // Filtered timetable
   const filteredTimetable = useMemo(() => {
@@ -129,10 +150,21 @@ export function TenantStudentDesk({
     return ['ALL', ...union]
   }, [classTimetable])
 
-  // Attendance Sessions for student's class
+  // Attendance Sessions for student's class(es)
   const classAttendanceSessions = useMemo(() => {
-    return tenantSchoolStore.getAttendanceSessions(school.slug, activeStudent.grade_class)
-  }, [school.slug, activeStudent.grade_class])
+    const classes = Array.from(
+      new Set([activeStudent.grade_class, ...(activeStudent.enrolled_classes || [])])
+    ).filter(Boolean)
+    const allSessions = classes.flatMap((cls) =>
+      tenantSchoolStore.getAttendanceSessions(school.slug, cls)
+    )
+    const seen = new Set<string>()
+    return allSessions.filter((s) => {
+      if (seen.has(s.id)) return false
+      seen.add(s.id)
+      return true
+    })
+  }, [school.slug, activeStudent.grade_class, activeStudent.enrolled_classes])
 
   // Student's individual session records
   const studentSessionLogs = useMemo(() => {
@@ -202,7 +234,25 @@ export function TenantStudentDesk({
 
   let overallGrade = 'Pending'
   if (averagePercentage !== null) {
-    if (school.grading_scale === 'tvet_competency') {
+    if (school.grading_scale === 'cbc_rubric') {
+      if (averagePercentage >= 80) overallGrade = 'EE (Exceeding)'
+      else if (averagePercentage >= 60) overallGrade = 'ME (Meeting)'
+      else if (averagePercentage >= 40) overallGrade = 'AE (Approaching)'
+      else overallGrade = 'BE (Below)'
+    } else if (school.grading_scale === 'knec_12point') {
+      if (averagePercentage >= 80) overallGrade = 'A (12 pts)'
+      else if (averagePercentage >= 75) overallGrade = 'A- (11 pts)'
+      else if (averagePercentage >= 70) overallGrade = 'B+ (10 pts)'
+      else if (averagePercentage >= 65) overallGrade = 'B (9 pts)'
+      else if (averagePercentage >= 60) overallGrade = 'B- (8 pts)'
+      else if (averagePercentage >= 55) overallGrade = 'C+ (7 pts)'
+      else if (averagePercentage >= 50) overallGrade = 'C (6 pts)'
+      else if (averagePercentage >= 45) overallGrade = 'C- (5 pts)'
+      else if (averagePercentage >= 40) overallGrade = 'D+ (4 pts)'
+      else if (averagePercentage >= 35) overallGrade = 'D (3 pts)'
+      else if (averagePercentage >= 30) overallGrade = 'D- (2 pts)'
+      else overallGrade = 'E (1 pt)'
+    } else if (school.grading_scale === 'tvet_competency') {
       if (averagePercentage >= 80) overallGrade = 'Distinction'
       else if (averagePercentage >= 65) overallGrade = 'Credit'
       else if (averagePercentage >= 50) overallGrade = 'Pass'
@@ -443,8 +493,32 @@ export function TenantStudentDesk({
                 </span>
                 <span>•</span>
                 <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, color: '#334155' }}>
-                  Cohort: <strong style={{ color: '#0f172a' }}>{activeStudent.grade_class}</strong>
+                  Cohort(s):{' '}
+                  <strong style={{ color: '#0f172a' }}>
+                    {activeStudent.enrolled_classes && activeStudent.enrolled_classes.length > 0
+                      ? activeStudent.enrolled_classes.join(', ')
+                      : activeStudent.grade_class}
+                  </strong>
                 </span>
+                {activeStudent.enrolled_programs && activeStudent.enrolled_programs.length > 0 && (
+                  <>
+                    <span>•</span>
+                    <span style={{ background: '#e0e7ff', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, color: '#3730a3' }}>
+                      🎓 Program(s): <strong>{activeStudent.enrolled_programs.join(', ')}</strong>
+                    </span>
+                  </>
+                )}
+                {activeStudent.enrolled_subjects && activeStudent.enrolled_subjects.length > 0 && (
+                  <>
+                    <span>•</span>
+                    <span
+                      title={activeStudent.enrolled_subjects.join(', ')}
+                      style={{ background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, color: '#166534', cursor: 'help' }}
+                    >
+                      📚 {activeStudent.enrolled_subjects.length} Registered Unit(s)
+                    </span>
+                  </>
+                )}
                 <span>•</span>
                 <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontWeight: 700, color: '#334155' }}>
                   Period: <strong style={{ color: '#0f172a' }}>{activePeriod}</strong>

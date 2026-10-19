@@ -186,11 +186,13 @@ export function TenantTeacherDesk({
 
   // Students in selected attendance class
   const classStudents = useMemo(() => {
-    return studentList.filter(
-      (s) =>
-        !selectedClassForAttendance ||
-        s.grade_class.trim().toLowerCase() === selectedClassForAttendance.trim().toLowerCase()
-    )
+    return studentList.filter((s) => {
+      if (!selectedClassForAttendance) return true
+      const target = selectedClassForAttendance.trim().toLowerCase()
+      if (s.grade_class && s.grade_class.trim().toLowerCase() === target) return true
+      if (s.enrolled_classes && s.enrolled_classes.some((c) => c.trim().toLowerCase() === target)) return true
+      return false
+    })
   }, [studentList, selectedClassForAttendance])
 
   // In-Memory Roll-Call status map for current session: { [studentId]: 'present' | 'absent' | 'late' | 'excused' }
@@ -344,14 +346,26 @@ export function TenantTeacherDesk({
   }, [availableSubjects, selectedSubjectForGradebook])
 
   const gradebookStudents = useMemo(() => {
-    return studentList.filter(
-      (s) =>
-        (!selectedClassForGradebook || s.grade_class.toLowerCase() === selectedClassForGradebook.toLowerCase()) &&
-        (!gradebookSearchQuery ||
-          s.full_name.toLowerCase().includes(gradebookSearchQuery.toLowerCase()) ||
-          s.admission_number.toLowerCase().includes(gradebookSearchQuery.toLowerCase()))
-    )
-  }, [studentList, selectedClassForGradebook, gradebookSearchQuery])
+    return studentList.filter((s) => {
+      const matchClass =
+        !selectedClassForGradebook ||
+        s.grade_class.toLowerCase() === selectedClassForGradebook.toLowerCase() ||
+        (s.enrolled_classes && s.enrolled_classes.some((c) => c.toLowerCase() === selectedClassForGradebook.toLowerCase()))
+
+      const matchSubject =
+        !selectedSubjectForGradebook ||
+        !s.enrolled_subjects ||
+        s.enrolled_subjects.length === 0 ||
+        s.enrolled_subjects.some((sub) => sub.toLowerCase() === selectedSubjectForGradebook.toLowerCase())
+
+      const matchSearch =
+        !gradebookSearchQuery ||
+        s.full_name.toLowerCase().includes(gradebookSearchQuery.toLowerCase()) ||
+        s.admission_number.toLowerCase().includes(gradebookSearchQuery.toLowerCase())
+
+      return matchClass && matchSubject && matchSearch
+    })
+  }, [studentList, selectedClassForGradebook, selectedSubjectForGradebook, gradebookSearchQuery])
 
   // Gradebook Analytics
   const gradebookStats = useMemo(() => {
