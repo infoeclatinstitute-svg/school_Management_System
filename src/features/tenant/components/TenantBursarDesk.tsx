@@ -109,12 +109,9 @@ export function TenantBursarDesk({
 
   // Payroll Filter States
   const availablePayrollMonths = useMemo(() => {
-    const months = Array.from(new Set(payrollList.map((p) => p.month_period)))
-    if (months.length === 0) {
-      const now = new Date()
-      const currentMonthStr = `${now.toLocaleString('default', { month: 'long' })} ${now.getFullYear()}`
-      return [currentMonthStr]
-    }
+    const now = new Date()
+    const currentMonthStr = `${now.toLocaleString('default', { month: 'long' })} ${now.getFullYear()}`
+    const months = Array.from(new Set([currentMonthStr, ...payrollList.map((p) => p.month_period).filter(Boolean)]))
     return months
   }, [payrollList])
 
@@ -132,11 +129,21 @@ export function TenantBursarDesk({
   const [adjustedPaymentPlanInput, setAdjustedPaymentPlanInput] = useState<'termly' | 'monthly' | 'weekly' | 'custom'>('termly')
   const [adjustedInstallmentsCountInput, setAdjustedInstallmentsCountInput] = useState<number>(1)
   const [adjustedFeeDueDateInput, setAdjustedFeeDueDateInput] = useState<string>('')
+  const [studentBillingSearchQuery, setStudentBillingSearchQuery] = useState<string>('')
   const [showDisburseBatchModal, setShowDisburseBatchModal] = useState(false)
   const [batchDisburseChannel, setBatchDisburseChannel] = useState<'Bank Wire' | 'Mobile Money' | 'Cheque'>('Bank Wire')
 
-  // Exam clearance temporary permissions state (admission_number -> true)
-  const [examClearanceOverrides, setExamClearanceOverrides] = useState<Record<string, boolean>>({})
+  // Exam clearance temporary permissions state (admission_number -> true), persisted per school
+  const [examClearanceOverrides, setExamClearanceOverrides] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem(`bursar_exam_clearance_${school.slug}`)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (parsed && typeof parsed === 'object') return parsed
+      }
+    } catch {}
+    return {}
+  })
 
   // Payment Correction Modal State (24-hour security window)
   const [editingPayment, setEditingPayment] = useState<TenantFeePayment | null>(null)
@@ -145,6 +152,16 @@ export function TenantBursarDesk({
   const [editPaymentRef, setEditPaymentRef] = useState<string>('')
   const [editPaymentPeriod, setEditPaymentPeriod] = useState<string>('')
   const [editPaymentNotes, setEditPaymentNotes] = useState<string>('')
+
+  // Helper to check if a student belongs to a cohort (supports primary class, multi-class, and multi-program)
+  const studentMatchesCohort = (s: TenantStudentMember, cohort: string): boolean => {
+    if (!cohort) return false
+    return (
+      s.grade_class === cohort ||
+      Boolean(s.enrolled_classes?.includes(cohort)) ||
+      Boolean(s.enrolled_programs?.includes(cohort))
+    )
+  }
 
   // Dynamic Cohorts list
   const cohortsList = useMemo(() => {
@@ -158,6 +175,8 @@ export function TenantBursarDesk({
     })
     studentList.forEach((s) => {
       if (s.grade_class && s.grade_class.trim()) set.add(s.grade_class.trim())
+      s.enrolled_classes?.forEach((c) => { if (c && c.trim()) set.add(c.trim()) })
+      s.enrolled_programs?.forEach((p) => { if (p && p.trim()) set.add(p.trim()) })
     })
     return Array.from(set).filter(Boolean)
   }, [school.classes_list, school.slug, studentList])
@@ -207,7 +226,11 @@ export function TenantBursarDesk({
   // Batch Invoicing State
   const [batchInvoiceForm, setBatchInvoiceForm] = useState(() => {
     const firstCohort = cohortsList[0] || ''
-    const cohortStudents = studentList.filter((s) => s.grade_class === firstCohort)
+    const cohortStudents = studentList.filter((s) =>
+      s.grade_class === firstCohort ||
+      Boolean(s.enrolled_classes?.includes(firstCohort)) ||
+      Boolean(s.enrolled_programs?.includes(firstCohort))
+    )
     const existingFee = cohortStudents[0]?.fee_total || 0
     return {
       target_cohort: firstCohort,
@@ -222,11 +245,26 @@ export function TenantBursarDesk({
     }
   })
 
+  // Filtered students for fee payment modal search
+  const filteredStudentsForPayment = useMemo(() => {
+    const q = newPaymentInput.student_search.trim().toLowerCase()
+    if (!q) return studentList
+    return studentList.filter(
+      (s) =>
+        s.full_name.toLowerCase().includes(q) ||
+        s.admission_number.toLowerCase().includes(q) ||
+        (s.grade_class || '').toLowerCase().includes(q)
+    )
+  }, [studentList, newPaymentInput.student_search])
 
-  // Selected student for fee payment modal
+  // Selected student for fee payment modal (guaranteed in sync with search filter)
   const selectedStudentForPayment = useMemo(() => {
-    return studentList.find((s) => s.id === newPaymentInput.student_id) || studentList[0]
-  }, [studentList, newPaymentInput.student_id])
+    return (
+      filteredStudentsForPayment.find((s) => s.id === newPaymentInput.student_id) ||
+      filteredStudentsForPayment[0] ||
+      null
+    )
+  }, [filteredStudentsForPayment, newPaymentInput.student_id])
 
   // Financial Telemetry Metrics
   const totalBilled = useMemo(() => studentList.reduce((acc, s) => acc + (s.fee_total || 0), 0), [studentList])
@@ -275,6 +313,9 @@ export function TenantBursarDesk({
     const issuerName = sessionUser?.name || sessionUser?.full_name || 'Bursary Officer'
     const issuerRole = sessionUser?.role === 'bursar' ? 'Lead Bursar & Finance Controller' : 'Authorized Treasury Officer'
 
+    const cleanRef = newPaymentInput.reference_code.trim()
+    const cleanNotes = newPaymentInput.bursar_notes.trim()
+
     const payment = tenantSchoolStore.recordFeePayment({
       school_slug: school.slug,
       student_id: selectedStudentForPayment.id,
@@ -287,12 +328,22 @@ export function TenantBursarDesk({
       issuer_name: issuerName,
       issuer_role: issuerRole,
       installment_label: newPaymentInput.installment_label || undefined,
-      notes: newPaymentInput.bursar_notes || undefined,
+      reference_code: cleanRef || undefined,
+      bursar_notes: cleanNotes || undefined,
+      notes: cleanNotes || undefined,
     })
 
     setShowRecordPaymentModal(false)
-    // Reset amount
-    setNewPaymentInput((prev) => ({ ...prev, amount: 0, reference_code: '', bursar_notes: '', installment_label: '' }))
+    // Reset amount & search
+    setNewPaymentInput((prev) => ({
+      ...prev,
+      student_id: selectedStudentForPayment.id,
+      student_search: '',
+      amount: 0,
+      reference_code: '',
+      bursar_notes: '',
+      installment_label: '',
+    }))
     onReloadData()
     onOpenReceipt(payment)
   }
@@ -311,9 +362,9 @@ export function TenantBursarDesk({
       Number(batchInvoiceForm.lab_component) +
       Number(batchInvoiceForm.library_component)
 
-    const cohortStudents = studentList.filter((s) => s.grade_class === cohort)
+    const cohortStudents = studentList.filter((s) => studentMatchesCohort(s, cohort))
     if (cohortStudents.length === 0) {
-      alert(`No active students currently enrolled under class cohort "${cohort}".`)
+      alert(`No active students currently enrolled under class/program cohort "${cohort}".`)
       return
     }
 
@@ -379,13 +430,14 @@ export function TenantBursarDesk({
 
   // CSV Export Handlers
   const handleExportPaymentsCSV = () => {
-    const headers = ['Receipt Number', 'Student Name', 'Admission No', 'Date', 'Payment Channel', 'Period', 'Amount Paid', 'Recorded By']
+    const headers = ['Receipt Number', 'Student Name', 'Admission No', 'Date', 'Payment Channel', 'Reference Code', 'Period', 'Amount Paid', 'Recorded By']
     const rows = feePaymentsList.map((p) => [
       p.receipt_number,
       p.student_name,
       p.admission_number,
       new Date(p.date).toLocaleString('en-GB'),
       p.payment_method,
+      p.reference_code || '',
       p.period_name,
       p.amount,
       p.recorded_by,
@@ -436,7 +488,9 @@ export function TenantBursarDesk({
         p.receipt_number.toLowerCase().includes(q) ||
         p.student_name.toLowerCase().includes(q) ||
         p.admission_number.toLowerCase().includes(q) ||
-        p.recorded_by.toLowerCase().includes(q)
+        p.recorded_by.toLowerCase().includes(q) ||
+        (p.reference_code || '').toLowerCase().includes(q) ||
+        (p.bursar_notes || '').toLowerCase().includes(q)
 
       const matchMethod = paymentMethodFilter === 'ALL' || p.payment_method === paymentMethodFilter
       const matchPeriod = paymentPeriodFilter === 'ALL' || p.period_name === paymentPeriodFilter
@@ -454,7 +508,7 @@ export function TenantBursarDesk({
         s.admission_number.toLowerCase().includes(q) ||
         s.guardian_name.toLowerCase().includes(q)
 
-      const matchClass = arrearsClassFilter === 'ALL' || s.grade_class === arrearsClassFilter
+      const matchClass = arrearsClassFilter === 'ALL' || studentMatchesCohort(s, arrearsClassFilter)
 
       let matchSeverity = true
       if (arrearsSeverityFilter === 'CRITICAL') {
@@ -1976,10 +2030,16 @@ export function TenantBursarDesk({
                           <button
                             type="button"
                             onClick={() => {
-                              setExamClearanceOverrides((prev) => ({
-                                ...prev,
-                                [s.admission_number]: !prev[s.admission_number],
-                              }))
+                              setExamClearanceOverrides((prev) => {
+                                const next = {
+                                  ...prev,
+                                  [s.admission_number]: !prev[s.admission_number],
+                                }
+                                try {
+                                  localStorage.setItem(`bursar_exam_clearance_${school.slug}`, JSON.stringify(next))
+                                } catch {}
+                                return next
+                              })
                             }}
                             style={{
                               background: isPermitted ? '#dcfce7' : '#fee2e2',
@@ -2573,7 +2633,7 @@ export function TenantBursarDesk({
                 }}
               >
                 {cohortsList.map((cohortName) => {
-                  const enrolled = studentList.filter((s) => s.grade_class === cohortName)
+                  const enrolled = studentList.filter((s) => studentMatchesCohort(s, cohortName))
                   const cohortBilled = enrolled.reduce((acc, s) => acc + s.fee_total, 0)
                   const cohortCollected = enrolled.reduce((acc, s) => acc + s.fee_paid, 0)
                   const cohortArrears = enrolled.reduce((acc, s) => acc + s.fee_balance, 0)
@@ -2651,9 +2711,19 @@ export function TenantBursarDesk({
                       <button
                         type="button"
                         onClick={() => {
+                          const sampleStudent = enrolled[0]
+                          const existingFee = sampleStudent?.fee_total || avgFee || 0
                           setBatchInvoiceForm((prev) => ({
                             ...prev,
                             target_cohort: cohortName,
+                            fee_payment_plan: (sampleStudent?.fee_payment_plan || prev.fee_payment_plan || 'termly') as 'termly' | 'monthly' | 'weekly' | 'custom',
+                            fee_installments_count: sampleStudent?.fee_installments_count || prev.fee_installments_count || 1,
+                            fee_due_date: sampleStudent?.fee_due_date || prev.fee_due_date || '',
+                            tuition_component: existingFee > 0 ? Math.round(existingFee * 0.75) : prev.tuition_component,
+                            exam_component: existingFee > 0 ? Math.round(existingFee * 0.1) : prev.exam_component,
+                            activity_component: existingFee > 0 ? Math.round(existingFee * 0.05) : prev.activity_component,
+                            lab_component: existingFee > 0 ? Math.round(existingFee * 0.05) : prev.lab_component,
+                            library_component: existingFee > 0 ? Math.round(existingFee * 0.05) : prev.library_component,
                           }))
                           setShowBatchInvoiceModal(true)
                         }}
@@ -2683,12 +2753,34 @@ export function TenantBursarDesk({
 
             {/* Individual Student Fee Adjustment Section */}
             <div style={{ marginTop: '2.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-              <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem' }}>
-                Individual Student Billing &amp; Scholarship Adjustments
-              </h4>
-              <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0 0 1rem' }}>
-                Need to grant a bursary, partial scholarship, or custom discount? Select a student below to adjust their invoiced total directly.
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.35rem' }}>
+                    Individual Student Billing &amp; Scholarship Adjustments
+                  </h4>
+                  <p style={{ fontSize: '0.82rem', color: '#64748b', margin: 0 }}>
+                    Need to grant a bursary, partial scholarship, or custom discount? Search or select a student below to adjust their invoiced total directly.
+                  </p>
+                </div>
+                {studentList.length > 0 && (
+                  <div style={{ minWidth: '240px', flex: '0 1 320px' }}>
+                    <input
+                      type="text"
+                      placeholder="🔍 Search student by name, adm #, or class..."
+                      value={studentBillingSearchQuery}
+                      onChange={(e) => setStudentBillingSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.55rem 0.85rem',
+                        borderRadius: '8px',
+                        border: '1px solid #cbd5e1',
+                        fontSize: '0.82rem',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
 
               {studentList.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '2.5rem 1rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.85rem' }}>
@@ -2710,7 +2802,20 @@ export function TenantBursarDesk({
                       </tr>
                     </thead>
                     <tbody>
-                      {studentList.slice(0, 25).map((s) => {
+                      {studentList
+                        .filter((s) => {
+                          const q = studentBillingSearchQuery.trim().toLowerCase()
+                          if (!q) return true
+                          return (
+                            s.full_name.toLowerCase().includes(q) ||
+                            s.admission_number.toLowerCase().includes(q) ||
+                            (s.grade_class || '').toLowerCase().includes(q) ||
+                            Boolean(s.enrolled_classes?.some((c) => c.toLowerCase().includes(q))) ||
+                            Boolean(s.enrolled_programs?.some((p) => p.toLowerCase().includes(q)))
+                          )
+                        })
+                        .slice(0, 50)
+                        .map((s) => {
                         const plan = s.fee_payment_plan || 'termly'
                         const count = s.fee_installments_count || 1
                         const instAmt = s.fee_installment_amount || (count > 0 ? Math.round(s.fee_total / count) : s.fee_total)
@@ -3082,7 +3187,24 @@ export function TenantBursarDesk({
                   type="text"
                   placeholder="Type student name or admission # to filter..."
                   value={newPaymentInput.student_search}
-                  onChange={(e) => setNewPaymentInput((prev) => ({ ...prev, student_search: e.target.value }))}
+                  onChange={(e) => {
+                    const searchVal = e.target.value
+                    const q = searchVal.trim().toLowerCase()
+                    const matches = !q
+                      ? studentList
+                      : studentList.filter(
+                          (s) =>
+                            s.full_name.toLowerCase().includes(q) ||
+                            s.admission_number.toLowerCase().includes(q) ||
+                            (s.grade_class || '').toLowerCase().includes(q)
+                        )
+                    const nextSelected = matches.find((s) => s.id === newPaymentInput.student_id) || matches[0]
+                    setNewPaymentInput((prev) => ({
+                      ...prev,
+                      student_search: searchVal,
+                      student_id: nextSelected ? nextSelected.id : '',
+                    }))
+                  }}
                   style={{
                     width: '100%',
                     padding: '0.55rem 0.85rem',
@@ -3095,7 +3217,7 @@ export function TenantBursarDesk({
                 />
 
                 <select
-                  value={newPaymentInput.student_id}
+                  value={selectedStudentForPayment?.id || ''}
                   onChange={(e) => {
                     const selId = e.target.value
                     const st = studentList.find((s) => s.id === selId)
@@ -3116,22 +3238,14 @@ export function TenantBursarDesk({
                     fontWeight: 600,
                   }}
                 >
-                  {studentList.filter((s) => {
-                    const q = newPaymentInput.student_search.toLowerCase()
-                    return !q || s.full_name.toLowerCase().includes(q) || s.admission_number.toLowerCase().includes(q)
-                  }).length === 0 ? (
+                  {filteredStudentsForPayment.length === 0 ? (
                     <option value="">-- No Students Found --</option>
                   ) : (
-                    studentList
-                      .filter((s) => {
-                        const q = newPaymentInput.student_search.toLowerCase()
-                        return !q || s.full_name.toLowerCase().includes(q) || s.admission_number.toLowerCase().includes(q)
-                      })
-                      .map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.full_name} ({s.admission_number}) • {s.grade_class} — Balance: {currency} {s.fee_balance.toLocaleString()}
-                        </option>
-                      ))
+                    filteredStudentsForPayment.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name} ({s.admission_number}) • {s.grade_class} — Balance: {currency} {s.fee_balance.toLocaleString()}
+                      </option>
+                    ))
                   )}
                 </select>
               </div>
@@ -3326,7 +3440,7 @@ export function TenantBursarDesk({
               </div>
 
               {/* Transaction Reference & Period */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px', color: '#0f172a' }}>
                     Transaction Reference / Slip #
@@ -3365,6 +3479,27 @@ export function TenantBursarDesk({
                     }}
                   />
                 </div>
+              </div>
+
+              {/* Bursar Remarks / Payment Notes */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px', color: '#0f172a' }}>
+                  Bursar Remarks / Payment Notes (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Tuition installment, bank deposit slip verified..."
+                  value={newPaymentInput.bursar_notes}
+                  onChange={(e) => setNewPaymentInput({ ...newPaymentInput, bursar_notes: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    fontSize: '0.85rem',
+                    boxSizing: 'border-box',
+                  }}
+                />
               </div>
 
               {/* Real-time After Credit Preview */}

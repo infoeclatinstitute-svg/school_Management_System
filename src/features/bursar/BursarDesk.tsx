@@ -564,7 +564,7 @@ export function BursarDesk() {
         <div>
           <h1 className="page-title">💼 Bursar, Admissions & Secretary Desk</h1>
           <p className="page-subtitle">
-            Integrated executive office for Tuition Billing, M-Pesa Receipts, Student Admissions, TVET Short Course Registration, and Biometric Fingerprint Clearance.
+            Integrated executive office for Tuition Billing, M-Pesa Receipts, Student Admissions, Course &amp; Unit Registration, and Biometric Fingerprint Clearance.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -639,7 +639,7 @@ export function BursarDesk() {
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid var(--color-primary)' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Total Billed Revenue</div>
               <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--color-primary)', marginTop: '0.25rem' }}>
-                ${totalBilled.toLocaleString()}
+                {currencySymbol}{totalBilled.toLocaleString()}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.2rem' }}>Across {invoices.length} Student Invoices</div>
             </div>
@@ -647,7 +647,7 @@ export function BursarDesk() {
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #16a34a' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Total Collections</div>
               <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#16a34a', marginTop: '0.25rem' }}>
-                ${totalCollected.toLocaleString()}
+                {currencySymbol}{totalCollected.toLocaleString()}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: '0.2rem' }}>Collection Rate: {collectionRate}%</div>
             </div>
@@ -655,7 +655,7 @@ export function BursarDesk() {
             <div className="card" style={{ padding: '1.25rem', borderLeft: '4px solid #ea580c' }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>Outstanding Fee Balance</div>
               <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#ea580c', marginTop: '0.25rem' }}>
-                ${totalOutstanding.toLocaleString()}
+                {currencySymbol}{totalOutstanding.toLocaleString()}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.2rem' }}>Pending Payments</div>
             </div>

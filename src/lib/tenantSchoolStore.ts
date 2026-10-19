@@ -2267,6 +2267,7 @@ class TenantSchoolStore {
     if (typeof window === 'undefined') return
     safeTenantStorePersist(PAYMENTS_STORAGE_KEY, this.payments)
     this.triggerCloudPush()
+    window.dispatchEvent(new CustomEvent('gc-tenant-payments-updated'))
   }
 
   public getPaymentsBySchool(slug: string): TenantFeePayment[] {
@@ -2279,6 +2280,7 @@ class TenantSchoolStore {
     input: Omit<TenantFeePayment, 'id' | 'receipt_number' | 'date'>
   ): TenantFeePayment {
     if (this.payments.length === 0) this.loadPayments()
+    if (this.students.length === 0) this.loadStudents()
     const receiptNum = `RCP-${input.school_slug.toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`
     const newPayment: TenantFeePayment = {
       ...input,
@@ -2295,7 +2297,7 @@ class TenantSchoolStore {
     // Also update student fee_paid and fee_balance
     const student = this.students.find((s) => s.id === input.student_id)
     if (student) {
-      const newPaid = student.fee_paid + input.amount
+      const newPaid = (student.fee_paid || 0) + input.amount
       this.updateStudent(student.id, { fee_paid: newPaid })
     }
 
@@ -2308,6 +2310,7 @@ class TenantSchoolStore {
     options?: { override24HrWindow?: boolean }
   ): { success: boolean; message: string; payment?: TenantFeePayment } {
     if (this.payments.length === 0) this.loadPayments()
+    if (this.students.length === 0) this.loadStudents()
     const idx = this.payments.findIndex((p) => p.id === id)
     if (idx === -1) return { success: false, message: 'Fee payment transaction record not found.' }
 
@@ -2340,7 +2343,7 @@ class TenantSchoolStore {
     if (diff !== 0) {
       const student = this.students.find((s) => s.id === payment.student_id)
       if (student) {
-        const revisedPaid = Math.max(0, student.fee_paid + diff)
+        const revisedPaid = Math.max(0, (student.fee_paid || 0) + diff)
         this.updateStudent(student.id, { fee_paid: revisedPaid })
       }
     }
@@ -2357,6 +2360,7 @@ class TenantSchoolStore {
     options?: { override24HrWindow?: boolean }
   ): { success: boolean; message: string } {
     if (this.payments.length === 0) this.loadPayments()
+    if (this.students.length === 0) this.loadStudents()
     const idx = this.payments.findIndex((p) => p.id === id)
     if (idx === -1) return { success: false, message: 'Payment record not found.' }
 
@@ -2375,7 +2379,7 @@ class TenantSchoolStore {
     // Revert student fee_paid
     const student = this.students.find((s) => s.id === payment.student_id)
     if (student) {
-      const revisedPaid = Math.max(0, student.fee_paid - payment.amount)
+      const revisedPaid = Math.max(0, (student.fee_paid || 0) - payment.amount)
       this.updateStudent(student.id, { fee_paid: revisedPaid })
     }
 
