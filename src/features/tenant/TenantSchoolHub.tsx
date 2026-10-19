@@ -2067,7 +2067,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   </button>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(domainLinks.portals.student.subdomain, 'Student Portal Link')}
+                    onClick={() => copyToClipboard(domainLinks.portals.student.path, 'Student Portal Link')}
                     style={{
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
@@ -2170,7 +2170,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   </button>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(domainLinks.portals.teacher.subdomain, 'Teacher Desk Link')}
+                    onClick={() => copyToClipboard(domainLinks.portals.teacher.path, 'Teacher Desk Link')}
                     style={{
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
@@ -2273,7 +2273,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   </button>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(domainLinks.portals.bursar.subdomain, 'Bursar Desk Link')}
+                    onClick={() => copyToClipboard(domainLinks.portals.bursar.path, 'Bursar Desk Link')}
                     style={{
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
@@ -2376,7 +2376,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
                   </button>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(domainLinks.portals.admin.subdomain, 'Principal Office Link')}
+                    onClick={() => copyToClipboard(domainLinks.portals.principal.path, 'Principal Office Link')}
                     style={{
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',

@@ -17,6 +17,7 @@ import {
 } from '@/components/icons/AppIcons'
 import { schoolStore } from '@/lib/schoolData'
 import { cloudServicesStore } from '@/lib/cloudServicesStore'
+import { isElectronApp } from '@/utils/platform'
 
 export interface DepartmentOption {
   name: string
@@ -429,16 +430,18 @@ export function TutorPublishCoursePage() {
 
   // Check if local desktop bridge is running & read existing school departments
   useEffect(() => {
-    fetch('http://127.0.0.1:5179/status')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.status === 'online') {
-          setBridgeStatus({ online: true, dir: data.saveDirectory })
-        }
-      })
-      .catch(() => {
-        setBridgeStatus({ online: false })
-      })
+    if (isElectronApp()) {
+      fetch('http://127.0.0.1:5179/status')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === 'online') {
+            setBridgeStatus({ online: true, dir: data.saveDirectory })
+          }
+        })
+        .catch(() => {
+          setBridgeStatus({ online: false })
+        })
+    }
 
     try {
       const depts = schoolStore.getDepartments()
@@ -581,28 +584,32 @@ export function TutorPublishCoursePage() {
       console.warn('Could not register into schoolStore immediately:', storeErr)
     }
 
-    // 2. Trigger local desktop video downloader bridge quietly in background
-    try {
-      const bridgeRes = await fetch('http://127.0.0.1:5179/download', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoUrl,
-          title: courseTitle,
-          tutorName: finalTutorOrSchoolName,
-        }),
-      })
+    // 2. Trigger local desktop video downloader bridge quietly in background if running native desktop app
+    if (isElectronApp()) {
+      try {
+        const bridgeRes = await fetch('http://127.0.0.1:5179/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoUrl,
+            title: courseTitle,
+            tutorName: finalTutorOrSchoolName,
+          }),
+        })
 
-      if (bridgeRes.ok) {
-        const bridgeData = await bridgeRes.json()
-        newCourse.status = 'Approved & Live'
-        newCourse.downloadPath = bridgeData.savedPath
-        setDownloadStatusMsg('✓ Course registered & video streaming connection active for enrolled students!')
-      } else {
-        setDownloadStatusMsg('✓ Course registered & published live! Video streaming connection active.')
+        if (bridgeRes.ok) {
+          const bridgeData = await bridgeRes.json()
+          newCourse.status = 'Approved & Live'
+          newCourse.downloadPath = bridgeData.savedPath
+          setDownloadStatusMsg('✓ Course registered & video streaming connection active for enrolled students!')
+        } else {
+          setDownloadStatusMsg('✓ Course registered & published live! Video streaming connection active.')
+        }
+      } catch {
+        // If bridge daemon unavailable
+        setDownloadStatusMsg('✓ Course registered & published live! Video stream connected.')
       }
-    } catch {
-      // If web browser without desktop bridge daemon
+    } else {
       setDownloadStatusMsg('✓ Course registered & published live! Video stream connected.')
     }
 

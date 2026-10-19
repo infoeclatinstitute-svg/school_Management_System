@@ -137,7 +137,7 @@ export async function checkForOTAUpdates(force: boolean = false): Promise<boolea
       (Boolean((window as any).Capacitor?.isNativePlatform?.()) || window.location.protocol === 'capacitor:' || /Capacitor/i.test(navigator.userAgent)) &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
 
-    if (isNewer || force || isCapacitorLocal) {
+    if (isNewer || force) {
       localStorage.setItem(LOCAL_BUILD_TIME_KEY, remoteBuildTime.toString())
 
       // 1. Silently update web caches in the background

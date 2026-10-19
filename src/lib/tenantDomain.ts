@@ -26,33 +26,46 @@ export interface TenantDomainLinks {
  * Returns special links and domain URLs for a given partner school.
  */
 export function getTenantDomainLinks(school: PartnerSchoolTenant): TenantDomainLinks {
+  const isDev = Boolean(import.meta.env.DEV)
   const isBrowser = typeof window !== 'undefined'
-  const baseDomain = isBrowser ? window.location.host : ''
-  const currentOrigin = isBrowser ? window.location.origin : ''
+  const baseDomain = isBrowser ? window.location.host : 'cloud.eclat.institute'
+  const currentOrigin = isBrowser ? window.location.origin : 'https://cloud.eclat.institute'
   const protocol = isBrowser ? window.location.protocol : 'https:'
   const port = isBrowser && window.location.port ? `:${window.location.port}` : ''
-
-  // Determine base host (e.g. cloud.example.com or localhost:5173)
-  let platformHost = baseDomain
   const hostOnly = isBrowser ? window.location.hostname.toLowerCase() : ''
-  if (hostOnly.endsWith('.localhost')) {
-    platformHost = `localhost${port}`
-  } else {
+
+  // Determine base host (e.g. cloud.eclat.institute or localhost:5173 during local dev)
+  let platformHost = baseDomain
+  if (hostOnly === 'localhost' || hostOnly === '127.0.0.1' || hostOnly.endsWith('.localhost')) {
+    platformHost = isDev ? `localhost${port}` : 'cloud.eclat.institute'
+  } else if (hostOnly) {
     const parts = hostOnly.split('.')
     // If we're already on a tenant subdomain (e.g. prime.cloud.domain.com with 4+ parts),
     // strip the leading subdomain part so we get cloud.domain.com
     if (parts.length > 3) {
       platformHost = parts.slice(1).join('.') + port
     }
+  } else {
+    platformHost = 'cloud.eclat.institute'
   }
 
-  let subdomainHost = platformHost ? `${school.slug}.${platformHost}` : school.slug
-  if (isBrowser && hostOnly.includes('localhost')) {
+  let subdomainHost = `${school.slug}.${platformHost}`
+  if (isDev && hostOnly.includes('localhost')) {
     subdomainHost = `${school.slug}.localhost${port}`
   }
 
-  const subdomainUrl = `${protocol}//${subdomainHost}`
-  const pathUrl = `${currentOrigin}/s/${school.slug}`
+  const effectiveProtocol = isDev && protocol === 'http:' ? 'http:' : 'https:'
+  const subdomainUrl = `${effectiveProtocol}//${subdomainHost}`
+
+  const isLocalOrigin =
+    currentOrigin.includes('localhost') ||
+    currentOrigin.includes('127.0.0.1') ||
+    currentOrigin.startsWith('capacitor:') ||
+    currentOrigin.startsWith('ionic:') ||
+    currentOrigin.startsWith('file:')
+
+  const effectiveOrigin = !isDev && isLocalOrigin ? 'https://cloud.eclat.institute' : currentOrigin
+  const pathUrl = `${effectiveOrigin}/s/${school.slug}`
   const customDomainUrl = school.custom_domain
     ? school.custom_domain.startsWith('http')
       ? school.custom_domain

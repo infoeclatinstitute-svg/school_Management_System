@@ -433,6 +433,17 @@ export async function captureFromWebUSBScanner(
  * Probes for local biometric scanner services running on localhost.
  */
 export async function probeLocalBiometricDaemon(): Promise<RealBiometricDevice | null> {
+  // In secure web production (HTTPS), probing unencrypted http://127.0.0.1 violates Mixed Content security
+  // and triggers browser errors unless running inside an Electron desktop shell or local dev context.
+  if (
+    typeof window !== 'undefined' &&
+    window.location.protocol === 'https:' &&
+    !navigator.userAgent.includes('Electron') &&
+    !(window as any).desktopAPI
+  ) {
+    return null
+  }
+
   const ports = [
     { port: 11100, name: 'Mantra MFS100 RD Service' },
     { port: 8443, name: 'SecuGen WebAPI Daemon' },
