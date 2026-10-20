@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "tsc -b && vite build",
-    "test": "node tests/unit_tests.js",
+    "test": "node tests/unit_tests.js && node tests/e2e_simulation_tests.js",
+    "test:unit": "node tests/unit_tests.js",
+    "test:e2e": "node tests/e2e_simulation_tests.js",
     "lint": "oxlint",
     "preview": "vite preview",
     "desktop": "electron .",

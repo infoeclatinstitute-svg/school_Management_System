@@ -33,6 +33,8 @@ import { TenantPublicShowcase } from './components/TenantPublicShowcase'
 import { TenantApplyAdmissionModal } from './components/TenantApplyAdmissionModal'
 import { TenantSchoolLoginModal } from './components/TenantSchoolLoginModal'
 import { TenantProfilePage } from './components/TenantProfilePage'
+import { TenantDomainModal } from './components/TenantDomainModal'
+import { TenantLicenseActivationModal } from './components/TenantLicenseActivationModal'
 import { licensingStore } from '@/lib/licensingStore'
 import {
   StudentAdmissionLetterModal,
@@ -81,8 +83,8 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
 
   // Domain Modal
   const [showDomainModal, setShowDomainModal] = useState(false)
-  const [customDomainInput, setCustomDomainInput] = useState('')
-  const [customDomainMessage, setCustomDomainMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+
 
   // Real School SIS / SMS Live Datasets
   const [staffList, setStaffList] = useState<TenantStaffMember[]>([])
@@ -257,7 +259,7 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       }
       if (foundSchool && !cancelled) {
         setSchool(foundSchool)
-        setCustomDomainInput(foundSchool.custom_domain || '')
+
         reloadSchoolData(foundSchool.slug)
         const savedSession = tenantSchoolStore.getActiveSession(foundSchool.slug)
         setCurrentSession(savedSession || null)
@@ -2839,262 +2841,27 @@ export function TenantSchoolHub({ forcedSlug, forcedSubview }: TenantSchoolHubPr
       )}
 
       {/* MODAL: DOMAIN & DNS CONFIGURATION */}
-      {showDomainModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '24px', maxWidth: '580px', width: '100%', maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', padding: 'clamp(1.1rem, 4vw, 2rem)', border: `2px solid ${primaryColor}`, boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
-                Custom Domain &amp; DNS Management
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowDomainModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <p style={{ fontSize: '0.84rem', color: '#64748b', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
-              Connect your school's private custom domain (e.g. <code>portal.{school.slug}.ac.ke</code> or <code>{school.slug}.school</code>) to this SIS portal.
-            </p>
-
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                School Custom Domain
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. portal.hillcrest.ac.ke"
-                value={customDomainInput}
-                onChange={(e) => setCustomDomainInput(e.target.value)}
-                style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #cbd5e1', fontSize: '0.9rem', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {customDomainMessage && (
-              <div style={{ padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, marginBottom: '1rem', background: customDomainMessage.type === 'success' ? '#dcfce7' : '#fee2e2', color: customDomainMessage.type === 'success' ? '#166534' : '#991b1b' }}>
-                {customDomainMessage.text}
-              </div>
-            )}
-
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#475569', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-              <strong>DNS Verification Instructions:</strong>
-              <div>Type: <strong>CNAME</strong></div>
-              <div>Host: <strong>@ / portal</strong></div>
-              <div>Target: <strong>{typeof window !== 'undefined' ? window.location.host : 'cloud-host'}</strong></div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => setShowDomainModal(false)}
-                style={{ padding: '0.65rem 1.25rem', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '0.85rem' }}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (school) {
-                    tenantSchoolStore.updateSchoolCustomDomain(school.id, customDomainInput)
-                    setCustomDomainMessage({ type: 'success', text: `Saved custom domain: ${customDomainInput}!` })
-                    setTimeout(() => setShowDomainModal(false), 1500)
-                  }
-                }}
-                style={{ padding: '0.65rem 1.5rem', borderRadius: '10px', border: 'none', background: primaryColor, color: '#ffffff', fontWeight: 800, cursor: 'pointer', fontSize: '0.85rem' }}
-              >
-                Save Domain
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TenantDomainModal
+        isOpen={showDomainModal}
+        onClose={() => setShowDomainModal(false)}
+        school={school}
+        primaryColor={primaryColor}
+        onDomainUpdated={(newDomain) => {
+          if (school) {
+            setSchool({ ...school, custom_domain: newDomain });
+          }
+        }}
+      />
 
       {/* MODAL: PRODUCT KEY LICENSE ACTIVATION */}
-      {showLicenseModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-          <div style={{ background: '#ffffff', borderRadius: '24px', maxWidth: '580px', width: '100%', maxHeight: 'calc(100dvh - 2rem)', overflowY: 'auto', padding: 'clamp(1.1rem, 4vw, 2rem)', border: `2px solid ${primaryColor}`, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.4rem' }}>🔑</span>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 900, margin: 0, color: '#0f172a' }}>
-                    Institutional Campus Product Key
-                  </h3>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                    Subscription &amp; Campus Access Authorization
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowLicenseModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#64748b' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Campus Pricing & Status Card */}
-            <div style={{ background: '#f8fafc', padding: '1.15rem', borderRadius: '14px', border: '1px solid #e2e8f0', marginBottom: '1.25rem', fontSize: '0.84rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: '#64748b' }}>Institution:</span>
-                <strong>{school.name}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: '#64748b' }}>Registered Campuses:</span>
-                <strong>{school.campus_count || (school.campuses_list ? school.campuses_list.length : 1)} Campus(es)</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: '#64748b' }}>Subscription Tier:</span>
-                <span style={{
-                  fontWeight: 900,
-                  fontSize: '0.78rem',
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  background: school.subscription_tier === 'lifetime' ? '#dcfce7' : '#eff6ff',
-                  color: school.subscription_tier === 'lifetime' ? '#065f46' : '#1e40af',
-                  border: school.subscription_tier === 'lifetime' ? '1px solid #6ee7b7' : '1px solid #bfdbfe',
-                }}>
-                  {school.subscription_tier === 'lifetime'
-                    ? '♾️ LIFETIME LICENSE (KES 30k + 1k/yr)'
-                    : '⭐ STANDARD MONTHLY (KES 2,500/mo)'}
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: '#64748b' }}>Public Page Showcase:</span>
-                <span style={{ fontWeight: 800, color: '#15803d' }}>
-                  ✓ Dedicated Page &amp; Programs Catalog Unlocked
-                </span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ color: '#64748b' }}>License Status:</span>
-                <span style={{
-                  fontWeight: 800,
-                  color: isLicenseActive ? '#15803d' : '#b45309',
-                  background: isLicenseActive ? '#dcfce7' : '#fef3c7',
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  fontSize: '0.75rem',
-                }}>
-                  {isLicenseActive ? (school.subscription_status || 'LICENSED').toUpperCase() : 'PENDING ACTIVATION'}
-                </span>
-              </div>
-              {school.license_valid_until && (
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Valid Through:</span>
-                  <strong>{school.subscription_tier === 'lifetime' ? 'Perpetual (KES 1,000/yr Maint.)' : new Date(school.license_valid_until).toLocaleDateString()}</strong>
-                </div>
-              )}
-            </div>
-
-            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1rem', fontSize: '0.82rem', color: '#065f46' }}>
-              <div style={{ fontWeight: 800, marginBottom: '4px' }}>📲 Subscription &amp; Tier Activation (M-Pesa):</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '6px', fontSize: '0.8rem' }}>
-                <div>• <strong>♾️ Lifetime Purchase:</strong> KES 30,000 one-time / campus + only KES 1,000 / year maintenance (Unlocks ALL features forever)</div>
-                <div>• <strong>Standard Monthly Plan:</strong> KES 2,500 / campus / month (All Portals + Dedicated Public Page &amp; Programs Catalog)</div>
-              </div>
-              <div>Send payment to:</div>
-              <div style={{ fontSize: '1.05rem', fontWeight: 900, color: '#047857', marginTop: '2px', letterSpacing: '0.04em' }}>
-                M-Pesa: 0740027346
-              </div>
-              <div style={{ fontSize: '0.74rem', color: '#059669', marginTop: '3px' }}>
-                Once processed, your 19-character Product Key (e.g. <code>GC-LFT-...</code> or <code>GC-SLV-...</code>) will be issued to activate access below.
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                Product Activation Key
-              </label>
-              <input
-                type="text"
-                placeholder="GC-GLD-XXXX-XXXX-XXXX-XXXX"
-                value={licenseKeyInput}
-                onChange={(e) => setLicenseKeyInput(e.target.value.toUpperCase())}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  borderRadius: '12px',
-                  border: '2px solid #cbd5e1',
-                  fontSize: '0.95rem',
-                  fontFamily: 'monospace',
-                  fontWeight: 800,
-                  letterSpacing: '0.05em',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            {licenseFeedback && (
-              <div
-                style={{
-                  padding: '0.85rem 1rem',
-                  borderRadius: '10px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  marginBottom: '1.25rem',
-                  background: licenseFeedback.type === 'success' ? '#dcfce7' : '#fee2e2',
-                  color: licenseFeedback.type === 'success' ? '#166534' : '#991b1b',
-                  border: licenseFeedback.type === 'success' ? '1px solid #86efac' : '1px solid #fca5a5',
-                }}
-              >
-                {licenseFeedback.message}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowLicenseModal(false)}
-                  style={{
-                    padding: '0.65rem 1.15rem',
-                    borderRadius: '10px',
-                    border: '1px solid #cbd5e1',
-                    background: '#ffffff',
-                    cursor: 'pointer',
-                    fontSize: '0.82rem',
-                    fontWeight: 700,
-                  }}
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!licenseKeyInput.trim()) {
-                      setLicenseFeedback({ type: 'error', message: 'Please enter a valid product key.' })
-                      return
-                    }
-                    const res = await licensingStore.redeemProductKey(licenseKeyInput.trim(), school.slug)
-                    if (res.success) {
-                      setLicenseFeedback({ type: 'success', message: res.message })
-                      const updated = tenantSchoolStore.getSchoolBySlug(school.slug)
-                      if (updated) setSchool(updated)
-                    } else {
-                      setLicenseFeedback({ type: 'error', message: res.message })
-                    }
-                  }}
-                  style={{
-                    padding: '0.65rem 1.35rem',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: primaryColor,
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    fontSize: '0.82rem',
-                  }}
-                >
-                  Activate License
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <TenantLicenseActivationModal
+        isOpen={showLicenseModal}
+        onClose={() => setShowLicenseModal(false)}
+        school={school}
+        primaryColor={primaryColor}
+        isLicenseActive={isLicenseActive}
+        onLicenseActivated={(updated) => setSchool(updated)}
+      />
 
       {/* Online Admission Application Modal */}
       <TenantApplyAdmissionModal

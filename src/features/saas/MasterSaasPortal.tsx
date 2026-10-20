@@ -13,11 +13,15 @@ import {
   SUBSCRIPTION_TIER_RATES,
   SUBSCRIPTION_TIER_DETAILS,
 } from '@/types/licensing'
-import type { PartnerSchoolTenant, InstitutionCategory } from '@/types/tenantSchool'
+import type { PartnerSchoolTenant } from '@/types/tenantSchool'
 import { SearchIcon } from '@/components/icons/AppIcons'
 import { AppLogo } from '@/components/common/AppLogo'
 import { SaasPushNotificationManager } from './components/SaasPushNotificationManager'
 import { SaasSupportChatDesk } from './components/SaasSupportChatDesk'
+import { SaasMpesaGatewayManager } from './components/SaasMpesaGatewayManager'
+import { SaasRecordPaymentModal } from './components/SaasRecordPaymentModal'
+import { SaasInstitutionInspectorModal } from './components/SaasInstitutionInspectorModal'
+import { SaasInstitutionEditModal, type EditInstitutionFormPayload } from './components/SaasInstitutionEditModal'
 import { pushNotificationService } from '@/lib/pushNotificationService'
 import { supportChatService } from '@/lib/supportChatService'
 import { checkForOTAUpdates } from '@/lib/otaUpdater'
@@ -33,7 +37,7 @@ export function MasterSaasPortal() {
   const [authError, setAuthError] = useState<string | null>(null)
 
   // Navigation Tabs: 'keys' | 'institutions' | 'invoices' | 'support_desk' | 'notifications' | 'mobile_apks'
-  const [activeTab, setActiveTab] = useState<'keys' | 'institutions' | 'invoices' | 'support_desk' | 'notifications' | 'mobile_apks'>('keys')
+  const [activeTab, setActiveTab] = useState<'keys' | 'institutions' | 'invoices' | 'support_desk' | 'notifications' | 'mobile_apks' | 'mpesa_gateway'>('keys')
   const [copiedShareMsg, setCopiedShareMsg] = useState(false)
   const [notificationCount, setNotificationCount] = useState<number>(() =>
     pushNotificationService.getHistory().length
@@ -106,10 +110,6 @@ export function MasterSaasPortal() {
 
   // Payment Recording Modal
   const [paymentModalSchool, setPaymentModalSchool] = useState<PartnerSchoolTenant | null>(null)
-  const [mpesaRefInput, setMpesaRefInput] = useState('')
-  const [paymentPeriodInput, setPaymentPeriodInput] = useState(() =>
-    new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })
-  )
 
   // Search filter
   const [searchFilter, setSearchFilter] = useState('')
@@ -117,28 +117,6 @@ export function MasterSaasPortal() {
   // Selected School Detail & Password Reset State
   const [inspectedSchool, setInspectedSchool] = useState<PartnerSchoolTenant | null>(null)
   const [editingSchool, setEditingSchool] = useState<PartnerSchoolTenant | null>(null)
-  const [editFormData, setEditFormData] = useState({
-    name: '',
-    motto: '',
-    curriculum_type: 'General Academic & Multi-Disciplinary',
-    institution_category: 'college' as InstitutionCategory,
-    contact_phone: '',
-    contact_email: '',
-    address: '',
-    city: '',
-    country: '',
-    principal_name: '',
-    principal_title: '',
-    principal_email: '',
-    admin_username: '',
-    admin_password: '',
-    custom_domain: '',
-    campus_count: 1,
-    subscription_tier: 'gold' as SubscriptionTierType,
-    subscription_status: 'licensed' as 'active' | 'trial' | 'past_due' | 'expired' | 'licensed' | 'suspended',
-    primary_color: '#1e3a8a',
-    accent_color: '#d4af37',
-  })
   const [isSavingEdit, setIsSavingEdit] = useState(false)
   const [generatedAdminPasswordMsg, setGeneratedAdminPasswordMsg] = useState<{
     schoolSlug: string
@@ -266,65 +244,40 @@ export function MasterSaasPortal() {
 
   const openEditSchool = (sch: PartnerSchoolTenant) => {
     setEditingSchool(sch)
-    setEditFormData({
-      name: sch.name || '',
-      motto: sch.motto || '',
-      curriculum_type: sch.curriculum_type || 'General Academic & Multi-Disciplinary',
-      institution_category: sch.institution_category || 'college',
-      contact_phone: sch.contact_phone || '',
-      contact_email: sch.contact_email || '',
-      address: sch.address || '',
-      city: sch.city || '',
-      country: sch.country || '',
-      principal_name: sch.principal_name || '',
-      principal_title: sch.principal_title || '',
-      principal_email: sch.principal_email || '',
-      admin_username: sch.admin_username || `${sch.slug}.admin`,
-      admin_password: '',
-      custom_domain: sch.custom_domain || '',
-      campus_count: sch.campus_count || 1,
-      subscription_tier: (sch.subscription_tier as SubscriptionTierType) || 'gold',
-      subscription_status: sch.subscription_status || (sch.active_license_key ? 'licensed' : 'trial'),
-      primary_color: sch.primary_color || '#1e3a8a',
-      accent_color: sch.accent_color || '#d4af37',
-    })
   }
 
-  const handleSaveSchoolEdit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingSchool) return
-
+  const handleSaveSchoolEdit = async (slug: string, payload: EditInstitutionFormPayload) => {
     setIsSavingEdit(true)
     try {
-      const updated = tenantSchoolStore.updateSchoolBranding(editingSchool.slug, {
-        name: editFormData.name.trim() || editingSchool.name,
-        motto: editFormData.motto.trim(),
-        curriculum_type: editFormData.curriculum_type.trim(),
-        institution_category: editFormData.institution_category,
-        contact_phone: editFormData.contact_phone.trim(),
-        contact_email: editFormData.contact_email.trim(),
-        address: editFormData.address.trim(),
-        city: editFormData.city.trim(),
-        country: editFormData.country.trim(),
-        principal_name: editFormData.principal_name.trim(),
-        principal_title: editFormData.principal_title.trim() || 'Principal / Provost',
-        principal_email: editFormData.principal_email.trim() || editFormData.contact_email.trim(),
-        admin_username: editFormData.admin_username.trim(),
-        ...(editFormData.admin_password.trim() ? { admin_password: editFormData.admin_password.trim() } : {}),
-        custom_domain: editFormData.custom_domain.trim() || undefined,
-        campus_count: Number(editFormData.campus_count) || 1,
-        subscription_tier: editFormData.subscription_tier,
-        subscription_status: editFormData.subscription_status,
-        primary_color: editFormData.primary_color.trim() || '#1e3a8a',
-        accent_color: editFormData.accent_color.trim() || '#d4af37',
+      const updated = tenantSchoolStore.updateSchoolBranding(slug, {
+        name: payload.name.trim() || undefined,
+        motto: payload.motto.trim(),
+        curriculum_type: payload.curriculum_type.trim(),
+        institution_category: payload.institution_category,
+        contact_phone: payload.contact_phone.trim(),
+        contact_email: payload.contact_email.trim(),
+        address: payload.address.trim(),
+        city: payload.city.trim(),
+        country: payload.country.trim(),
+        principal_name: payload.principal_name.trim(),
+        principal_title: payload.principal_title.trim() || 'Principal / Provost',
+        principal_email: payload.principal_email.trim() || payload.contact_email.trim(),
+        admin_username: payload.admin_username.trim(),
+        ...(payload.admin_password && payload.admin_password.trim() ? { admin_password: payload.admin_password.trim() } : {}),
+        custom_domain: payload.custom_domain ? payload.custom_domain.trim() : undefined,
+        campus_count: Number(payload.campus_count) || 1,
+        subscription_tier: payload.subscription_tier,
+        subscription_status: payload.subscription_status,
+        primary_color: payload.primary_color ? payload.primary_color.trim() : '#1e3a8a',
+        accent_color: payload.accent_color ? payload.accent_color.trim() : '#d4af37',
       })
       await tenantSchoolStore.pushToCloud()
       setSchools(tenantSchoolStore.getSchools())
-      if (inspectedSchool && inspectedSchool.slug === editingSchool.slug && updated) {
+      if (inspectedSchool && inspectedSchool.slug === slug && updated) {
         setInspectedSchool(updated)
       }
       setEditingSchool(null)
-      setActionSuccessToast(`Institution "${editFormData.name || editingSchool.name}" updated & synchronized across network.`)
+      setActionSuccessToast(`Institution "${payload.name || slug}" updated & synchronized across network.`)
       setTimeout(() => setActionSuccessToast(null), 3500)
     } finally {
       setIsSavingEdit(false)
@@ -369,31 +322,33 @@ export function MasterSaasPortal() {
   }
 
   // Handle Record Direct Payment
-  const handleRecordPayment = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!paymentModalSchool || !mpesaRefInput.trim()) return
-
-    const cCount = paymentModalSchool.campus_count || 1
+  const handleConfirmPayment = (
+    school: PartnerSchoolTenant,
+    billingPeriod: string,
+    mpesaRef: string
+  ) => {
+    const cCount = school.campus_count || 1
     licensingStore.createInvoice({
-      school_slug: paymentModalSchool.slug,
-      school_name: paymentModalSchool.name,
-      billing_period: paymentPeriodInput,
+      school_slug: school.slug,
+      school_name: school.name,
+      billing_period: billingPeriod,
       campus_count: cCount,
-      campuses: paymentModalSchool.campuses_list?.map((c) => c.name) || ['Main Campus'],
+      campuses: school.campuses_list?.map((c) => c.name) || ['Main Campus'],
       status: 'paid',
       payment_method: 'M-Pesa Paybill / Till',
-      transaction_ref: mpesaRefInput.trim().toUpperCase(),
+      transaction_ref: mpesaRef,
       paid_at: new Date().toISOString(),
     })
 
-    tenantSchoolStore.updateSchoolBranding(paymentModalSchool.slug, {
+    tenantSchoolStore.updateSchoolBranding(school.slug, {
       subscription_status: 'active',
     })
 
     setSchools(tenantSchoolStore.getSchools())
     setInvoices(licensingStore.getInvoices())
     setPaymentModalSchool(null)
-    setMpesaRefInput('')
+    setActionSuccessToast(`Payment of KES ${(cCount * 2500).toLocaleString()} recorded for ${school.name}.`)
+    setTimeout(() => setActionSuccessToast(null), 3500)
   }
 
   // Handle WhatsApp Sharing & APK distribution
@@ -1143,6 +1098,15 @@ export function MasterSaasPortal() {
                 badgeText: `${notificationCount}`,
                 badgeBg: 'rgba(139, 92, 246, 0.25)',
                 badgeColor: '#c084fc',
+              },
+              {
+                id: 'mpesa_gateway' as const,
+                label: 'Daraja Gateway',
+                icon: '⚡',
+                count: 0,
+                badgeText: 'Config',
+                badgeBg: 'rgba(16, 185, 129, 0.25)',
+                badgeColor: '#34d399',
               },
             ].map((tab) => {
               const active = activeTab === tab.id
@@ -2541,93 +2505,19 @@ export function MasterSaasPortal() {
           <SaasPushNotificationManager schools={schools} />
         )}
 
-        {/* Modal: Record Direct M-Pesa / Bank Payment */}
-        {paymentModalSchool && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(9, 13, 22, 0.75)',
-              backdropFilter: 'blur(4px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              padding: '1.25rem',
-            }}
-            onClick={() => setPaymentModalSchool(null)}
-          >
-            <div
-              style={{
-                background: '#131b2e',
-                borderRadius: '24px',
-                maxWidth: '480px',
-                width: '100%',
-                padding: '2rem',
-                border: '1px solid #1e293b',
-                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6)',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.2rem', fontWeight: 900 }}>
-                Record Payment for {paymentModalSchool.name}
-              </h3>
-              <p style={{ margin: '0 0 1.25rem', fontSize: '0.8rem', color: '#94a3b8' }}>
-                Rate: KES 2,500/campus × {paymentModalSchool.campus_count || 1} campus(es) ={' '}
-                <strong style={{ color: '#10b981' }}>
-                  KES {((paymentModalSchool.campus_count || 1) * 2500).toLocaleString()}
-                </strong>{' '}
-                (Received via M-Pesa <strong>0740027346</strong>)
-              </p>
-
-              <form onSubmit={handleRecordPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <label htmlFor={`${formId}-pay-period`} style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '5px' }}>
-                    BILLING PERIOD
-                  </label>
-                  <input
-                    id={`${formId}-pay-period`}
-                    type="text"
-                    value={paymentPeriodInput}
-                    onChange={(e) => setPaymentPeriodInput(e.target.value)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', background: '#0a0f1d', border: '1px solid #334155', color: '#ffffff', fontSize: '0.9rem' }}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor={`${formId}-mpesa-ref`} style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '5px' }}>
-                    M-PESA CONFIRMATION CODE *
-                  </label>
-                  <input
-                    id={`${formId}-mpesa-ref`}
-                    type="text"
-                    required
-                    placeholder="e.g. QBF9204KLL"
-                    value={mpesaRefInput}
-                    onChange={(e) => setMpesaRefInput(e.target.value)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', background: '#0a0f1d', border: '1px solid #334155', color: '#fbbf24', fontSize: '0.95rem', fontWeight: 900 }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentModalSchool(null)}
-                    style={{ flex: 1, background: '#1e293b', color: '#cbd5e1', border: 'none', padding: '0.75rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 800, cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    style={{ flex: 2, background: '#10b981', color: '#064e3b', border: 'none', padding: '0.75rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 900, cursor: 'pointer' }}
-                  >
-                    Confirm &amp; Extend License
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+        {/* =========================================================================
+            TAB 7: M-PESA DARAJA GATEWAY SETTINGS & UNHARDCODED TEST BENCH
+        ========================================================================= */}
+        {activeTab === 'mpesa_gateway' && (
+          <SaasMpesaGatewayManager />
         )}
+
+        {/* Modal: Record Direct M-Pesa / Bank Payment */}
+        <SaasRecordPaymentModal
+          school={paymentModalSchool}
+          onClose={() => setPaymentModalSchool(null)}
+          onConfirm={handleConfirmPayment}
+        />
 
         {/* MODAL: RESET ADMIN PASSWORD NOTIFICATION */}
         {generatedAdminPasswordMsg && (
@@ -2799,771 +2689,24 @@ export function MasterSaasPortal() {
         )}
 
         {/* MODAL: FULL REGISTERED SCHOOL INFORMATION INSPECTOR */}
-        {inspectedSchool && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.7)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              padding: '1.25rem',
-            }}
-            onClick={() => setInspectedSchool(null)}
-          >
-            <div
-              style={{
-                background: '#131b2e',
-                borderRadius: '24px',
-                maxWidth: '720px',
-                width: '100%',
-                maxHeight: '90vh',
-                overflowY: 'auto',
-                padding: '2rem',
-                border: '1px solid #334155',
-                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.7)',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', borderBottom: '1px solid #1e293b', paddingBottom: '1rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    🏛️ Full Institution Dossier
-                  </span>
-                  <h3 style={{ margin: '4px 0 0', fontSize: '1.4rem', fontWeight: 900, color: '#f8fafc' }}>
-                    {inspectedSchool.name}
-                  </h3>
-                  <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
-                    URL Slug: <strong>{inspectedSchool.slug}</strong> • Custom Domain: <strong>{inspectedSchool.custom_domain || 'None (Using Subdomain)'}</strong>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setInspectedSchool(null)}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Grid of Profile Information */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Operational Status</div>
-                  <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <select
-                      value={inspectedSchool.subscription_status || (inspectedSchool.active_license_key ? 'licensed' : 'trial')}
-                      onChange={(e) => handleToggleStatus(inspectedSchool.slug, e.target.value as any)}
-                      style={{
-                        padding: '6px 10px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        fontWeight: 800,
-                        border: '1px solid ' + (
-                          inspectedSchool.subscription_status === 'licensed' ? '#059669' :
-                          inspectedSchool.subscription_status === 'active' ? '#2563eb' :
-                          inspectedSchool.subscription_status === 'suspended' ? '#dc2626' :
-                          inspectedSchool.subscription_status === 'past_due' ? '#d97706' : '#64748b'
-                        ),
-                        background: (
-                          inspectedSchool.subscription_status === 'licensed' ? '#064e3b' :
-                          inspectedSchool.subscription_status === 'active' ? '#1e3a8a' :
-                          inspectedSchool.subscription_status === 'suspended' ? '#7f1d1d' :
-                          inspectedSchool.subscription_status === 'past_due' ? '#78350f' : '#1e293b'
-                        ),
-                        color: '#ffffff',
-                        cursor: 'pointer',
-                        outline: 'none',
-                      }}
-                    >
-                      <option value="active">🟢 ACTIVE</option>
-                      <option value="licensed">🛡️ LICENSED</option>
-                      <option value="trial">🟡 TRIAL</option>
-                      <option value="past_due">⚠️ PAST DUE</option>
-                      <option value="suspended">🔴 SUSPENDED</option>
-                    </select>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                      Tier: <strong>{(inspectedSchool.subscription_tier || 'gold').toUpperCase()}</strong>
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Executive Leadership</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#f8fafc', marginTop: '3px' }}>
-                    {inspectedSchool.principal_name}
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-                    Title: {inspectedSchool.principal_title || 'Principal'} • Email: {inspectedSchool.principal_email || inspectedSchool.contact_email}
-                  </div>
-                </div>
-
-                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Administrator Account</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fbbf24', marginTop: '3px', fontFamily: 'monospace' }}>
-                    Username: {inspectedSchool.admin_username || `${inspectedSchool.slug}.admin`}
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-                    Current Password: <strong style={{ color: '#f8fafc' }}>{inspectedSchool.admin_password || '(Configured)'}</strong>
-                  </div>
-                </div>
-
-                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Campus Configuration</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 900, color: '#f8fafc', marginTop: '3px' }}>
-                    {inspectedSchool.campus_count || 1} Registered Campus(es)
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-                    {inspectedSchool.subscription_tier === 'lifetime' || inspectedSchool.subscription_billing_cycle === 'lifetime'
-                      ? `Lifetime License: KES ${((inspectedSchool.campus_count || 1) * 30000).toLocaleString()} One-Time (+ KES ${((inspectedSchool.campus_count || 1) * 1000).toLocaleString()}/yr Maint.)`
-                      : `Billing Rate: KES ${((inspectedSchool.campus_count || 1) * 2500).toLocaleString()} / Month`}
-                  </div>
-                </div>
-
-                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '14px', border: '1px solid #1e293b' }}>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Institutional Contacts</div>
-                  <div style={{ fontSize: '0.85rem', color: '#f8fafc', marginTop: '3px' }}>
-                    📞 {inspectedSchool.contact_phone}
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
-                    ✉️ {inspectedSchool.contact_email}
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>
-                    📍 {inspectedSchool.address || `${inspectedSchool.city}, ${inspectedSchool.country}`}
-                  </div>
-                </div>
-              </div>
-
-              {/* Registered Counts */}
-              <div style={{ background: '#0a0f1d', padding: '1.25rem', borderRadius: '14px', border: '1px solid #1e293b', marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-                  Live Enrolled Members &amp; Academic Structure
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ background: '#131b2e', padding: '0.75rem', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
-                      {tenantSchoolStore.getStudentsBySchool(inspectedSchool.slug).length}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Students</div>
-                  </div>
-                  <div style={{ background: '#131b2e', padding: '0.75rem', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
-                      {tenantSchoolStore.getStaffBySchool(inspectedSchool.slug).length}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Staff &amp; Teachers</div>
-                  </div>
-                  <div style={{ background: '#131b2e', padding: '0.75rem', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
-                      {(inspectedSchool.departments_list || []).length}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Faculties</div>
-                  </div>
-                  <div style={{ background: '#131b2e', padding: '0.75rem', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 900, color: '#f8fafc' }}>
-                      {(inspectedSchool.classes_list || []).length}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Cohorts</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons inside inspector */}
-              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const sch = inspectedSchool
-                    setInspectedSchool(null)
-                    openEditSchool(sch)
-                  }}
-                  style={{
-                    background: '#1d4ed8',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '0.7rem 1.25rem',
-                    borderRadius: '10px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    fontSize: '0.84rem',
-                  }}
-                >
-                  ✏️ Edit Profile
-                </button>
-                {inspectedSchool.subscription_status === 'suspended' ? (
-                  <button
-                    type="button"
-                    onClick={() => handleToggleStatus(inspectedSchool.slug, 'active')}
-                    style={{
-                      background: '#047857',
-                      color: '#d1fae5',
-                      border: 'none',
-                      padding: '0.7rem 1.25rem',
-                      borderRadius: '10px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      fontSize: '0.84rem',
-                    }}
-                  >
-                    ▶ Reactivate Institution
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleToggleStatus(inspectedSchool.slug, 'suspended')}
-                    style={{
-                      background: '#451a1a',
-                      color: '#fca5a5',
-                      border: '1px solid #7f1d1d',
-                      padding: '0.7rem 1.25rem',
-                      borderRadius: '10px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      fontSize: '0.84rem',
-                    }}
-                  >
-                    ⏸ Suspend Institution
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleResetPassword(inspectedSchool.slug)}
-                  style={{
-                    background: '#854d0e',
-                    color: '#fef08a',
-                    border: 'none',
-                    padding: '0.7rem 1.25rem',
-                    borderRadius: '10px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    fontSize: '0.84rem',
-                  }}
-                >
-                  ⚡ Regenerate Admin Password
-                </button>
-                <Link
-                  to={`/s/${inspectedSchool.slug}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    padding: '0.7rem 1.25rem',
-                    borderRadius: '10px',
-                    fontWeight: 800,
-                    textDecoration: 'none',
-                    fontSize: '0.84rem',
-                  }}
-                >
-                  Open Campus Hub →
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setInspectedSchool(null)}
-                  style={{
-                    background: '#1e293b',
-                    color: '#cbd5e1',
-                    border: 'none',
-                    padding: '0.7rem 1.25rem',
-                    borderRadius: '10px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    fontSize: '0.84rem',
-                  }}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <SaasInstitutionInspectorModal
+          school={inspectedSchool}
+          onClose={() => setInspectedSchool(null)}
+          onToggleStatus={handleToggleStatus}
+          onResetPassword={handleResetPassword}
+          onEditSchool={(sch) => {
+            setInspectedSchool(null)
+            openEditSchool(sch)
+          }}
+        />
 
         {/* MODAL: EDIT INSTITUTION PROFILE */}
-        {editingSchool && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0,0,0,0.75)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              padding: '1.25rem',
-            }}
-            onClick={() => setEditingSchool(null)}
-          >
-            <div
-              style={{
-                background: '#131b2e',
-                borderRadius: '24px',
-                maxWidth: '640px',
-                width: '100%',
-                maxHeight: '90vh',
-                overflowY: 'auto',
-                padding: '2rem',
-                border: '1px solid #3b82f6',
-                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.7)',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #1e293b', paddingBottom: '1rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    ✏️ Update Institution Profile
-                  </span>
-                  <h3 style={{ margin: '4px 0 0', fontSize: '1.3rem', fontWeight: 900, color: '#f8fafc' }}>
-                    {editingSchool.name}
-                  </h3>
-                  <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>
-                    Slug: <strong>{editingSchool.slug}</strong> (Permanent identifier)
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEditingSchool(null)}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.3rem', cursor: 'pointer' }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveSchoolEdit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                    INSTITUTION FULL NAME *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editFormData.name}
-                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '10px',
-                      background: '#0a0f1d',
-                      border: '1px solid #334155',
-                      color: '#ffffff',
-                      fontSize: '0.88rem',
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      INSTITUTION CATEGORY *
-                    </label>
-                    <select
-                      value={editFormData.institution_category}
-                      onChange={(e) => setEditFormData({ ...editFormData, institution_category: e.target.value as InstitutionCategory })}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    >
-                      <option value="college">College / Polytechnic</option>
-                      <option value="school">Primary / High School (K-12)</option>
-                      <option value="university">University / Higher Education</option>
-                      <option value="academy">Professional &amp; Tech Academy</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      OPERATIONAL STATUS *
-                    </label>
-                    <select
-                      value={editFormData.subscription_status}
-                      onChange={(e) => setEditFormData({ ...editFormData, subscription_status: e.target.value as any })}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    >
-                      <option value="active">🟢 Active</option>
-                      <option value="licensed">🛡️ Licensed</option>
-                      <option value="trial">🟡 Trial</option>
-                      <option value="past_due">⚠️ Past Due</option>
-                      <option value="suspended">🔴 Suspended</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      INSTITUTION MOTTO / SLOGAN
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.motto}
-                      onChange={(e) => setEditFormData({ ...editFormData, motto: e.target.value })}
-                      placeholder="e.g. Excellence in Technical Skill"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      CURRICULUM / SECTOR
-                    </label>
-                    <select
-                      value={editFormData.curriculum_type}
-                      onChange={(e) => setEditFormData({ ...editFormData, curriculum_type: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    >
-                      <option value="Vocational & Technical College">Vocational &amp; Technical College</option>
-                      <option value="General Academic & Multi-Disciplinary">General Academic &amp; Multi-Disciplinary</option>
-                      <option value="STEM & Technology Institute">STEM &amp; Technology Institute</option>
-                      <option value="Business & Professional Academy">Business &amp; Professional Academy</option>
-                      <option value="National / CBC Curriculum">National / CBC Curriculum</option>
-                      <option value="International Academic Curriculum">International Academic Curriculum</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Leadership & Credentials */}
-                <div style={{ background: '#0a0f1d', padding: '1rem', borderRadius: '12px', border: '1px solid #1e293b' }}>
-                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-                    👑 Executive Leadership &amp; Administrator Login
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '3px' }}>
-                        PRINCIPAL / PROVOST NAME *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={editFormData.principal_name}
-                        onChange={(e) => setEditFormData({ ...editFormData, principal_name: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.65rem',
-                          borderRadius: '8px',
-                          background: '#131b2e',
-                          border: '1px solid #334155',
-                          color: '#ffffff',
-                          fontSize: '0.84rem',
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '3px' }}>
-                        TITLE
-                      </label>
-                      <input
-                        type="text"
-                        value={editFormData.principal_title}
-                        onChange={(e) => setEditFormData({ ...editFormData, principal_title: e.target.value })}
-                        placeholder="Principal / Provost / Dean"
-                        style={{
-                          width: '100%',
-                          padding: '0.65rem',
-                          borderRadius: '8px',
-                          background: '#131b2e',
-                          border: '1px solid #334155',
-                          color: '#ffffff',
-                          fontSize: '0.84rem',
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '3px' }}>
-                        ADMIN LOGIN ID (USERNAME) *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={editFormData.admin_username}
-                        onChange={(e) => setEditFormData({ ...editFormData, admin_username: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '0.65rem',
-                          borderRadius: '8px',
-                          background: '#131b2e',
-                          border: '1px solid #334155',
-                          color: '#38bdf8',
-                          fontFamily: 'monospace',
-                          fontSize: '0.84rem',
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 800, color: '#94a3b8', marginBottom: '3px' }}>
-                        CHANGE ADMIN PASSWORD
-                      </label>
-                      <input
-                        type="text"
-                        value={editFormData.admin_password}
-                        onChange={(e) => setEditFormData({ ...editFormData, admin_password: e.target.value })}
-                        placeholder="Leave blank to keep existing"
-                        style={{
-                          width: '100%',
-                          padding: '0.65rem',
-                          borderRadius: '8px',
-                          background: '#131b2e',
-                          border: '1px solid #334155',
-                          color: '#fbbf24',
-                          fontFamily: 'monospace',
-                          fontSize: '0.84rem',
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subscription Tier & Campuses */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      REGISTERED CAMPUSES
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={editFormData.campus_count}
-                      onChange={(e) => setEditFormData({ ...editFormData, campus_count: Number(e.target.value) || 1 })}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      SUBSCRIPTION TIER
-                    </label>
-                    <select
-                      value={editFormData.subscription_tier}
-                      onChange={(e) => setEditFormData({ ...editFormData, subscription_tier: e.target.value as SubscriptionTierType })}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    >
-                      <option value="silver">Standard Monthly Plan (KES 2,500 / mo per campus)</option>
-                      <option value="lifetime">♾️ Lifetime Purchase (KES 30,000 + KES 1,000/yr Maint.)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Contacts & Location */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      CONTACT PHONE
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.contact_phone}
-                      onChange={(e) => setEditFormData({ ...editFormData, contact_phone: e.target.value })}
-                      placeholder="+254 700 000 000"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      CONTACT EMAIL
-                    </label>
-                    <input
-                      type="email"
-                      value={editFormData.contact_email}
-                      onChange={(e) => setEditFormData({ ...editFormData, contact_email: e.target.value })}
-                      placeholder="admissions@school.edu"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      CITY / TOWN
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.city}
-                      onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
-                      placeholder="e.g. Nairobi, Nakuru, Eldoret"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                      COUNTRY
-                    </label>
-                    <input
-                      type="text"
-                      value={editFormData.country}
-                      onChange={(e) => setEditFormData({ ...editFormData, country: e.target.value })}
-                      placeholder="e.g. Kenya"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '10px',
-                        background: '#0a0f1d',
-                        border: '1px solid #334155',
-                        color: '#ffffff',
-                        fontSize: '0.88rem',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                    CAMPUS PHYSICAL ADDRESS
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.address}
-                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                    placeholder="e.g. Commercial Street, Westlands, Nairobi"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '10px',
-                      background: '#0a0f1d',
-                      border: '1px solid #334155',
-                      color: '#ffffff',
-                      fontSize: '0.88rem',
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#94a3b8', marginBottom: '4px' }}>
-                    CUSTOM DOMAIN (OPTIONAL)
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.custom_domain}
-                    onChange={(e) => setEditFormData({ ...editFormData, custom_domain: e.target.value })}
-                    placeholder="e.g. portal.apextech.ac.ke or lms.school.edu"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '10px',
-                      background: '#0a0f1d',
-                      border: '1px solid #334155',
-                      color: '#ffffff',
-                      fontSize: '0.88rem',
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid #1e293b', paddingTop: '1rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setEditingSchool(null)}
-                    style={{
-                      flex: 1,
-                      background: '#1e293b',
-                      color: '#cbd5e1',
-                      border: 'none',
-                      padding: '0.8rem',
-                      borderRadius: '10px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSavingEdit}
-                    style={{
-                      flex: 2,
-                      background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '0.8rem',
-                      borderRadius: '10px',
-                      fontWeight: 900,
-                      cursor: isSavingEdit ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
-                    }}
-                  >
-                    {isSavingEdit ? 'Saving Changes...' : '💾 Save & Sync Across Network'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        <SaasInstitutionEditModal
+          school={editingSchool}
+          onClose={() => setEditingSchool(null)}
+          onSave={handleSaveSchoolEdit}
+          isSaving={isSavingEdit}
+        />
       </main>
     </div>
   )
